@@ -1,0 +1,17 @@
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build artifacts
+build/
+*.spec.bak
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/

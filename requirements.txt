@@ -1,0 +1,4 @@
+# Requires Python 3.7 or newer
+customtkinter>=5.0.0
+requests>=2.25.0
+pyinstaller>=5.0.0
