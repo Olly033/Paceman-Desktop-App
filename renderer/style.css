@@ -81,9 +81,9 @@
   --text-muted: rgba(255, 255, 255, 0.35);
   --accent: #a78bfa;
   --accent-light: #c4b5fd;
-  --gradient-1: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-  --gradient-2: linear-gradient(135deg, #312e81 0%, #4338ca 100%);
-  --gradient-3: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%);
+  --gradient-1: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+  --gradient-2: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%);
+  --gradient-3: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
 
   --blob-1: #4c1d95;
