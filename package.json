@@ -1,0 +1,47 @@
+{
+  "name": "paceman-app",
+  "version": "1.0.0",
+  "description": "Paceman MCSR Desktop App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "dist": "electron-builder --win"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "lavamoat": {
+    "allowScripts": {
+      "electron": true,
+      "electron-builder": true
+    }
+  },
+  "build": {
+    "appId": "com.paceman.app",
+    "productName": "Paceman",
+    "icon": "icon.png",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "ia32", "arm64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64", "ia32", "arm64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "allowScripts": {
+    "electron@28.3.3": true
+  }
+}

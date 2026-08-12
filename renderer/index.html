@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paceman</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg" aria-hidden="true">
+    <div class="bg-blob bg-blob-1"></div>
+    <div class="bg-blob bg-blob-2"></div>
+    <div class="bg-blob bg-blob-3"></div>
+    <div class="bg-texture"></div>
+    <div class="bg-vignette"></div>
+  </div>
+  <div class="app">
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">PACEMAN</div>
+        <nav class="nav">
+          <button class="nav-btn active" data-page="home">Live Runs</button>
+          <button class="nav-btn" data-page="leaderboard">Leaderboard</button>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="search-container">
+          <input type="text" class="search-input" placeholder="Search player..." id="searchInput">
+          <div class="search-dropdown" id="searchDropdown">
+            <div class="search-section" id="searchRecents">
+              <div class="search-section-title">Recent Searches</div>
+              <div class="search-list" id="recentsList"></div>
+            </div>
+            <div class="search-section" id="searchResults">
+              <div class="search-section-title">Players</div>
+              <div class="search-list" id="resultsList"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-switcher" id="themeSwitcher">
+          <button class="theme-btn" id="themeBtn" title="Change theme">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M12 3a9 9 0 0 0 0 18z"></path>
+            </svg>
+          </button>
+          <div class="theme-options" id="themeOptions"></div>
+        </div>
+      </div>
+      <button class="streams-btn" id="streamsToggle" title="Show/hide stream dock">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 2L3 6v13h4v3h3l3-3h4l5-5V2H4zm16 9l-3 3h-5l-3 3v-3H6V4h14v7z"></path>
+          <path d="M15 7h2v4h-2zM10 7h2v4h-2z"></svg>
+        <span id="streamsCount">0</span>
+      </button>
+      <button class="auto-open-btn" id="autoOpenTwitchBtn" title="Auto-open Twitch streams">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <line x1="10" y1="14" x2="21" y2="3"></line>
+        </svg>
+      </button>
+    </header>
+
+    <main class="main-content">
+      <div class="page active" id="page-home">
+        <div class="page-header">
+          <h1>Live Runs</h1>
+          <div class="page-header-actions">
+            <button class="filter-btn" id="filterBtn" title="Filters">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"></path>
+                <path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"></path>
+                <path d="M12 2v2"></path>
+                <path d="M12 22v2"></path>
+                <path d="M2 12h2"></path>
+                <path d="M22 12h2"></path>
+                <path d="M4.93 4.93l1.41 1.41"></path>
+                <path d="M17.66 17.66l1.41 1.41"></path>
+                <path d="M4.93 19.07l1.41-1.41"></path>
+                <path d="M17.66 6.34l1.41-1.41"></path>
+              </svg>
+            </button>
+            <div class="sort-controls" id="liveSort">
+              <button class="sort-btn active" data-sort="stage">Stage</button>
+              <button class="sort-btn" data-sort="time">Time</button>
+            </div>
+          </div>
+        </div>
+        <div class="runs-list" id="runsList">
+          <div class="loading">Loading live runs...</div>
+        </div>
+      </div>
+      <div class="page" id="page-profile">
+        <div class="profile-header">
+          <div class="profile-head-container" id="head3dContainer"></div>
+          <div class="profile-info">
+            <h1 id="profileName">Player Name</h1>
+            <div class="profile-stats-row" id="profileStatsRow"></div>
+          </div>
+        </div>
+        <div class="timeframe-tabs" id="profileTimeframes">
+          <button class="timeframe-btn" data-tf="session">Session</button>
+          <button class="timeframe-btn active" data-tf="daily">Daily</button>
+          <button class="timeframe-btn" data-tf="weekly">Weekly</button>
+          <button class="timeframe-btn" data-tf="monthly">Monthly</button>
+          <button class="timeframe-btn" data-tf="lifetime">Lifetime</button>
+        </div>
+        <div class="session-stats" id="sessionStats"></div>
+        <div class="profile-grid">
+          <div class="profile-splits" id="profileSplits"></div>
+          <div class="profile-runs">
+            <h3>Best Daily Runs</h3>
+            <div class="runs-list-small" id="profileBestRuns"></div>
+            <button class="view-all-btn" id="viewAllRunsBtn">View All Runs</button>
+          </div>
+        </div>
+        <div class="all-runs-modal" id="allRunsModal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2>All Runs</h2>
+              <button class="modal-close" id="closeAllRuns">&times;</button>
+            </div>
+            <div class="runs-list" id="allRunsList"></div>
+            <div class="pagination" id="runsPagination"></div>
+          </div>
+        </div>
+      </div>      
+
+        <div class="page" id="page-leaderboard">
+          <div class="page-header">
+            <h1>Leaderboard</h1>
+            <div class="timeframe-tabs" id="leaderboardTimeframes">
+              <button class="timeframe-btn" data-tf="daily">Daily</button>
+              <button class="timeframe-btn active" data-tf="weekly">Weekly</button>
+              <button class="timeframe-btn" data-tf="monthly">Monthly</button>
+              <button class="timeframe-btn" data-tf="lifetime">Lifetime</button>
+            </div>
+            <div class="lb-sort-toggle" id="lbSortToggle">
+              <button class="lb-sort-btn active" data-sort="enters">Enters</button>
+              <button class="lb-sort-btn" data-sort="avg">Avg Time</button>
+            </div>
+          </div>
+          <div class="lb-grid" id="leaderboardGrid"></div>
+        </div>
+    </main>
+
+    <div class="filter-overlay" id="filterOverlay">
+      <div class="filter-modal">
+        <div class="modal-header">
+          <h2>Filters</h2>
+          <button class="modal-close" id="closeFilter">&times;</button>
+        </div>
+        <div class="filter-content">
+          <div class="filter-group">
+            <label>
+              <input type="checkbox" id="filterStreamingOnly">
+              Only show livestreaming players
+            </label>
+          </div>
+          <div class="filter-group">
+            <label>Maximum time per split (min:sec, empty = no limit)</label>
+            <div class="filter-splits" id="filterSplits"></div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn-primary" id="applyFilters">Apply</button>
+            <button class="btn-secondary" id="resetFilters">Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="twitch-dock" id="twitchDock">
+      <div class="twitch-dock-bar">
+        <span class="twitch-dock-title">Live Streams</span>
+        <div class="twitch-dock-bar-actions">
+          <button class="twitch-dock-layout" id="twitchDockLayout" title="Toggle side / bottom layout">&#9634;</button>
+          <button class="twitch-dock-collapse" id="twitchDockCollapse" title="Hide dock">&#9662;</button>
+        </div>
+      </div>
+      <div class="twitch-dock-body">
+        <div class="twitch-dock-main" id="twitchDockMain"></div>
+        <div class="twitch-dock-thumbs" id="twitchDockThumbs"></div>
+      </div>
+    </div>
+
+    <div class="run-detail-overlay" id="runDetailOverlay">
+      <div class="run-detail-modal">
+        <div class="modal-header">
+          <h2 id="runDetailTitle">Run</h2>
+          <button class="modal-close" id="closeRunDetail">&times;</button>
+        </div>
+        <div class="run-detail-body" id="runDetailBody">
+          <div class="detail-splits" id="runDetailSplits"></div>
+          <div class="detail-vod" id="runDetailVod" style="display:none">
+            <h3>Twitch VOD</h3>
+            <webview id="runVodWebview" src="about:blank" allowpopups style="width:100%;height:360px;border-radius:12px;background:#000"></webview>
+            <div class="vod-controls">
+              <button class="vod-seek-back" id="vodSeekBack" title="Back 5s">-5s</button>
+              <button class="vod-speed" id="vodSpeed" title="Toggle 2x speed">1x</button>
+              <button class="vod-seek-forward" id="vodSeekForward" title="Forward 5s">+5s</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
