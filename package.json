@@ -24,28 +24,15 @@
     "appId": "com.paceman.app",
     "productName": "Paceman",
     "icon": "icon.png",
-    "publish": {
-      "provider": "github",
-      "owner": "Olly033",
-      "repo": "Paceman-Desktop-App"
-    },
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64",
-            "ia32",
-            "arm64"
-          ]
+          "arch": ["x64", "ia32", "arm64"]
         },
         {
           "target": "portable",
-          "arch": [
-            "x64",
-            "ia32",
-            "arm64"
-          ]
+          "arch": ["x64", "ia32", "arm64"]
         }
       ]
     },
@@ -53,11 +40,5 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     }
-  },
-  "allowScripts": {
-    "electron@28.3.3": true
-  },
-  "dependencies": {
-    "electron-updater": "^6.8.9"
   }
 }
