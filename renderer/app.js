@@ -48,7 +48,6 @@
     { name: "ocean", label: "Ocean" },
     { name: "emerald", label: "Emerald" },
     { name: "sunset", label: "Sunset" },
-    { name: "midnight", label: "Midnight" },
     { name: "blackout", label: "Blackout" },
     { name: "light", label: "Light" },
   ];
