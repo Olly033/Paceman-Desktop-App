@@ -24,6 +24,11 @@
     "appId": "com.paceman.app",
     "productName": "Paceman",
     "icon": "icon.png",
+    "publish": {
+      "provider": "github",
+      "owner": "Olly033",
+      "repo": "Paceman-Desktop-App"
+    },
     "win": {
       "target": [
         {

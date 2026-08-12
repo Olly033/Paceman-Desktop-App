@@ -1262,4 +1262,57 @@
   } else {
     init();
   }
+
+  if (window.pacemanAPI && window.pacemanAPI.onUpdateStatus) {
+    const toast = document.getElementById("updateToast");
+    const toastTitle = document.getElementById("updateTitle");
+    const toastMessage = document.getElementById("updateMessage");
+    const toastAction = document.getElementById("updateAction");
+    const toastClose = document.getElementById("updateToastClose");
+
+    window.pacemanAPI.onUpdateStatus((data) => {
+      if (!toast) return;
+      toast.style.display = "block";
+      if (data.status === "checking") {
+        toastTitle.textContent = "Checking for updates...";
+        toastMessage.textContent = "Please wait";
+        toastAction.style.display = "none";
+      } else if (data.status === "available") {
+        toastTitle.textContent = "Update Available";
+        toastMessage.textContent = `Version ${data.version} is downloading...`;
+        toastAction.style.display = "none";
+      } else if (data.status === "not-available") {
+        toastTitle.textContent = "Up to Date";
+        toastMessage.textContent = `Version ${data.version} is the latest`;
+        toastAction.style.display = "none";
+        setTimeout(() => { if (toast) toast.style.display = "none"; }, 3000);
+      } else if (data.status === "error") {
+        toastTitle.textContent = "Update Failed";
+        toastMessage.textContent = data.message || "Could not check for updates";
+        toastAction.style.display = "none";
+        setTimeout(() => { if (toast) toast.style.display = "none"; }, 5000);
+      } else if (data.status === "downloading") {
+        toastTitle.textContent = "Downloading Update";
+        toastMessage.textContent = `${data.percent}% - ${Math.floor(data.transferred / 1024 / 1024)}MB / ${Math.floor(data.total / 1024 / 1024)}MB`;
+        toastAction.style.display = "none";
+      } else if (data.status === "downloaded") {
+        toastTitle.textContent = "Update Ready";
+        toastMessage.textContent = `Version ${data.version} downloaded. Restart to install.`;
+        toastAction.style.display = "inline-block";
+        toastAction.textContent = "Restart";
+      }
+    });
+
+    if (toastAction) {
+      toastAction.addEventListener("click", () => {
+        window.pacemanAPI.installUpdate();
+      });
+    }
+
+    if (toastClose) {
+      toastClose.addEventListener("click", () => {
+        if (toast) toast.style.display = "none";
+      });
+    }
+  }
 })();
