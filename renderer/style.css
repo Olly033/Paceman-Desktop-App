@@ -858,6 +858,17 @@ body {
   color: var(--text-secondary);
 }
 
+.stat-badge.clickable {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stat-badge.clickable:hover {
+  background: var(--bg-glass-hover);
+  border-color: var(--accent);
+  color: var(--accent-light);
+}
+
 .stat-badge b {
   color: var(--accent-light);
   font-size: 15px;

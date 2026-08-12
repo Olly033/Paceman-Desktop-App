@@ -40,6 +40,8 @@
     );
 
   let headMoveHandler = null;
+  let headTargetRy = 0,
+    headTargetRx = 0;
 
   const THEMES = [
     { name: "amethyst", label: "Amethyst" },
@@ -60,7 +62,7 @@
     autoOpenTwitch: JSON.parse(localStorage.getItem("paceman_autoOpenTwitch") || "false"),
     recents: JSON.parse(localStorage.getItem("paceman_recents") || "[]"),
     playerCache: {},
-    profile: { name: null, uuid: null, tf: "daily", allRuns: [], dailyRuns: [], page: 1 },
+    profile: { name: null, uuid: null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1 },
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc" },
   };
 
@@ -319,14 +321,16 @@
   async function openProfile(name, uuid) {
     pushNav({ page: "profile", name, uuid });
     showPage("profile");
-    state.profile = { name, uuid: uuid || null, tf: "daily", allRuns: [], dailyRuns: [], page: 1 };
+    state.profile = { name, uuid: uuid || null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1 };
     document.getElementById("profileName").textContent = name;
     document.getElementById("profileStatsRow").innerHTML =
       '<span class="stat-badge" id="profileCompletion">0 completions</span>' +
       '<span class="stat-badge" id="profileAvg">Avg: 0:00</span>' +
-      '<span class="stat-badge" id="profilePB">PB: --</span>';
+      '<span class="stat-badge clickable" id="profilePB">PB: --</span>';
     document.getElementById("profileSplits").innerHTML = '<div class="loading">Loading stats...</div>';
     document.getElementById("profileBestRuns").innerHTML = '<div class="loading">Loading runs...</div>';
+    const title = document.getElementById("profileBestRunsTitle");
+    if (title) title.textContent = "Best Daily Runs";
     document.querySelectorAll("#profileTimeframes .timeframe-btn").forEach((b) => {
       b.classList.toggle("active", b.dataset.tf === "daily");
     });
@@ -335,6 +339,16 @@
     if (uuid) renderHead3D(document.getElementById("head3dContainer"), uuid);
     addRecent(name);
     await Promise.all([loadProfileStats(), loadProfileRuns()]);
+    const pbBadge = document.getElementById("profilePB");
+    if (pbBadge) {
+      pbBadge.onclick = () => {
+        const run = state.profile.pbRun;
+        if (run) {
+          const runId = run.id || run.worldId || run.runId || run._id || null;
+          if (runId) openRunDetail(runId, state.profile.name, run);
+        }
+      };
+    }
   }
 
   async function loadProfileStats() {
@@ -381,27 +395,43 @@
   }
 
   async function loadProfileRuns() {
-    const { name } = state.profile;
+    const { name, tf } = state.profile;
     try {
-      const [daily, all] = await Promise.all([
-        getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=24&limit=50`),
+      const hours = TF_HOURS[tf] || 24;
+      const [timeframe, all] = await Promise.all([
+        getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=${hours}&limit=5000`),
         getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=999999&limit=5000`),
       ]);
-      state.profile.dailyRuns = daily || [];
+      state.profile.timeframeRuns = timeframe || [];
       state.profile.allRuns = all || [];
       let pb = null;
+      let pbRun = null;
       for (const r of state.profile.allRuns) {
-        if (r.finish != null && (pb == null || r.finish < pb)) pb = r.finish;
+        if (r.finish != null && (pb == null || r.finish < pb)) {
+          pb = r.finish;
+          pbRun = r;
+        }
       }
+      state.profile.pbRun = pbRun;
       document.getElementById("profilePB").textContent = pb != null ? `PB: ${fmt(pb)}` : "PB: --";
-      const ranked = state.profile.dailyRuns
+      const ranked = state.profile.timeframeRuns
         .map((r) => ({ r, f: furthestIndex(r) }))
-        .sort((a, b) => b.f.idx - a.f.idx || a.f.time - b.f.time)
+        .sort((a, b) => {
+          const aFinished = a.r.finish != null;
+          const bFinished = b.r.finish != null;
+          if (aFinished && bFinished) return a.r.finish - b.r.finish;
+          if (aFinished) return -1;
+          if (bFinished) return 1;
+          if (a.f.idx !== b.f.idx) return b.f.idx - a.f.idx;
+          return a.f.time - b.f.time;
+        })
         .slice(0, 5);
       const best = document.getElementById("profileBestRuns");
+      const title = document.getElementById("profileBestRunsTitle");
+      if (title) title.textContent = `Best ${tf.charAt(0).toUpperCase() + tf.slice(1)} Runs`;
       best.innerHTML = "";
       if (ranked.length === 0) {
-        best.innerHTML = '<div class="loading">No daily runs yet.</div>';
+        best.innerHTML = '<div class="loading">No runs yet.</div>';
       } else {
         for (const item of ranked) {
           const div = document.createElement("div");
@@ -785,9 +815,9 @@
     container.appendChild(scene);
 
     if (headMoveHandler) document.removeEventListener("mousemove", headMoveHandler);
-    let targetRy = 0,
-      targetRx = 0,
-      currentRy = 0,
+    headTargetRy = 0;
+    headTargetRx = 0;
+    let currentRy = 0,
       currentRx = 0;
     headMoveHandler = (e) => {
       const rect = container.getBoundingClientRect();
@@ -800,13 +830,13 @@
       const influence = Math.min(1, dist / (maxDist * 0.6));
       const angleX = Math.atan2(dy, window.innerWidth / 2);
       const angleY = Math.atan2(dx, window.innerHeight / 2);
-      targetRy = Math.max(-30, Math.min(30, angleY * (180 / Math.PI) * 0.55));
-      targetRx = Math.max(-20, Math.min(20, -angleX * (180 / Math.PI) * 0.55));
+      headTargetRy = Math.max(-30, Math.min(30, angleY * (180 / Math.PI) * 0.55));
+      headTargetRx = Math.max(-20, Math.min(20, -angleX * (180 / Math.PI) * 0.55));
     };
     document.addEventListener("mousemove", headMoveHandler);
     (function animate() {
-      currentRy += (targetRy - currentRy) * 0.08;
-      currentRx += (targetRx - currentRx) * 0.08;
+      currentRy += (headTargetRy - currentRy) * 0.08;
+      currentRx += (headTargetRx - currentRx) * 0.08;
       scene.style.transform = `rotateY(${currentRy.toFixed(2)}deg) rotateX(${currentRx.toFixed(2)}deg)`;
       requestAnimationFrame(animate);
     })();
@@ -1116,6 +1146,7 @@
         document.querySelectorAll("#profileTimeframes .timeframe-btn").forEach((x) => x.classList.remove("active"));
         b.classList.add("active");
         loadProfileStats();
+        loadProfileRuns();
       });
     });
     document.querySelectorAll("#leaderboardTimeframes .timeframe-btn").forEach((b) => {
@@ -1183,6 +1214,10 @@
       if (document.getElementById("runDetailVod").style.display !== "none") seekVod(5);
     });
     document.getElementById("vodSpeed").addEventListener("click", toggleVodSpeed);
+    document.addEventListener("mouseleave", () => {
+      headTargetRy = 0;
+      headTargetRx = 0;
+    });
     document.getElementById("streamsToggle").addEventListener("click", () => {
       const dock = document.getElementById("twitchDock");
       if (!dock.classList.contains("visible")) {
