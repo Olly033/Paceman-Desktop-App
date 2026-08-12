@@ -1,34 +1,40 @@
-<div align="center">
-
 # Paceman
 
-Paceman mcsr desktop app v2 🫦
-
-</div>
+## Paceman mcsr desktop app v2 🫦
 
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/1.png" width="30%" />
-  <img src="screenshots/2.png" width="30%" />
-  <img src="screenshots/3.png" width="30%" />
+
+![Screenshot 1]([1.png](1.png))
+![Screenshot 2]([2.png](2.png))
+![Screenshot 3]([3.png](3.png))
+
 </p>
 
 <p align="center">
-  <img src="screenshots/4.png" width="30%" />
-  <img src="screenshots/5.png" width="30%" />
-  <img src="screenshots/6.png" width="30%" />
+
+![Screenshot 4]([4.png](4.png))
+![Screenshot 5]([5.png](5.png))
+![Screenshot 6]([6.png](6.png))
+
 </p>
 
 <p align="center">
-  <img src="screenshots/7.png" width="70%" />
+
+![Screenshot 7]([7.png](7.png))
+
 </p>
+
 
 ## Download
 
-Go to the **Releases** section to download the latest version.
+Download the latest version from the **Releases** section.
 
 ## Installation
 
-Download the installer from the latest release and run it.
+1. Download the installer from the latest release.
+2. Run the installer.
+3. Choose where you want Paceman to be installed.
+4. Launch Paceman.
 
