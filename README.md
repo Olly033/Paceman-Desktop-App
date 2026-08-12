@@ -6,8 +6,8 @@
 
 <p align="center">
 
-![Screenshot 1](previews/1.png)
-![Screenshot 2](previews/2.png)
+![Screenshot 1]([previews/1.png](https://github.com/Olly033/Paceman-Desktop-App/blob/89834f2288004b3a01e9512616551bbb768528d4/Previews/1.png)
+![Screenshot 2]([previews/2.png](https://github.com/Olly033/Paceman-Desktop-App/blob/89834f2288004b3a01e9512616551bbb768528d4/Previews/2.png)
 ![Screenshot 3](previews/3.png)
 
 </p>
