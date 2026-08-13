@@ -453,12 +453,21 @@
 
   function timeAgo(ms) {
     if (!ms) return "";
-    const diff = Math.floor((Date.now() - ms) / 1000);
-    if (diff < 60) return "just now";
-    if (diff < 3600) return Math.floor(diff / 60) + "m ago";
-    if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
-    if (diff < 604800) return Math.floor(diff / 86400) + "d ago";
-    return Math.floor(diff / 604800) + "w ago";
+    const d = new Date(ms);
+    const now = new Date();
+    const diffMs = now - d;
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return diffMins + "m ago";
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return diffHours + "h ago";
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return diffDays + "d ago";
+    const diffWeeks = Math.floor(diffDays / 7);
+    if (diffWeeks < 4) return diffWeeks + "w ago";
+    const diffMonths = Math.floor(diffDays / 30);
+    if (diffMonths < 12) return diffMonths + "mo ago";
+    return Math.floor(diffDays / 365) + "y ago";
   }
 
   function renderAllRunsPage() {
