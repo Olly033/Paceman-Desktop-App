@@ -490,7 +490,7 @@
           cells += `<div class="run-cell ${t == null ? "empty" : ""}">${t == null ? "—" : fmt(t)}</div>`;
         }
         const runId = r.id || r.worldId || r.runId || r._id || null;
-        const ts = r.createdAt || r.timestamp || r.startTime || r.insertTime || null;
+        const ts = r.createdAt || r.timestamp || r.startTime || r.insertTime || r.lastUpdated || null;
         const timeStr = ts ? timeAgo(new Date(ts).getTime()) : "";
         row.innerHTML = `<div class="run-row-head">${escapeHtml(state.profile.name)} <span class="run-row-sub">#${runId || "?"}</span></div><div class="run-cells">${cells}<div class="run-cell run-time-ago">${timeStr}</div></div>`;
         row.addEventListener("click", () => openRunDetail(runId, state.profile.name, r));
