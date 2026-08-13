@@ -1258,7 +1258,14 @@
     const refreshBtn = document.getElementById("refreshBtn");
     if (refreshBtn) {
       refreshBtn.addEventListener("click", () => {
-        loadLiveRuns();
+        if (state.page === "home") {
+          loadLiveRuns();
+        } else if (state.page === "profile") {
+          loadProfileStats();
+          loadProfileRuns();
+        } else if (state.page === "leaderboard") {
+          loadLeaderboard(true);
+        }
       });
     }
     document.getElementById("closeRunDetail").addEventListener("click", closeRunDetail);
