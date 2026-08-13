@@ -24,6 +24,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  session.defaultSession.clearCache();
   Menu.setApplicationMenu(null);
   createWindow();
 });

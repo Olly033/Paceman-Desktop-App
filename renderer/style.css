@@ -2111,6 +2111,47 @@ body {
   color: #fff;
 }
 
+.nav-btn:active {
+  transform: scale(0.96);
+}
+
+.filter-btn:hover svg,
+.theme-btn:hover svg {
+  transform: rotate(180deg);
+}
+
+.filter-btn:active,
+.theme-btn:active {
+  transform: scale(0.92);
+}
+
+.streams-btn:hover svg,
+.auto-open-btn:hover svg {
+  transform: translateY(-2px);
+}
+
+.streams-btn:active,
+.auto-open-btn:active {
+  transform: scale(0.96);
+}
+
+.twitch-dock-collapse:hover {
+  transform: rotate(180deg);
+}
+
+.twitch-dock-layout:hover {
+  transform: rotate(90deg);
+}
+
+.twitch-tile-actions button:hover {
+  transform: scale(1.15);
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.twitch-tile-actions button:active {
+  transform: scale(0.9);
+}
+
 @keyframes paceman-spin {
   to { transform: rotate(360deg); }
 }
