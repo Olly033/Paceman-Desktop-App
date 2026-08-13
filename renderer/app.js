@@ -1255,6 +1255,12 @@
         }
       });
     }
+    const refreshBtn = document.getElementById("refreshBtn");
+    if (refreshBtn) {
+      refreshBtn.addEventListener("click", () => {
+        loadLiveRuns();
+      });
+    }
     document.getElementById("closeRunDetail").addEventListener("click", closeRunDetail);
     document.getElementById("runDetailOverlay").addEventListener("click", (e) => {
       if (e.target === document.getElementById("runDetailOverlay")) closeRunDetail();
