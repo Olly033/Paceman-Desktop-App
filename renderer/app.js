@@ -42,6 +42,7 @@
   let headMoveHandler = null;
   let headTargetRy = 0,
     headTargetRx = 0;
+  let headAnimFrameId = null;
 
   const THEMES = [
     { name: "amethyst", label: "Amethyst" },
@@ -142,6 +143,14 @@
     );
   }
 
+  function debounce(fn, ms) {
+    let timer;
+    return function (...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), ms);
+    };
+  }
+
   function avatarUrl(id, size) {
     return `${MCHEADS}/avatar/${id}/${size}`;
   }
@@ -153,7 +162,11 @@
   async function getJSON(url) {
     const res = await fetch(url);
     if (!res.ok) throw new Error("HTTP " + res.status);
-    return res.json();
+    try {
+      return await res.json();
+    } catch (e) {
+      throw new Error("Invalid JSON response from " + url);
+    }
   }
 
   async function resolveUUID(name) {
@@ -298,8 +311,9 @@
         </div>
         <div class="run-time">${fmt(time)}</div>`;
       card.addEventListener("click", () => openProfile(name, r.user && r.user.uuid));
-      if (twitch) {
-        card.querySelector(".twitch-icon").addEventListener("click", (e) => {
+      const twitchIcon = card.querySelector(".twitch-icon");
+      if (twitchIcon) {
+        twitchIcon.addEventListener("click", (e) => {
           e.stopPropagation();
           openTwitch(twitch);
         });
@@ -323,13 +337,20 @@
     pushNav({ page: "profile", name, uuid });
     showPage("profile");
     state.profile = { name, uuid: uuid || null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1 };
-    document.getElementById("profileName").textContent = name;
-    document.getElementById("profileStatsRow").innerHTML =
-      '<span class="stat-badge" id="profileCompletion">0 completions</span>' +
-      '<span class="stat-badge" id="profileAvg">Avg: 0:00</span>' +
-      '<span class="stat-badge clickable" id="profilePB">PB: --</span>';
-    document.getElementById("profileSplits").innerHTML = '<div class="loading">Loading stats...</div>';
-    document.getElementById("profileBestRuns").innerHTML = '<div class="loading">Loading runs...</div>';
+    const profileName = document.getElementById("profileName");
+    const profileStatsRow = document.getElementById("profileStatsRow");
+    const profileSplits = document.getElementById("profileSplits");
+    const profileBestRuns = document.getElementById("profileBestRuns");
+    const headContainer = document.getElementById("head3dContainer");
+    if (profileName) profileName.textContent = name;
+    if (profileStatsRow) {
+      profileStatsRow.innerHTML =
+        '<span class="stat-badge" id="profileCompletion">0 completions</span>' +
+        '<span class="stat-badge" id="profileAvg">Avg: 0:00</span>' +
+        '<span class="stat-badge clickable" id="profilePB">PB: --</span>';
+    }
+    if (profileSplits) profileSplits.innerHTML = '<div class="loading">Loading stats...</div>';
+    if (profileBestRuns) profileBestRuns.innerHTML = '<div class="loading">Loading runs...</div>';
     const title = document.getElementById("profileBestRunsTitle");
     if (title) title.textContent = "Best Daily Runs";
     document.querySelectorAll("#profileTimeframes .timeframe-btn").forEach((b) => {
@@ -337,7 +358,7 @@
     });
     if (!uuid) uuid = await resolveUUID(name);
     state.profile.uuid = uuid;
-    if (uuid) renderHead3D(document.getElementById("head3dContainer"), uuid);
+    if (uuid && headContainer) renderHead3D(headContainer, uuid);
     addRecent(name);
     await Promise.all([loadProfileStats(), loadProfileRuns()]);
     const pbBadge = document.getElementById("profilePB");
@@ -358,30 +379,32 @@
       between = TF_BETWEEN[tf];
     const wrap = document.getElementById("profileSplits");
     const sessionBox = document.getElementById("sessionStats");
-    sessionBox.innerHTML = "";
+    if (sessionBox) sessionBox.innerHTML = "";
     try {
       const stats = await getJSON(`${API}/getSessionStats?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`);
-      wrap.innerHTML = "";
+      if (wrap) wrap.innerHTML = "";
       for (const key of SPLIT_ORDER) {
         const s = stats[key] || { count: 0, avg: "0:00" };
         const card = document.createElement("div");
         card.className = "split-card";
         card.innerHTML = `<div class="split-name">${SPLITS[key]}</div><div class="split-value">${s.count}</div><div class="split-count">Avg ${s.avg}</div>`;
-        wrap.appendChild(card);
+        if (wrap) wrap.appendChild(card);
       }
       const fin = stats.finish || { count: 0, avg: "0:00" };
-      document.getElementById("profileCompletion").textContent = `${fin.count} completions`;
-      document.getElementById("profileAvg").textContent = `Avg: ${fin.avg}`;
+      const completionEl = document.getElementById("profileCompletion");
+      const avgEl = document.getElementById("profileAvg");
+      if (completionEl) completionEl.textContent = `${fin.count} completions`;
+      if (avgEl) avgEl.textContent = `Avg: ${fin.avg}`;
       if (tf === "session") {
         try {
           const nph = await getJSON(`${API}/getNPH?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`);
-          sessionBox.innerHTML = renderSessionStats(nph);
+          if (sessionBox) sessionBox.innerHTML = renderSessionStats(nph);
         } catch (e) {
-          sessionBox.innerHTML = "";
+          if (sessionBox) sessionBox.innerHTML = "";
         }
       }
     } catch (e) {
-      wrap.innerHTML = '<div class="loading">No stats available.</div>';
+      if (wrap) wrap.innerHTML = '<div class="loading">No stats available.</div>';
     }
   }
 
@@ -414,7 +437,8 @@
         }
       }
       state.profile.pbRun = pbRun;
-      document.getElementById("profilePB").textContent = pb != null ? `PB: ${fmt(pb)}` : "PB: --";
+      const pbEl = document.getElementById("profilePB");
+      if (pbEl) pbEl.textContent = pb != null ? `PB: ${fmt(pb)}` : "PB: --";
       const ranked = state.profile.timeframeRuns
         .map((r) => ({ r, f: furthestIndex(r) }))
         .sort((a, b) => {
@@ -430,24 +454,27 @@
       const best = document.getElementById("profileBestRuns");
       const title = document.getElementById("profileBestRunsTitle");
       if (title) title.textContent = `Best ${tf.charAt(0).toUpperCase() + tf.slice(1)} Runs`;
-      best.innerHTML = "";
-      if (ranked.length === 0) {
-        best.innerHTML = '<div class="loading">No runs yet.</div>';
-      } else {
-        for (const item of ranked) {
-          const div = document.createElement("div");
-          div.className = "run-item";
-          const runId = item.r.id || item.r.worldId || item.r.runId || item.r._id || null;
-          div.innerHTML = `<span class="run-split">${SPLITS[item.f.key] || "Run"}</span><span class="run-time">${fmt(item.f.time)}</span>`;
-          div.addEventListener("click", () => {
-            if (runId) openRunDetail(runId, state.profile.name, item.r);
-          });
-          best.appendChild(div);
+      if (best) {
+        best.innerHTML = "";
+        if (ranked.length === 0) {
+          best.innerHTML = '<div class="loading">No runs yet.</div>';
+        } else {
+          for (const item of ranked) {
+            const div = document.createElement("div");
+            div.className = "run-item";
+            const runId = item.r.id || item.r.worldId || item.r.runId || item.r._id || null;
+            div.innerHTML = `<span class="run-split">${SPLITS[item.f.key] || "Run"}</span><span class="run-time">${fmt(item.f.time)}</span>`;
+            div.addEventListener("click", () => {
+              if (runId) openRunDetail(runId, state.profile.name, item.r);
+            });
+            best.appendChild(div);
+          }
         }
       }
       renderAllRunsPage();
     } catch (e) {
-      document.getElementById("profileBestRuns").innerHTML = '<div class="loading">No recent runs.</div>';
+      const best = document.getElementById("profileBestRuns");
+      if (best) best.innerHTML = '<div class="loading">No recent runs.</div>';
     }
   }
 
@@ -477,6 +504,7 @@
     const total = Math.max(1, Math.ceil(runs.length / per));
     const slice = runs.slice((page - 1) * per, page * per);
     const list = document.getElementById("allRunsList");
+    if (!list) return;
     list.innerHTML = "";
     if (slice.length === 0) {
       list.innerHTML = '<div class="loading">No runs.</div>';
@@ -502,6 +530,7 @@
 
   function renderPagination(total, page) {
     const pag = document.getElementById("runsPagination");
+    if (!pag) return;
     pag.innerHTML = "";
     const mk = (label, target, disabled, active) => {
       const b = document.createElement("button");
@@ -837,6 +866,7 @@
     container.appendChild(scene);
 
     if (headMoveHandler) document.removeEventListener("mousemove", headMoveHandler);
+    if (headAnimFrameId) cancelAnimationFrame(headAnimFrameId);
     headTargetRy = 0;
     headTargetRx = 0;
     let currentRy = 0,
@@ -860,7 +890,7 @@
       currentRy += (headTargetRy - currentRy) * 0.08;
       currentRx += (headTargetRx - currentRx) * 0.08;
       scene.style.transform = `rotateY(${currentRy.toFixed(2)}deg) rotateX(${currentRx.toFixed(2)}deg)`;
-      requestAnimationFrame(animate);
+      headAnimFrameId = requestAnimationFrame(animate);
     })();
   }
 
@@ -1259,7 +1289,6 @@
       renderDockLayout();
     });
     updateStreamsUI();
-    showPage("home");
     loadLiveRuns();
     navHistory.length = 0;
     navHistory.push({ page: "home" });
@@ -1271,11 +1300,12 @@
     setInterval(() => {
       if (state.page === "home") loadLiveRuns();
     }, 3000);
-    window.addEventListener("resize", () => {
+    const debouncedResizeHead = debounce(() => {
       if (state.profile.uuid && document.getElementById("page-profile").classList.contains("active")) {
         renderHead3D(document.getElementById("head3dContainer"), state.profile.uuid);
       }
-    });
+    }, 200);
+    window.addEventListener("resize", debouncedResizeHead);
   }
 
   if (document.readyState === "loading") {

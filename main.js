@@ -37,5 +37,12 @@ app.on('activate', () => {
 });
 
 ipcMain.handle('open-external', (event, url) => {
-  shell.openExternal(url);
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      shell.openExternal(url);
+    }
+  } catch (e) {
+    console.error('Blocked invalid external URL:', url);
+  }
 });
