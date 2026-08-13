@@ -1339,25 +1339,57 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border: 1px solid var(--border-glass);
   border-radius: 10px;
   background: var(--bg-glass);
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.refresh-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  opacity: 0;
+  border-radius: inherit;
+  transition: opacity 0.2s;
 }
 
 .refresh-btn:hover {
   background: var(--bg-glass-hover);
   color: var(--text-primary);
   border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.refresh-btn:hover::after {
+  opacity: 0.08;
+}
+
+.refresh-btn:active {
+  transform: translateY(0) scale(0.95);
 }
 
 .refresh-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.refresh-btn:hover svg {
+  transform: rotate(180deg);
+}
+
+.refresh-btn:active svg {
+  transform: rotate(360deg);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .twitch-dock {
