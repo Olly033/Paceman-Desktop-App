@@ -23,7 +23,7 @@
   "build": {
     "appId": "com.paceman.app",
     "productName": "Paceman",
-    "icon": "icon.png",
+    "icon": "icon.ico",
     "win": {
       "target": [
         {
