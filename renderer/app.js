@@ -451,6 +451,16 @@
     }
   }
 
+  function timeAgo(ms) {
+    if (!ms) return "";
+    const diff = Math.floor((Date.now() - ms) / 1000);
+    if (diff < 60) return "just now";
+    if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+    if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+    if (diff < 604800) return Math.floor(diff / 86400) + "d ago";
+    return Math.floor(diff / 604800) + "w ago";
+  }
+
   function renderAllRunsPage() {
     const runs = state.profile.allRuns;
     const per = 10,
@@ -471,7 +481,9 @@
           cells += `<div class="run-cell ${t == null ? "empty" : ""}">${t == null ? "—" : fmt(t)}</div>`;
         }
         const runId = r.id || r.worldId || r.runId || r._id || null;
-        row.innerHTML = `<div class="run-row-head">${escapeHtml(state.profile.name)} <span class="run-row-sub">#${runId || "?"}</span></div><div class="run-cells">${cells}</div>`;
+        const ts = r.createdAt || r.timestamp || r.startTime || r.insertTime || null;
+        const timeStr = ts ? timeAgo(new Date(ts).getTime()) : "";
+        row.innerHTML = `<div class="run-row-head">${escapeHtml(state.profile.name)} <span class="run-row-sub">#${runId || "?"}</span></div><div class="run-cells">${cells}<div class="run-cell run-time-ago">${timeStr}</div></div>`;
         row.addEventListener("click", () => openRunDetail(runId, state.profile.name, r));
         list.appendChild(row);
       }

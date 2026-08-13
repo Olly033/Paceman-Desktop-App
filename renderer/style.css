@@ -1854,7 +1854,7 @@ body {
 
 .run-cells {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 6px;
 }
 
@@ -1862,6 +1862,30 @@ body {
   text-align: center;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  padding: 4px 2px;
+  border-radius: 6px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+}
+
+.run-cell.empty {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.run-time-ago {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+  padding: 4px 2px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
   padding: 6px 2px;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.04);
