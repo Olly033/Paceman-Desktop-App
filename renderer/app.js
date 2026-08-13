@@ -782,6 +782,11 @@
   function closeRunDetail() {
     const overlay = document.getElementById("runDetailOverlay");
     overlay.classList.remove("visible");
+    const webview = document.getElementById("runVodWebview");
+    if (webview) {
+      webview.src = "about:blank";
+      webview.style.display = "none";
+    }
   }
 
   async function seekVod(seconds, targetTime) {
