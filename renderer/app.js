@@ -1257,14 +1257,18 @@
     }
     const refreshBtn = document.getElementById("refreshBtn");
     if (refreshBtn) {
-      refreshBtn.addEventListener("click", () => {
-        if (state.page === "home") {
-          loadLiveRuns();
-        } else if (state.page === "profile") {
-          loadProfileStats();
-          loadProfileRuns();
-        } else if (state.page === "leaderboard") {
-          loadLeaderboard(true);
+      refreshBtn.addEventListener("click", async () => {
+        refreshBtn.classList.add("refreshing");
+        try {
+          if (state.page === "home") {
+            await loadLiveRuns();
+          } else if (state.page === "profile") {
+            await Promise.all([loadProfileStats(), loadProfileRuns()]);
+          } else if (state.page === "leaderboard") {
+            await loadLeaderboard(true);
+          }
+        } finally {
+          refreshBtn.classList.remove("refreshing");
         }
       });
     }
