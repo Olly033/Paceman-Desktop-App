@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Menu, session } = require('electron');
 const path = require('path');
 
 let win;
@@ -23,8 +23,12 @@ function createWindow() {
   win.loadFile('renderer/index.html');
 }
 
-app.whenReady().then(() => {
-  session.defaultSession.clearCache();
+app.whenReady().then(async () => {
+  try {
+    await session.defaultSession.clearCache();
+  } catch (e) {
+    console.warn('Cache clear failed:', e);
+  }
   Menu.setApplicationMenu(null);
   createWindow();
 });
