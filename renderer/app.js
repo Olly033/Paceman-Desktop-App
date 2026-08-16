@@ -66,6 +66,7 @@
     playerCache: {},
     profile: { name: null, uuid: null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1 },
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc" },
+    comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
   };
 
   const autoOpenedStreams = new Set();
@@ -334,6 +335,9 @@
   /* ---------------- Profile ---------------- */
 
   async function openProfile(name, uuid) {
+    if (state.comparison && state.comparison.active) {
+      await toggleComparison();
+    }
     pushNav({ page: "profile", name, uuid });
     showPage("profile");
     state.profile = { name, uuid: uuid || null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1 };
@@ -899,6 +903,29 @@
     })();
   }
 
+  function renderHead3DStatic(container, id) {
+    container.innerHTML = "";
+    const skin = skinUrl(id);
+    const S = container.clientWidth || 100;
+    const scene = document.createElement("div");
+    scene.style.cssText = `width:${S}px;height:${S}px;position:relative;transform-style:preserve-3d;`;
+    const positions = {
+      front: [14.2857, 14.2857, `translateZ(${S / 2}px)`],
+      back: [42.8571, 14.2857, `rotateY(180deg) translateZ(${S / 2}px)`],
+      right: [28.5714, 14.2857, `rotateY(90deg) translateZ(${S / 2}px)`],
+      left: [0, 14.2857, `rotateY(-90deg) translateZ(${S / 2}px)`],
+      top: [14.2857, 0, `rotateX(90deg) translateZ(${S / 2}px)`],
+      bottom: [28.5714, 0, `rotateX(-90deg) translateZ(${S / 2}px)`],
+    };
+    for (const face in positions) {
+      const f = document.createElement("div");
+      f.style.cssText = `position:absolute;width:${S}px;height:${S}px;background-image:url('${skin}');background-size:800% 800%;background-position:${positions[face][0]}% ${positions[face][1]}%;transform:${positions[face][2]};image-rendering:pixelated;`;
+      scene.appendChild(f);
+    }
+    container.style.perspective = "800px";
+    container.appendChild(scene);
+  }
+
   /* ---------------- Leaderboard ---------------- */
 
   async function loadLeaderboard(force) {
@@ -1169,6 +1196,15 @@
     state.page = p;
     document.querySelectorAll(".page").forEach((el) => el.classList.remove("active"));
     document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
+    if (state.comparison && state.comparison.active && p !== "profile") {
+      state.comparison.active = false;
+      const btn = document.getElementById("compareBtn");
+      const panel = document.getElementById("comparePanel");
+      const page = document.getElementById("page-profile");
+      if (btn) btn.classList.remove("active");
+      if (page) page.classList.remove("compare-mode");
+      if (panel) panel.style.display = "none";
+    }
     if (p === "home") {
       document.getElementById("page-home").classList.add("active");
       document.querySelector('[data-page="home"]').classList.add("active");
@@ -1235,12 +1271,363 @@
     });
   }
 
+  /* ---------------- Comparison ---------------- */
+
+  function parseAvg(avg) {
+    if (typeof avg === 'number') return avg;
+    if (!avg) return null;
+    const sec = parseTimeToSec(avg);
+    return sec != null ? sec : null;
+  }
+
+  function getStatArrow(type, val1, val2) {
+    if (val1 == null && val2 == null) return '';
+    if (val1 == null) return '<span class="cmp-arrow cmp-worse">▼</span>';
+    if (val2 == null) return '<span class="cmp-arrow cmp-better">▲</span>';
+
+    let isBetter;
+    if (type === 'count' || type === 'rnph') {
+      isBetter = val1 > val2;
+    } else if (type === 'avg' || type === 'rpe') {
+      isBetter = val1 < val2;
+    } else {
+      return '';
+    }
+
+    if (val1 === val2) return '<span class="cmp-arrow cmp-equal">=</span>';
+    return isBetter
+      ? '<span class="cmp-arrow cmp-better">▲</span>'
+      : '<span class="cmp-arrow cmp-worse">▼</span>';
+  }
+
+  async function toggleComparison() {
+    state.comparison.active = !state.comparison.active;
+    const btn = document.getElementById("compareBtn");
+    const panel = document.getElementById("comparePanel");
+    const page = document.getElementById("page-profile");
+
+    if (state.comparison.active) {
+      btn.classList.add("active");
+      page.classList.add("compare-mode");
+      panel.style.display = "flex";
+
+      state.comparison.tf = "session";
+      state.comparison.player1 = {
+        name: state.profile.name,
+        uuid: state.profile.uuid,
+        tf: "session",
+        splits: null,
+        nph: null
+      };
+      state.comparison.player2 = null;
+
+      document.getElementById("compareCol1").innerHTML = "";
+      document.getElementById("compareContent2").innerHTML = '<div class="loading">Search for a player to compare</div>';
+      document.getElementById("compareResultsList").innerHTML = "";
+      const searchInput = document.getElementById("compareSearchInput");
+      if (searchInput) searchInput.value = "";
+
+      buildComparisonCol1();
+      await loadComparisonStats(1);
+    } else {
+      btn.classList.remove("active");
+      page.classList.remove("compare-mode");
+      panel.style.display = "none";
+      state.comparison.player2 = null;
+    }
+  }
+
+  function buildComparisonCol1() {
+    const col = document.getElementById("compareCol1");
+    const p1 = state.comparison.player1;
+    col.innerHTML = `
+      <div class="compare-spacer"></div>
+      <div class="compare-player-header">
+        <div class="profile-head-container" id="compareHead1"></div>
+        <div class="profile-info">
+          <h1 id="compareName1">${escapeHtml(p1.name)}</h1>
+          <div class="profile-stats-row" id="compareStatsRow1"></div>
+        </div>
+      </div>
+      <div class="timeframe-tabs compare-timeframes" id="compareTimeframes1">
+        <button class="timeframe-btn active" data-tf="session">Session</button>
+        <button class="timeframe-btn" data-tf="daily">Daily</button>
+        <button class="timeframe-btn" data-tf="weekly">Weekly</button>
+        <button class="timeframe-btn" data-tf="monthly">Monthly</button>
+        <button class="timeframe-btn" data-tf="lifetime">Lifetime</button>
+      </div>
+      <div class="session-stats" id="compareSessionStats1"></div>
+      <div class="profile-splits" id="compareSplits1"></div>
+    `;
+
+    if (p1.uuid) renderHead3DStatic(document.getElementById("compareHead1"), p1.uuid);
+
+    document.querySelectorAll("#compareTimeframes1 .timeframe-btn").forEach((b) => {
+      b.addEventListener("click", () => {
+        state.comparison.tf = b.dataset.tf;
+        document.querySelectorAll("#compareTimeframes1 .timeframe-btn").forEach((x) => x.classList.toggle("active", x.dataset.tf === b.dataset.tf));
+        document.querySelectorAll("#compareTimeframes2 .timeframe-btn").forEach((x) => x.classList.toggle("active", x.dataset.tf === b.dataset.tf));
+        Promise.all([loadComparisonStats(1), loadComparisonStats(2)]).then(() => {
+          renderComparisonSide(1);
+          renderComparisonSide(2);
+        });
+      });
+    });
+  }
+
+  async function loadComparisonStats(side) {
+    const player = side === 1 ? state.comparison.player1 : state.comparison.player2;
+    if (!player || !player.name) return;
+
+    const tf = state.comparison.tf;
+    const hours = TF_HOURS[tf];
+    const between = TF_BETWEEN[tf];
+
+    try {
+      const [stats, nph] = await Promise.all([
+        getJSON(`${API}/getSessionStats?name=${encodeURIComponent(player.name)}&hours=${hours}&hoursBetween=${between}`),
+        tf === "session" ? getJSON(`${API}/getNPH?name=${encodeURIComponent(player.name)}&hours=${hours}&hoursBetween=${between}`).catch(() => null) : Promise.resolve(null)
+      ]);
+
+      player.splits = stats;
+      player.nph = nph;
+      player.tf = tf;
+
+      const p1 = state.comparison.player1;
+      const p2 = state.comparison.player2;
+      state.comparison.bothLoaded = !!(p1 && p1.splits && p2 && p2.splits);
+
+      if (state.comparison.bothLoaded) {
+        renderComparisonSide(1);
+        renderComparisonSide(2);
+      } else {
+        renderComparisonSide(side);
+      }
+    } catch (e) {
+      console.error("Failed to load comparison stats:", e);
+    }
+  }
+
+  function renderComparisonSide(side) {
+    const p1 = state.comparison.player1;
+    const p2 = state.comparison.player2;
+    const player = side === 1 ? p1 : p2;
+    const other = side === 1 ? p2 : p1;
+    const showArrows = state.comparison.bothLoaded;
+
+    if (!player || !player.splits) return;
+
+    const splitsContainer = document.getElementById(`compareSplits${side}`);
+    if (splitsContainer) {
+      splitsContainer.innerHTML = "";
+      for (const key of SPLIT_ORDER) {
+        const s = player.splits[key] || { count: 0, avg: "0:00" };
+        const otherS = showArrows && other && other.splits ? (other.splits[key] || { count: 0, avg: "0:00" }) : null;
+
+        const countArrow = showArrows ? getStatArrow("count", s.count, otherS ? otherS.count : null) : "";
+        const avgArrow = showArrows ? getStatArrow("avg", parseAvg(s.avg), otherS ? parseAvg(otherS.avg) : null) : "";
+
+        const card = document.createElement("div");
+        card.className = "split-card";
+        card.innerHTML = `<div class="split-name">${SPLITS[key]}</div><div class="split-value">${s.count}<span class="cmp-arrow-wrap">${countArrow}</span></div><div class="split-count">Avg ${s.avg}<span class="cmp-arrow-wrap">${avgArrow}</span></div>`;
+        splitsContainer.appendChild(card);
+      }
+    }
+
+    if (player.tf === "session" && player.nph) {
+      const sessionContainer = document.getElementById(`compareSessionStats${side}`);
+      if (sessionContainer) {
+        const otherNph = showArrows && other && other.nph ? other.nph : null;
+        const rnphArrow = showArrows ? getStatArrow("rnph", player.nph.rnph, otherNph ? otherNph.rnph : null) : "";
+        const rpeArrow = showArrows ? getStatArrow("rpe", player.nph.rpe, otherNph ? otherNph.rpe : null) : "";
+        sessionContainer.innerHTML = `
+          <span class="stat-badge"><b>${player.nph.rnph.toFixed(2)}<span class="cmp-arrow-wrap">${rnphArrow}</span></b> NPH (IGT)</span>
+          <span class="stat-badge"><b>${player.nph.rpe.toFixed(2)}<span class="cmp-arrow-wrap">${rpeArrow}</span></b> RPE</span>
+        `;
+      }
+    } else {
+      const sessionContainer = document.getElementById(`compareSessionStats${side}`);
+      if (sessionContainer) sessionContainer.innerHTML = "";
+    }
+
+    const statsRow = document.getElementById(`compareStatsRow${side}`);
+    if (statsRow) {
+      const fin = player.splits.finish || { count: 0, avg: "0:00" };
+      const otherFin = showArrows && other && other.splits ? (other.splits.finish || { count: 0, avg: "0:00" }) : null;
+      statsRow.innerHTML = `
+        <span class="stat-badge">${fin.count} <span class="cmp-arrow-wrap">${showArrows ? getStatArrow("count", fin.count, otherFin ? otherFin.count : null) : ""}</span> completions</span>
+        <span class="stat-badge">Avg: ${fin.avg} <span class="cmp-arrow-wrap">${showArrows ? getStatArrow("avg", parseAvg(fin.avg), otherFin ? parseAvg(otherFin.avg) : null) : ""}</span></span>
+      `;
+    }
+  }
+
+  async function removeComparisonPlayer2() {
+    state.comparison.player2 = null;
+    state.comparison.bothLoaded = false;
+
+    const content = document.getElementById("compareContent2");
+    if (content) {
+      content.innerHTML = '<div class="loading">Search for a player to compare</div>';
+    }
+
+    const clearBtn = document.getElementById("compareClearBtn");
+    if (clearBtn) clearBtn.classList.remove("visible");
+
+    const searchInput = document.getElementById("compareSearchInput");
+    if (searchInput) searchInput.value = "";
+
+    const resultsList = document.getElementById("compareResultsList");
+    if (resultsList) resultsList.innerHTML = "";
+
+    renderComparisonSide(1);
+  }
+
+  async function loadComparisonPlayer2(name, uuid) {
+    if (!name) return;
+
+    state.comparison.player2 = {
+      name: name,
+      uuid: uuid,
+      tf: state.comparison.tf,
+      splits: null,
+      nph: null
+    };
+
+    const clearBtn = document.getElementById("compareClearBtn");
+    if (clearBtn) clearBtn.classList.add("visible");
+
+    const content = document.getElementById("compareContent2");
+    content.innerHTML = `
+      <div class="compare-player-header">
+        <div class="profile-head-container" id="compareHead2"></div>
+        <div class="profile-info">
+          <h1 id="compareName2">${escapeHtml(name)}</h1>
+          <div class="profile-stats-row" id="compareStatsRow2"></div>
+        </div>
+      </div>
+      <div class="timeframe-tabs compare-timeframes" id="compareTimeframes2">
+        <button class="timeframe-btn active" data-tf="session">Session</button>
+        <button class="timeframe-btn" data-tf="daily">Daily</button>
+        <button class="timeframe-btn" data-tf="weekly">Weekly</button>
+        <button class="timeframe-btn" data-tf="monthly">Monthly</button>
+        <button class="timeframe-btn" data-tf="lifetime">Lifetime</button>
+      </div>
+      <div class="session-stats" id="compareSessionStats2"></div>
+      <div class="profile-splits" id="compareSplits2"></div>
+    `;
+
+    if (!uuid) uuid = await resolveUUID(name);
+    state.comparison.player2.uuid = uuid;
+
+    if (uuid) renderHead3DStatic(document.getElementById("compareHead2"), uuid);
+
+    document.querySelectorAll("#compareTimeframes2 .timeframe-btn").forEach((b) => {
+      b.addEventListener("click", () => {
+        state.comparison.tf = b.dataset.tf;
+        document.querySelectorAll("#compareTimeframes1 .timeframe-btn").forEach((x) => x.classList.toggle("active", x.dataset.tf === b.dataset.tf));
+        document.querySelectorAll("#compareTimeframes2 .timeframe-btn").forEach((x) => x.classList.toggle("active", x.dataset.tf === b.dataset.tf));
+        Promise.all([loadComparisonStats(1), loadComparisonStats(2)]).then(() => {
+          renderComparisonSide(1);
+          renderComparisonSide(2);
+        });
+      });
+    });
+
+    await loadComparisonStats(2);
+  }
+
+  function initComparisonSearch() {
+    const input = document.getElementById("compareSearchInput");
+    const dropdown = document.getElementById("compareSearchDropdown");
+    const resultsList = document.getElementById("compareResultsList");
+
+    if (!input) return;
+
+    input.addEventListener("focus", () => {
+      dropdown.classList.add("visible");
+      renderComparisonRecents();
+    });
+
+    input.addEventListener("input", () => {
+      dropdown.classList.add("visible");
+      updateComparisonResults(input.value);
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && input.value.trim() !== "") {
+        const name = input.value.trim();
+        loadComparisonPlayer2(name, state.playerCache[name.toLowerCase()]);
+        dropdown.classList.remove("visible");
+      }
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".compare-search")) dropdown.classList.remove("visible");
+    });
+  }
+
+  function renderComparisonRecents() {
+    const wrap = document.getElementById("compareResultsList");
+    if (state.recents.length === 0) {
+      wrap.innerHTML = '<div class="loading">No recent searches yet.</div>';
+      return;
+    }
+    wrap.innerHTML = "";
+    for (const name of state.recents) {
+      const item = document.createElement("div");
+      item.className = "search-item";
+      item.innerHTML = `<img src="${avatarUrl(name, 32)}" onerror="this.style.visibility='hidden'"><span class="search-item-name">${escapeHtml(name)}</span>`;
+      item.addEventListener("click", () => {
+        loadComparisonPlayer2(name, state.playerCache[name.toLowerCase()]);
+        document.getElementById("compareSearchDropdown").classList.remove("visible");
+      });
+      wrap.appendChild(item);
+    }
+  }
+
+  function updateComparisonResults(q) {
+    const wrap = document.getElementById("compareResultsList");
+    const query = q.trim().toLowerCase();
+    if (query === "") {
+      wrap.innerHTML = '<div class="loading">Type a name to search.</div>';
+      return;
+    }
+    const matches = Object.keys(state.playerCache)
+      .filter((n) => n.includes(query))
+      .slice(0, 10);
+    if (matches.length === 0) {
+      wrap.innerHTML = `<div class="loading">No matches. Press Enter to search "${escapeHtml(q.trim())}".</div>`;
+      return;
+    }
+    wrap.innerHTML = "";
+    for (const name of matches) {
+      const uuid = state.playerCache[name];
+      const item = document.createElement("div");
+      item.className = "search-item";
+      item.innerHTML = `<img src="${avatarUrl(uuid || name, 32)}" onerror="this.style.visibility='hidden'"><span class="search-item-name">${escapeHtml(name)}</span>`;
+      item.addEventListener("click", () => {
+        loadComparisonPlayer2(name, uuid);
+        document.getElementById("compareSearchDropdown").classList.remove("visible");
+      });
+      wrap.appendChild(item);
+    }
+  }
+
   function init() {
     initRouter();
     initSearch();
     initFilters();
     initThemes();
     seedSuggestions();
+    const compareBtn = document.getElementById("compareBtn");
+    if (compareBtn) {
+      compareBtn.addEventListener("click", toggleComparison);
+    }
+    const compareClearBtn = document.getElementById("compareClearBtn");
+    if (compareClearBtn) {
+      compareClearBtn.addEventListener("click", removeComparisonPlayer2);
+    }
+    initComparisonSearch();
     const autoOpenBtn = document.getElementById("autoOpenTwitchBtn");
     if (autoOpenBtn) {
       autoOpenBtn.classList.toggle("active", state.autoOpenTwitch);
