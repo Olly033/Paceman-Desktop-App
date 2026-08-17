@@ -1229,7 +1229,7 @@
       for (const face in positions) {
         const f = document.createElement("div");
         const p = positions[face];
-        f.style.cssText = `position:absolute;width:${S}px;height:${S}px;background-image:url('${skin}');background-size:800% 800%;background-position:${p[0]}% ${p[1]}%;transform:${p[2]};image-rendering:pixelated;`;
+        f.style.cssText = `position:absolute;width:${S}px;height:${S}px;background-image:url('${skin}');background-size:800% 800%;background-position:${p[0]}% ${p[1]}%;transform:${p[2]};image-rendering:pixelated;backface-visibility:hidden;`;
         s.appendChild(f);
       }
       return s;
@@ -1300,7 +1300,7 @@
       for (const face in positions) {
         const f = document.createElement("div");
         const p = positions[face];
-        f.style.cssText = `position:absolute;width:${S}px;height:${S}px;background-image:url('${skin}');background-size:800% 800%;background-position:${p[0]}% ${p[1]}%;transform:${p[2]};image-rendering:pixelated;`;
+        f.style.cssText = `position:absolute;width:${S}px;height:${S}px;background-image:url('${skin}');background-size:800% 800%;background-position:${p[0]}% ${p[1]}%;transform:${p[2]};image-rendering:pixelated;backface-visibility:hidden;`;
         scene.appendChild(f);
       }
       return scene;
