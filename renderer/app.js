@@ -124,6 +124,13 @@
     const container = document.getElementById("profileChart");
     if (!container) return;
 
+    const tf = state.profile.tf;
+    if (tf === "session" || tf === "daily") {
+      container.style.display = "none";
+      return;
+    }
+    container.style.display = "";
+
     const runs = state.profile.timeframeRuns || [];
     const finished = runs.filter((r) => r.finish != null).sort((a, b) => (a.insertTime || 0) - (b.insertTime || 0));
     if (finished.length < 2) {
@@ -247,6 +254,7 @@
           <img src="${avatarUrl(user.uuid || name, 28)}" onerror="this.style.visibility='hidden'">
           ${escapeHtml(name)}
           ${channel ? `<a class="run-twitch" href="https://twitch.tv/${escapeHtml(channel)}" target="_blank" rel="noopener">Twitch</a>` : ""}
+          <button class="fav-remove-btn" data-name="${escapeHtml(name)}" title="Remove from favorites">&times;</button>
         </div>
         <div class="run-cells">
           <div class="run-cell"><b>Stage:</b> ${escapeHtml(stage)}</div>
@@ -254,6 +262,14 @@
           ${time ? `<div class="run-cell run-pb-indicator">IGT: ${time}</div>` : ""}
         </div>
       `;
+      const removeBtn = row.querySelector(".fav-remove-btn");
+      if (removeBtn) {
+        removeBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleFavorite(name);
+          renderFavorites();
+        });
+      }
       row.addEventListener("click", () => openProfile(name, user.uuid));
       list.appendChild(row);
     }
