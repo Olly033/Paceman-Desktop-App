@@ -1215,12 +1215,12 @@
       bottom: [28.5714, 0, `rotateX(-90deg) translateZ(${S / 2}px)`],
     };
     const overlayPositions = {
-      front: [14.2857, 64.2857, `translateZ(${S / 2}px)`],
-      back: [42.8571, 64.2857, `rotateY(180deg) translateZ(${S / 2}px)`],
-      right: [28.5714, 64.2857, `rotateY(90deg) translateZ(${S / 2}px)`],
-      left: [0, 64.2857, `rotateY(-90deg) translateZ(${S / 2}px)`],
-      top: [14.2857, 50, `rotateX(90deg) translateZ(${S / 2}px)`],
-      bottom: [28.5714, 50, `rotateX(-90deg) translateZ(${S / 2}px)`],
+      front: [71.4286, 14.2857, `translateZ(${S / 2}px)`],
+      back: [100, 14.2857, `rotateY(180deg) translateZ(${S / 2}px)`],
+      right: [57.1429, 14.2857, `rotateY(90deg) translateZ(${S / 2}px)`],
+      left: [85.7143, 14.2857, `rotateY(-90deg) translateZ(${S / 2}px)`],
+      top: [14.2857, 57.1429, `rotateX(90deg) translateZ(${S / 2}px)`],
+      bottom: [28.5714, 57.1429, `rotateX(-90deg) translateZ(${S / 2}px)`],
     };
 
     function createCube(positions) {
@@ -1286,12 +1286,12 @@
       bottom: [28.5714, 0, `rotateX(-90deg) translateZ(${S / 2}px)`],
     };
     const overlayPositions = {
-      front: [14.2857, 64.2857, `translateZ(${S / 2}px)`],
-      back: [42.8571, 64.2857, `rotateY(180deg) translateZ(${S / 2}px)`],
-      right: [28.5714, 64.2857, `rotateY(90deg) translateZ(${S / 2}px)`],
-      left: [0, 64.2857, `rotateY(-90deg) translateZ(${S / 2}px)`],
-      top: [14.2857, 50, `rotateX(90deg) translateZ(${S / 2}px)`],
-      bottom: [28.5714, 50, `rotateX(-90deg) translateZ(${S / 2}px)`],
+      front: [71.4286, 14.2857, `translateZ(${S / 2}px)`],
+      back: [100, 14.2857, `rotateY(180deg) translateZ(${S / 2}px)`],
+      right: [57.1429, 14.2857, `rotateY(90deg) translateZ(${S / 2}px)`],
+      left: [85.7143, 14.2857, `rotateY(-90deg) translateZ(${S / 2}px)`],
+      top: [14.2857, 57.1429, `rotateX(90deg) translateZ(${S / 2}px)`],
+      bottom: [28.5714, 57.1429, `rotateX(-90deg) translateZ(${S / 2}px)`],
     };
 
     function createCube(positions) {
