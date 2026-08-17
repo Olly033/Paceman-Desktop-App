@@ -41,6 +41,27 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
+const { net } = require('electron');
+
+ipcMain.handle('fetch-json', async (event, url) => {
+  try {
+    const resp = await new Promise((resolve, reject) => {
+      const req = net.request(url);
+      req.on('response', (res) => {
+        const chunks = [];
+        res.on('data', (chunk) => chunks.push(chunk));
+        res.on('end', () => resolve({ status: res.statusCode, data: Buffer.concat(chunks).toString() }));
+      });
+      req.on('error', reject);
+      req.end();
+    });
+    if (resp.status < 200 || resp.status >= 300) throw new Error('HTTP ' + resp.status);
+    return JSON.parse(resp.data);
+  } catch (e) {
+    throw new Error('Failed to fetch ' + url + ': ' + e.message);
+  }
+});
+
 ipcMain.handle('open-external', (event, url) => {
   try {
     const parsed = new URL(url);

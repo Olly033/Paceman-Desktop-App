@@ -419,15 +419,26 @@
     const socialLinks = document.getElementById("socialLinks");
     if (!socialLinks) return;
 
-    try {
-      const data = await getJSON(`https://api.mcsrranked.com/users/${encodeURIComponent(name)}`);
-      const connections = data && data.connections;
-      state.profile.socials = connections || null;
-      renderSocialLinks(connections);
-    } catch (e) {
-      state.profile.socials = null;
-      socialLinks.innerHTML = "";
+    const urls = [
+      `https://api.mcsrranked.com/users/${encodeURIComponent(name)}`,
+      `https://mcsrranked.com/api/users/${encodeURIComponent(name)}`
+    ];
+
+    let connections = null;
+    for (const url of urls) {
+      try {
+        console.log("[socials] fetching", url);
+        const data = await window.pacemanAPI.fetchJSON(url);
+        console.log("[socials] data", data);
+        connections = data && data.connections;
+        if (connections) break;
+      } catch (e) {
+        console.error("[socials] failed:", url, e);
+      }
     }
+
+    state.profile.socials = connections || null;
+    renderSocialLinks(connections);
   }
 
   async function loadTwitchFromRuns(name) {
@@ -460,6 +471,7 @@
   }
 
   function renderSocialLinks(connections, container) {
+    console.log("[socials] renderSocialLinks", connections, container);
     if (!connections) return;
     const socialLinks = container || document.getElementById("socialLinks");
     if (!socialLinks) return;
@@ -488,6 +500,7 @@
     }
 
     socialLinks.innerHTML = "";
+    console.log("[socials] rendering", links.length, "links");
     for (const link of links) {
       const btn = document.createElement("button");
       btn.className = `social-link ${link.platform}`;
@@ -1508,15 +1521,25 @@
     const socialsContainer = document.getElementById(`compareSocials${side}`);
     if (!socialsContainer) return;
 
-    try {
-      const data = await getJSON(`https://api.mcsrranked.com/users/${encodeURIComponent(player.name)}`);
-      const connections = data && data.connections;
-      if (side === 1) state.comparison.player1.socials = connections || null;
-      else state.comparison.player2.socials = connections || null;
-      renderSocialLinks(connections, socialsContainer);
-    } catch (e) {
-      socialsContainer.innerHTML = "";
+    const urls = [
+      `https://api.mcsrranked.com/users/${encodeURIComponent(player.name)}`,
+      `https://mcsrranked.com/api/users/${encodeURIComponent(player.name)}`
+    ];
+
+    let connections = null;
+    for (const url of urls) {
+      try {
+        const data = await window.pacemanAPI.fetchJSON(url);
+        connections = data && data.connections;
+        if (connections) break;
+      } catch (e) {
+        console.error("[socials] compare failed:", url, e);
+      }
     }
+
+    if (side === 1) state.comparison.player1.socials = connections || null;
+    else state.comparison.player2.socials = connections || null;
+    renderSocialLinks(connections, socialsContainer);
   }
 
   function renderComparisonSide(side) {
