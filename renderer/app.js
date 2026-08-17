@@ -449,24 +449,31 @@
     const allRuns = state.profile.allRuns || [];
     const combined = [...runs, ...allRuns];
 
-    const twitchAccounts = new Set();
-    for (const run of combined) {
-      const user = run && run.user;
-      const liveAccount = user && user.liveAccount;
-      if (liveAccount && typeof liveAccount === "string") {
-        twitchAccounts.add(liveAccount.trim());
+    const finishedRuns = combined.filter((r) => r && r.finish != null && (r.id || r.worldId));
+    if (finishedRuns.length === 0) return;
+
+    const seen = new Set();
+    for (const run of finishedRuns.slice(0, 10)) {
+      const worldId = run.id || run.worldId;
+      if (!worldId || seen.has(worldId)) continue;
+      seen.add(worldId);
+
+      try {
+        const data = await getJSON(`${API}/getWorld?worldId=${encodeURIComponent(worldId)}`);
+        const full = (data && data.data) || {};
+        const twitch = full.twitch;
+        if (twitch && typeof twitch === "string" && twitch.trim() !== "") {
+          const existing = state.profile.socials || {};
+          if (!existing.twitch) {
+            existing.twitch = { id: twitch.trim(), name: twitch.trim() };
+            state.profile.socials = existing;
+            renderSocialLinks(existing);
+          }
+          return;
+        }
+      } catch (e) {
+        // ignore and continue
       }
-    }
-
-    if (twitchAccounts.size === 0) return;
-
-    const existing = state.profile.socials || {};
-    const twitchUsername = [...twitchAccounts][0];
-
-    if (!existing.twitch && twitchUsername) {
-      existing.twitch = { id: twitchUsername, name: twitchUsername };
-      state.profile.socials = existing;
-      renderSocialLinks(existing);
     }
   }
 
