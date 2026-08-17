@@ -427,14 +427,16 @@
     let connections = null;
     for (const url of urls) {
       try {
-        console.log("[socials] fetching", url);
         const data = await window.pacemanAPI.fetchJSON(url);
-        console.log("[socials] data", data);
         connections = data && data.connections;
         if (connections) break;
       } catch (e) {
         console.error("[socials] failed:", url, e);
       }
+    }
+
+    if (connections) {
+      delete connections.twitch;
     }
 
     state.profile.socials = connections || null;
