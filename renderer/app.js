@@ -81,14 +81,19 @@
   let suppressNavPush = false;
 
   function isFavorite(name) {
-    return state.favorites.includes(name);
+    if (!name) return false;
+    const lower = name.toLowerCase();
+    return state.favorites.some((f) => f.toLowerCase() === lower);
   }
 
   function toggleFavorite(name) {
-    const idx = state.favorites.indexOf(name);
+    if (!name) return;
+    const lower = name.toLowerCase();
+    const idx = state.favorites.findIndex((f) => f.toLowerCase() === lower);
     if (idx >= 0) {
+      const removed = state.favorites[idx];
       state.favorites.splice(idx, 1);
-      delete state.favoritePBs[name];
+      delete state.favoritePBs[removed || name];
     } else {
       state.favorites.push(name);
     }
@@ -234,7 +239,7 @@
     }
 
     section.style.display = "block";
-    const favRuns = state.liveRuns.filter((r) => r.user && r.user.name && isFavorite(r.user.name));
+    const favRuns = state.liveRuns.filter((r) => r.nickname && isFavorite(r.nickname));
     if (favRuns.length === 0) {
       list.innerHTML = '<div class="loading">None of your favorite players are currently running.</div>';
       return;
@@ -245,7 +250,7 @@
       const row = document.createElement("div");
       row.className = "run-row is-favorite";
       const user = run.user || {};
-      const name = user.name || "Unknown";
+      const name = run.nickname || user.name || "Unknown";
       const channel = user.liveAccount || null;
       const time = run.current ? formatTime(run.current) : null;
       const stage = run.stage || "Unknown";
@@ -487,7 +492,7 @@
     const list = document.getElementById("runsList");
     let runs = sortLiveRuns(state.liveRuns.filter(passesFilters));
     if (state.favoritesFilterActive) {
-      runs = runs.filter((r) => r.user && r.user.name && isFavorite(r.user.name));
+      runs = runs.filter((r) => r.nickname && isFavorite(r.nickname));
     }
     if (runs.length === 0) {
       const msg = state.favoritesFilterActive ? "None of your favorite players are currently running." : "No runs match the current filters.";
@@ -1493,6 +1498,13 @@
 
   /* ---------------- Router ---------------- */
 
+  function updateFavoritesToggleUI() {
+    const toggle = document.getElementById("favoritesToggle");
+    if (toggle) {
+      toggle.classList.toggle("active", state.favoritesFilterActive);
+    }
+  }
+
   function showPage(p) {
     if (state.page === p && p !== "profile" && p !== "home") return;
     state.page = p;
@@ -1512,6 +1524,7 @@
       document.querySelector('[data-page="home"]').classList.add("active");
       document.getElementById("runsList").style.display = "";
       document.getElementById("favoritesSection").style.display = "none";
+      updateFavoritesToggleUI();
       loadLiveRuns();
       if (!suppressNavPush) pushNav({ page: "home" });
     } else if (p === "favorites") {
