@@ -1802,6 +1802,15 @@
       }
     }, 200);
     window.addEventListener("resize", debouncedResizeHead);
+    const footerLink = document.querySelector(".footer-link");
+    if (footerLink) {
+      footerLink.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (window.pacemanAPI && window.pacemanAPI.openExternal) {
+          window.pacemanAPI.openExternal(footerLink.href);
+        }
+      });
+    }
   }
 
   if (document.readyState === "loading") {

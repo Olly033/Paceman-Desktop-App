@@ -215,6 +215,39 @@ body {
   height: 100vh;
 }
 
+.app-footer {
+  padding: 12px 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-glass);
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.footer-link:hover {
+  color: var(--accent-light);
+}
+
+.footer-sep {
+  color: var(--text-muted);
+}
+
+.footer-credit {
+  color: var(--text-muted);
+}
+
 .header {
   display: flex;
   justify-content: space-between;
