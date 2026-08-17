@@ -427,6 +427,37 @@
       state.profile.socials = null;
       socialLinks.innerHTML = "";
     }
+
+    await loadTwitchFromRuns(name);
+  }
+
+  async function loadTwitchFromRuns(name) {
+    const socialLinks = document.getElementById("socialLinks");
+    if (!socialLinks) return;
+
+    const runs = state.profile.timeframeRuns || [];
+    const allRuns = state.profile.allRuns || [];
+    const combined = [...runs, ...allRuns];
+
+    const twitchAccounts = new Set();
+    for (const run of combined) {
+      const user = run && run.user;
+      const liveAccount = user && user.liveAccount;
+      if (liveAccount && typeof liveAccount === "string") {
+        twitchAccounts.add(liveAccount.trim());
+      }
+    }
+
+    if (twitchAccounts.size === 0) return;
+
+    const existing = state.profile.socials || {};
+    const twitchUsername = [...twitchAccounts][0];
+
+    if (!existing.twitch && twitchUsername) {
+      existing.twitch = { id: twitchUsername, name: twitchUsername };
+      state.profile.socials = existing;
+      renderSocialLinks(existing);
+    }
   }
 
   function renderSocialLinks(connections, container) {
@@ -536,6 +567,7 @@
         }
       }
       renderAllRunsPage();
+      await loadTwitchFromRuns(name);
     } catch (e) {
       const best = document.getElementById("profileBestRuns");
       if (best) best.innerHTML = '<div class="loading">No recent runs.</div>';
