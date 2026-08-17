@@ -79,6 +79,38 @@
   const navHistory = [];
   let navIndex = -1;
   let suppressNavPush = false;
+  let liveRunsIntervalId = null;
+  const MAX_LIVE_RUNS = 200;
+  const MAX_PROFILE_RUNS = 1000;
+
+  function startLiveRunsPolling() {
+    if (liveRunsIntervalId) return;
+    loadLiveRuns();
+    liveRunsIntervalId = setInterval(() => {
+      if (state.page === "home" && document.hasFocus()) {
+        loadLiveRuns();
+      }
+    }, 5000);
+  }
+
+  function stopLiveRunsPolling() {
+    if (liveRunsIntervalId) {
+      clearInterval(liveRunsIntervalId);
+      liveRunsIntervalId = null;
+    }
+  }
+
+  function pruneRuns() {
+    if (state.liveRuns.length > MAX_LIVE_RUNS) {
+      state.liveRuns = state.liveRuns.slice(0, MAX_LIVE_RUNS);
+    }
+    if (state.profile.timeframeRuns.length > MAX_PROFILE_RUNS) {
+      state.profile.timeframeRuns = state.profile.timeframeRuns.slice(0, MAX_PROFILE_RUNS);
+    }
+    if (state.profile.allRuns.length > MAX_PROFILE_RUNS) {
+      state.profile.allRuns = state.profile.allRuns.slice(0, MAX_PROFILE_RUNS);
+    }
+  }
 
   function isFavorite(name) {
     if (!name) return false;
@@ -439,6 +471,7 @@
       );
       cachePlayersFromRuns(runs);
       cleanupAutoOpenedStreams(state.liveRuns);
+      pruneRuns();
       renderLiveRuns();
     } catch (e) {
       list.innerHTML = '<div class="loading">Failed to load live runs. Check your connection.</div>';
@@ -729,6 +762,7 @@
       ]);
       state.profile.timeframeRuns = timeframe || [];
       state.profile.allRuns = all || [];
+      pruneRuns();
       let pb = null;
       let pbRun = null;
       for (const r of state.profile.allRuns) {
@@ -1159,6 +1193,13 @@
 
   /* ---------------- 3D Head ---------------- */
 
+  function pauseHeadAnimation() {
+    if (headAnimFrameId) {
+      cancelAnimationFrame(headAnimFrameId);
+      headAnimFrameId = null;
+    }
+  }
+
   function renderHead3D(container, id) {
     container.innerHTML = "";
     const skin = skinUrl(id);
@@ -1525,7 +1566,7 @@
       document.getElementById("runsList").style.display = "";
       document.getElementById("favoritesSection").style.display = "none";
       updateFavoritesToggleUI();
-      loadLiveRuns();
+      startLiveRunsPolling();
       if (!suppressNavPush) pushNav({ page: "home" });
     } else if (p === "favorites") {
       document.getElementById("page-home").classList.add("active");
@@ -1534,17 +1575,23 @@
       document.getElementById("runsList").style.display = "none";
       document.getElementById("favoritesSection").style.display = "block";
       renderFavorites();
+      stopLiveRunsPolling();
       if (!suppressNavPush) pushNav({ page: "favorites" });
     } else if (p === "leaderboard") {
       document.getElementById("page-leaderboard").classList.add("active");
       document.querySelector('[data-page="leaderboard"]').classList.add("active");
       loadLeaderboard(false);
+      stopLiveRunsPolling();
       if (!suppressNavPush) pushNav({ page: "leaderboard" });
     } else if (p === "profile") {
       document.getElementById("page-profile").classList.add("active");
     }
     const footer = document.getElementById("appFooter");
     if (footer) footer.style.display = p === "home" || p === "favorites" ? "" : "none";
+
+    if (p !== "profile") {
+      pauseHeadAnimation();
+    }
   }
 
   function initRouter() {
@@ -2071,9 +2118,13 @@
       if (e.button === 3) { e.preventDefault(); goBack(); }
       if (e.button === 4) { e.preventDefault(); goForward(); }
     });
-    setInterval(() => {
-      if (state.page === "home") loadLiveRuns();
-    }, 3000);
+    startLiveRunsPolling();
+    window.addEventListener("focus", () => {
+      if (state.page === "home") startLiveRunsPolling();
+    });
+    window.addEventListener("blur", () => {
+      stopLiveRunsPolling();
+    });
     const debouncedResizeHead = debounce(() => {
       if (state.profile.uuid && document.getElementById("page-profile").classList.contains("active")) {
         renderHead3D(document.getElementById("head3dContainer"), state.profile.uuid);
