@@ -211,6 +211,8 @@
     ctx.fillText("Oldest", padding.left, height - 8);
     ctx.fillText("Newest", width - padding.right, height - 8);
   }
+
+  function renderFavorites() {
     const list = document.getElementById("favoritesList");
     const section = document.getElementById("favoritesSection");
     if (!list || !section) return;
