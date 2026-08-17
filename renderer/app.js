@@ -1214,13 +1214,44 @@
       top: [14.2857, 0, `rotateX(90deg) translateZ(${S / 2}px)`],
       bottom: [28.5714, 0, `rotateX(-90deg) translateZ(${S / 2}px)`],
     };
-    for (const face in positions) {
-      const f = document.createElement("div");
-      f.style.cssText = `position:absolute;width:${S}px;height:${S}px;background-image:url('${skin}');background-size:800% 800%;background-position:${positions[face][0]}% ${positions[face][1]}%;transform:${positions[face][2]};image-rendering:pixelated;`;
-      scene.appendChild(f);
+
+    function createCube(textureUrl) {
+      const s = document.createElement("div");
+      s.style.cssText = `width:${S}px;height:${S}px;position:absolute;top:0;left:0;transform-style:preserve-3d;`;
+      for (const face in positions) {
+        const f = document.createElement("div");
+        f.style.cssText = `position:absolute;width:${S}px;height:${S}px;background-image:url('${textureUrl}');background-size:800% 800%;background-position:${positions[face][0]}% ${positions[face][1]}%;transform:${positions[face][2]};image-rendering:pixelated;`;
+        s.appendChild(f);
+      }
+      return s;
     }
+
+    const baseScene = createCube(skin);
+    container.appendChild(baseScene);
     container.style.perspective = "800px";
-    container.appendChild(scene);
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = function () {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        ctx.clearRect(0, 0, 64, 32);
+        const overlayUrl = canvas.toDataURL();
+        const overlayScene = createCube(overlayUrl);
+        overlayScene.style.transform = "scale(1.05)";
+        container.appendChild(overlayScene);
+      } catch (e) {
+        console.log("Overlay render failed:", e);
+      }
+    };
+    img.onerror = function () {
+      console.log("Skin load failed for overlay:", skin);
+    };
+    img.src = skin;
 
     if (headMoveHandler) document.removeEventListener("mousemove", headMoveHandler);
     if (headAnimFrameId) cancelAnimationFrame(headAnimFrameId);
@@ -1246,7 +1277,10 @@
     (function animate() {
       currentRy += (headTargetRy - currentRy) * 0.08;
       currentRx += (headTargetRx - currentRx) * 0.08;
-      scene.style.transform = `rotateY(${currentRy.toFixed(2)}deg) rotateX(${currentRx.toFixed(2)}deg)`;
+      const transform = `rotateY(${currentRy.toFixed(2)}deg) rotateX(${currentRx.toFixed(2)}deg)`;
+      if (baseScene) baseScene.style.transform = `scale(1) ${transform}`;
+      const overlayEl = container.querySelectorAll("div[style*='scale(1.05)']")[0];
+      if (overlayEl) overlayEl.style.transform = `scale(1.05) ${transform}`;
       headAnimFrameId = requestAnimationFrame(animate);
     })();
   }
@@ -1255,8 +1289,6 @@
     container.innerHTML = "";
     const skin = skinUrl(id);
     const S = container.clientWidth || 100;
-    const scene = document.createElement("div");
-    scene.style.cssText = `width:${S}px;height:${S}px;position:relative;transform-style:preserve-3d;`;
     const positions = {
       front: [14.2857, 14.2857, `translateZ(${S / 2}px)`],
       back: [42.8571, 14.2857, `rotateY(180deg) translateZ(${S / 2}px)`],
@@ -1265,13 +1297,44 @@
       top: [14.2857, 0, `rotateX(90deg) translateZ(${S / 2}px)`],
       bottom: [28.5714, 0, `rotateX(-90deg) translateZ(${S / 2}px)`],
     };
-    for (const face in positions) {
-      const f = document.createElement("div");
-      f.style.cssText = `position:absolute;width:${S}px;height:${S}px;background-image:url('${skin}');background-size:800% 800%;background-position:${positions[face][0]}% ${positions[face][1]}%;transform:${positions[face][2]};image-rendering:pixelated;`;
-      scene.appendChild(f);
+
+    function createCube(textureUrl) {
+      const scene = document.createElement("div");
+      scene.style.cssText = `width:${S}px;height:${S}px;position:absolute;top:0;left:0;transform-style:preserve-3d;`;
+      for (const face in positions) {
+        const f = document.createElement("div");
+        f.style.cssText = `position:absolute;width:${S}px;height:${S}px;background-image:url('${textureUrl}');background-size:800% 800%;background-position:${positions[face][0]}% ${positions[face][1]}%;transform:${positions[face][2]};image-rendering:pixelated;`;
+        scene.appendChild(f);
+      }
+      return scene;
     }
+
+    const baseScene = createCube(skin);
+    container.appendChild(baseScene);
     container.style.perspective = "800px";
-    container.appendChild(scene);
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = function () {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        ctx.clearRect(0, 0, 64, 32);
+        const overlayUrl = canvas.toDataURL();
+        const overlayScene = createCube(overlayUrl);
+        overlayScene.style.transform = "scale(1.05)";
+        container.appendChild(overlayScene);
+      } catch (e) {
+        console.log("Overlay render failed:", e);
+      }
+    };
+    img.onerror = function () {
+      console.log("Skin load failed for overlay:", skin);
+    };
+    img.src = skin;
   }
 
   /* ---------------- Leaderboard ---------------- */
