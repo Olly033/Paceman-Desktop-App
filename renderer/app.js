@@ -121,49 +121,51 @@
   }
 
   function renderRunHistoryChart() {
-    const container = document.getElementById("profileChart");
+    const container = document.getElementById("chartContainer");
     if (!container) return;
 
     const tf = state.profile.tf;
     if (tf === "session" || tf === "daily") {
-      container.style.display = "none";
+      container.innerHTML = "";
       return;
     }
-    container.style.display = "";
+
+    const select = document.getElementById("chartStatSelect");
+    const statKey = select ? select.value : "finish";
 
     const runs = state.profile.timeframeRuns || [];
-    const finished = runs.filter((r) => r.finish != null).sort((a, b) => (a.insertTime || 0) - (b.insertTime || 0));
+    const finished = runs.filter((r) => r[statKey] != null).sort((a, b) => (a.insertTime || 0) - (b.insertTime || 0));
     if (finished.length < 2) {
-      container.innerHTML = finished.length === 1 ? '<div class="loading">Only 1 finished run in this timeframe. Need at least 2 to show a chart.</div>' : "";
+      container.innerHTML = finished.length === 1 ? '<div class="loading">Only 1 run with this split in this timeframe. Need at least 2 to show a chart.</div>' : "";
       return;
     }
 
     const canvas = document.createElement("canvas");
-    canvas.width = container.clientWidth || 600;
-    canvas.height = 180;
     container.innerHTML = "";
     container.appendChild(canvas);
 
-    const ctx = canvas.getContext("2d");
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = canvas.clientWidth * dpr;
+    canvas.width = (container.clientWidth || 600) * dpr;
     canvas.height = 180 * dpr;
+    canvas.style.width = "100%";
+    canvas.style.height = "180px";
+    const ctx = canvas.getContext("2d");
     ctx.scale(dpr, dpr);
 
-    const width = canvas.clientWidth;
+    const width = container.clientWidth || 600;
     const height = 180;
     const padding = { top: 20, right: 20, bottom: 30, left: 50 };
     const chartW = width - padding.left - padding.right;
     const chartH = height - padding.top - padding.bottom;
 
-    const times = finished.map((r) => r.finish);
+    const times = finished.map((r) => r[statKey]);
     const minTime = Math.min(...times);
     const maxTime = Math.max(...times);
     const range = maxTime - minTime || 1;
 
     const points = finished.map((r, i) => ({
       x: padding.left + (finished.length > 1 ? (i / (finished.length - 1)) * chartW : chartW / 2),
-      y: padding.top + chartH - ((r.finish - minTime) / range) * chartH,
+      y: padding.top + chartH - ((r[statKey] - minTime) / range) * chartH,
     }));
 
     ctx.clearRect(0, 0, width, height);
@@ -504,12 +506,23 @@
         <div class="run-info">
           <div class="run-name">
             ${escapeHtml(name)}
+            <button class="run-fav-btn ${isFavorite(name) ? 'is-fav' : ''}" data-name="${escapeHtml(name)}" title="Favorite">
+              ${isFavorite(name) ? '★' : '☆'}
+            </button>
             ${streaming ? `<img class="twitch-icon" src="${TWITCH_ICON}" title="Watch ${escapeHtml(twitch)} on Twitch" alt="Twitch">` : ""}
             ${streaming ? `<span class="live-pill"><span class="live-dot"></span>LIVE</span>` : ""}
           </div>
           <div class="run-state">Reached ${stateLabel}</div>
         </div>
         <div class="run-time">${fmt(time)}</div>`;
+      const favBtn = card.querySelector(".run-fav-btn");
+      if (favBtn) {
+        favBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleFavorite(name);
+          renderLiveRuns();
+        });
+      }
       card.addEventListener("click", () => openProfile(name, r.user && r.user.uuid));
       const twitchIcon = card.querySelector(".twitch-icon");
       if (twitchIcon) {
@@ -1945,6 +1958,12 @@
         if (state.profile.name) {
           toggleFavorite(state.profile.name);
         }
+      });
+    }
+    const chartStatSelect = document.getElementById("chartStatSelect");
+    if (chartStatSelect) {
+      chartStatSelect.addEventListener("change", () => {
+        renderRunHistoryChart();
       });
     }
     initComparisonSearch();

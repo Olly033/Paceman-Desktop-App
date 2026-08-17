@@ -647,6 +647,32 @@ body {
   transform: scale(1.2);
 }
 
+.run-fav-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.run-fav-btn:hover {
+  color: #fbbf24;
+  transform: scale(1.2);
+}
+
+.run-fav-btn.is-fav {
+  color: #fbbf24;
+}
+
 .run-state {
   font-size: 13px;
   color: var(--text-secondary);
@@ -1973,6 +1999,9 @@ body {
   font-size: 14px;
   margin-bottom: 8px;
   overflow-wrap: break-word;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .run-row-sub {
@@ -2304,6 +2333,25 @@ body {
   color: var(--text-secondary);
   margin-bottom: 12px;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chart-stat-select {
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+}
+
+.chart-stat-select:focus {
+  border-color: var(--accent);
 }
 
 .chart-container {
