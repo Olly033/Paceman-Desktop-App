@@ -1292,6 +1292,8 @@
     } else if (p === "profile") {
       document.getElementById("page-profile").classList.add("active");
     }
+    const footer = document.getElementById("appFooter");
+    if (footer) footer.style.display = p === "home" ? "" : "none";
   }
 
   function initRouter() {
