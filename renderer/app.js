@@ -367,6 +367,7 @@
     if (uuid && headContainer) renderHead3D(headContainer, uuid);
     addRecent(name);
     await Promise.all([loadProfileStats(), loadProfileRuns(), loadProfileSocials(name)]);
+    await loadTwitchFromRuns(name);
     const pbBadge = document.getElementById("profilePB");
     if (pbBadge) {
       pbBadge.onclick = () => {
@@ -427,8 +428,6 @@
       state.profile.socials = null;
       socialLinks.innerHTML = "";
     }
-
-    await loadTwitchFromRuns(name);
   }
 
   async function loadTwitchFromRuns(name) {
