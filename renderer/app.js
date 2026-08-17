@@ -64,6 +64,8 @@
     autoOpenTwitch: JSON.parse(localStorage.getItem("paceman_autoOpenTwitch") || "false"),
     recents: JSON.parse(localStorage.getItem("paceman_recents") || "[]"),
     playerCache: {},
+    favorites: JSON.parse(localStorage.getItem("paceman_favorites") || "[]"),
+    favoritePBs: JSON.parse(localStorage.getItem("paceman_favorite_pbs") || "{}"),
     profile: { name: null, uuid: null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null },
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc" },
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
@@ -76,6 +78,184 @@
   const navHistory = [];
   let navIndex = -1;
   let suppressNavPush = false;
+
+  function isFavorite(name) {
+    return state.favorites.includes(name);
+  }
+
+  function toggleFavorite(name) {
+    const idx = state.favorites.indexOf(name);
+    if (idx >= 0) {
+      state.favorites.splice(idx, 1);
+      delete state.favoritePBs[name];
+    } else {
+      state.favorites.push(name);
+    }
+    localStorage.setItem("paceman_favorites", JSON.stringify(state.favorites));
+    localStorage.setItem("paceman_favorite_pbs", JSON.stringify(state.favoritePBs));
+    updateFavoriteButton();
+  }
+
+  function saveFavoritePB(name, time) {
+    if (!isFavorite(name)) return;
+    const current = state.favoritePBs[name];
+    if (current == null || time < current) {
+      state.favoritePBs[name] = time;
+      localStorage.setItem("paceman_favorite_pbs", JSON.stringify(state.favoritePBs));
+      return true;
+    }
+    return false;
+  }
+
+  function updateFavoriteButton() {
+    const btn = document.getElementById("favoriteBtn");
+    if (!btn) return;
+    const name = state.profile.name;
+    if (name && isFavorite(name)) {
+      btn.classList.add("active");
+      btn.querySelector("svg").setAttribute("fill", "currentColor");
+    } else {
+      btn.classList.remove("active");
+      btn.querySelector("svg").setAttribute("fill", "none");
+    }
+  }
+
+  function renderRunHistoryChart() {
+    const container = document.getElementById("profileChart");
+    if (!container) return;
+
+    const runs = state.profile.timeframeRuns || [];
+    const finished = runs.filter((r) => r.finish != null).sort((a, b) => (a.insertTime || 0) - (b.insertTime || 0));
+    if (finished.length < 2) {
+      container.innerHTML = finished.length === 1 ? '<div class="loading">Only 1 finished run in this timeframe. Need at least 2 to show a chart.</div>' : "";
+      return;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = container.clientWidth || 600;
+    canvas.height = 180;
+    container.innerHTML = "";
+    container.appendChild(canvas);
+
+    const ctx = canvas.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvas.clientWidth * dpr;
+    canvas.height = 180 * dpr;
+    ctx.scale(dpr, dpr);
+
+    const width = canvas.clientWidth;
+    const height = 180;
+    const padding = { top: 20, right: 20, bottom: 30, left: 50 };
+    const chartW = width - padding.left - padding.right;
+    const chartH = height - padding.top - padding.bottom;
+
+    const times = finished.map((r) => r.finish);
+    const minTime = Math.min(...times);
+    const maxTime = Math.max(...times);
+    const range = maxTime - minTime || 1;
+
+    const points = finished.map((r, i) => ({
+      x: padding.left + (finished.length > 1 ? (i / (finished.length - 1)) * chartW : chartW / 2),
+      y: padding.top + chartH - ((r.finish - minTime) / range) * chartH,
+    }));
+
+    ctx.clearRect(0, 0, width, height);
+
+    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = padding.top + (chartH / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(width - padding.right, y);
+      ctx.stroke();
+    }
+
+    const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartH);
+    gradient.addColorStop(0, "rgba(124, 58, 237, 0.3)");
+    gradient.addColorStop(1, "rgba(124, 58, 237, 0.0)");
+
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, padding.top + chartH);
+    for (const p of points) ctx.lineTo(p.x, p.y);
+    ctx.lineTo(points[points.length - 1].x, padding.top + chartH);
+    ctx.closePath();
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+    ctx.strokeStyle = "#a78bfa";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    for (const p of points) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = "#a78bfa";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+    }
+
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.font = "11px Inter, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(formatTime(maxTime), padding.left - 8, padding.top + 4);
+    ctx.fillText(formatTime(minTime), padding.left - 8, padding.top + chartH);
+
+    ctx.textAlign = "center";
+    ctx.fillText("Oldest", padding.left, height - 8);
+    ctx.fillText("Newest", width - padding.right, height - 8);
+  }
+    const list = document.getElementById("favoritesList");
+    const section = document.getElementById("favoritesSection");
+    if (!list || !section) return;
+
+    if (state.favorites.length === 0) {
+      section.style.display = "block";
+      list.innerHTML = '<div class="loading">No favorite players yet. Star a player from their profile to add them here.</div>';
+      return;
+    }
+
+    section.style.display = "block";
+    const favRuns = state.liveRuns.filter((r) => r.user && r.user.name && isFavorite(r.user.name));
+    if (favRuns.length === 0) {
+      list.innerHTML = '<div class="loading">None of your favorite players are currently live.</div>';
+      return;
+    }
+
+    list.innerHTML = "";
+    for (const run of favRuns) {
+      const row = document.createElement("div");
+      row.className = "run-row is-favorite";
+      const user = run.user || {};
+      const name = user.name || "Unknown";
+      const channel = user.liveAccount || null;
+      const time = run.current ? formatTime(run.current) : null;
+      const stage = run.stage || "Unknown";
+      const splits = run.splits || {};
+      const rta = run.rta != null ? formatTime(run.rta) : null;
+
+      row.innerHTML = `
+        <div class="run-row-head">
+          <img src="${avatarUrl(user.uuid || name, 28)}" onerror="this.style.visibility='hidden'">
+          ${escapeHtml(name)}
+          ${channel ? `<a class="run-twitch" href="https://twitch.tv/${escapeHtml(channel)}" target="_blank" rel="noopener">Twitch</a>` : ""}
+        </div>
+        <div class="run-cells">
+          <div class="run-cell"><b>Stage:</b> ${escapeHtml(stage)}</div>
+          ${rta ? `<div class="run-cell"><b>RTA:</b> ${rta}</div>` : ""}
+          ${time ? `<div class="run-cell run-pb-indicator">IGT: ${time}</div>` : ""}
+        </div>
+      `;
+      row.addEventListener("click", () => openProfile(name, user.uuid));
+      list.appendChild(row);
+    }
+  }
 
   function pushNav(entry) {
     if (suppressNavPush) return;
@@ -300,6 +480,7 @@
       const time = f ? f.igt : 0;
       const twitch = r.user && r.user.liveAccount ? r.user.liveAccount : null;
       const streaming = !!twitch;
+      if (isFavorite(name)) card.classList.add("is-favorite");
       card.innerHTML = `
         <img src="${avatarUrl(id, 64)}" alt="${escapeHtml(name)}" onerror="this.style.visibility='hidden'">
         <div class="run-info">
@@ -368,6 +549,8 @@
     addRecent(name);
     await Promise.all([loadProfileStats(), loadProfileRuns(), loadProfileSocials(name)]);
     await loadTwitchFromRuns(name);
+    updateFavoriteButton();
+    renderRunHistoryChart();
     const pbBadge = document.getElementById("profilePB");
     if (pbBadge) {
       pbBadge.onclick = () => {
@@ -516,6 +699,14 @@
       state.profile.pbRun = pbRun;
       const pbEl = document.getElementById("profilePB");
       if (pbEl) pbEl.textContent = pb != null ? `PB: ${fmt(pb)}` : "PB: --";
+
+      if (isFavorite(name) && pbRun && saveFavoritePB(name, pb)) {
+        const notif = new Notification("New PB!", {
+          body: `${name} got a new personal best: ${fmt(pb)}`,
+          icon: "https://mc-heads.net/avatar/" + (state.profile.uuid || name) + "/64",
+        });
+        if (notif) notif.onclick = () => openProfile(name, state.profile.uuid);
+      }
       const ranked = state.profile.timeframeRuns
         .map((r) => ({ r, f: furthestIndex(r) }))
         .sort((a, b) => {
@@ -550,6 +741,7 @@
       }
       renderAllRunsPage();
       await loadTwitchFromRuns(name);
+      renderRunHistoryChart();
     } catch (e) {
       const best = document.getElementById("profileBestRuns");
       if (best) best.innerHTML = '<div class="loading">No recent runs.</div>';
@@ -1282,8 +1474,18 @@
     if (p === "home") {
       document.getElementById("page-home").classList.add("active");
       document.querySelector('[data-page="home"]').classList.add("active");
+      document.getElementById("runsList").style.display = "";
+      document.getElementById("favoritesSection").style.display = "none";
       loadLiveRuns();
       if (!suppressNavPush) pushNav({ page: "home" });
+    } else if (p === "favorites") {
+      document.getElementById("page-home").classList.add("active");
+      const favBtn = document.querySelector('[data-page="favorites"]');
+      if (favBtn) favBtn.classList.add("active");
+      document.getElementById("runsList").style.display = "none";
+      document.getElementById("favoritesSection").style.display = "block";
+      renderFavorites();
+      if (!suppressNavPush) pushNav({ page: "favorites" });
     } else if (p === "leaderboard") {
       document.getElementById("page-leaderboard").classList.add("active");
       document.querySelector('[data-page="leaderboard"]').classList.add("active");
@@ -1293,7 +1495,7 @@
       document.getElementById("page-profile").classList.add("active");
     }
     const footer = document.getElementById("appFooter");
-    if (footer) footer.style.display = p === "home" ? "" : "none";
+    if (footer) footer.style.display = p === "home" || p === "favorites" ? "" : "none";
   }
 
   function initRouter() {
@@ -1315,7 +1517,7 @@
         document.querySelectorAll("#profileTimeframes .timeframe-btn").forEach((x) => x.classList.remove("active"));
         b.classList.add("active");
         loadProfileStats();
-        loadProfileRuns();
+        loadProfileRuns().then(() => renderRunHistoryChart());
       });
     });
     document.querySelectorAll("#leaderboardTimeframes .timeframe-btn").forEach((b) => {
@@ -1703,6 +1905,9 @@
   }
 
   function init() {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
     initRouter();
     initSearch();
     initFilters();
@@ -1715,6 +1920,14 @@
     const compareClearBtn = document.getElementById("compareClearBtn");
     if (compareClearBtn) {
       compareClearBtn.addEventListener("click", removeComparisonPlayer2);
+    }
+    const favoriteBtn = document.getElementById("favoriteBtn");
+    if (favoriteBtn) {
+      favoriteBtn.addEventListener("click", () => {
+        if (state.profile.name) {
+          toggleFavorite(state.profile.name);
+        }
+      });
     }
     initComparisonSearch();
     const autoOpenBtn = document.getElementById("autoOpenTwitchBtn");

@@ -2258,6 +2258,92 @@ body {
   height: 18px;
 }
 
+.favorite-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.favorite-btn:hover {
+  background: var(--bg-glass-hover);
+  color: #fbbf24;
+  border-color: #fbbf24;
+}
+
+.favorite-btn.active {
+  color: #fbbf24;
+  border-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+}
+
+.favorite-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.profile-chart {
+  margin: 16px 24px;
+  padding: 16px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.profile-chart h3 {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.chart-container {
+  width: 100%;
+  height: 200px;
+  position: relative;
+}
+
+.chart-container canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.favorites-section {
+  margin-top: 24px;
+}
+
+.favorites-section h3 {
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.run-row.is-favorite .run-row-head {
+  color: #fbbf24;
+}
+
+.run-row.is-favorite {
+  border-left: 3px solid #fbbf24;
+}
+
+.run-card.is-favorite {
+  border-left: 3px solid #fbbf24;
+}
+
+.run-card.is-favorite .run-name {
+  color: #fbbf24;
+}
+
 .compare-panel {
   display: none;
   gap: 0;
