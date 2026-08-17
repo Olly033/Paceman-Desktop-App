@@ -66,6 +66,7 @@
     playerCache: {},
     favorites: JSON.parse(localStorage.getItem("paceman_favorites") || "[]"),
     favoritePBs: JSON.parse(localStorage.getItem("paceman_favorite_pbs") || "{}"),
+    favoritesFilterActive: false,
     profile: { name: null, uuid: null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null },
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc" },
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
@@ -235,7 +236,7 @@
     section.style.display = "block";
     const favRuns = state.liveRuns.filter((r) => r.user && r.user.name && isFavorite(r.user.name));
     if (favRuns.length === 0) {
-      list.innerHTML = '<div class="loading">None of your favorite players are currently live.</div>';
+      list.innerHTML = '<div class="loading">None of your favorite players are currently running.</div>';
       return;
     }
 
@@ -484,9 +485,13 @@
 
   function renderLiveRuns() {
     const list = document.getElementById("runsList");
-    const runs = sortLiveRuns(state.liveRuns.filter(passesFilters));
+    let runs = sortLiveRuns(state.liveRuns.filter(passesFilters));
+    if (state.favoritesFilterActive) {
+      runs = runs.filter((r) => r.user && r.user.name && isFavorite(r.user.name));
+    }
     if (runs.length === 0) {
-      list.innerHTML = '<div class="loading">No runs match the current filters.</div>';
+      const msg = state.favoritesFilterActive ? "None of your favorite players are currently running." : "No runs match the current filters.";
+      list.innerHTML = `<div class="loading">${msg}</div>`;
       return;
     }
     list.innerHTML = "";
@@ -1958,6 +1963,14 @@
         if (state.profile.name) {
           toggleFavorite(state.profile.name);
         }
+      });
+    }
+    const favoritesToggle = document.getElementById("favoritesToggle");
+    if (favoritesToggle) {
+      favoritesToggle.addEventListener("click", () => {
+        state.favoritesFilterActive = !state.favoritesFilterActive;
+        favoritesToggle.classList.toggle("active", state.favoritesFilterActive);
+        renderLiveRuns();
       });
     }
     const chartStatSelect = document.getElementById("chartStatSelect");
