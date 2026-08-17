@@ -416,9 +416,6 @@
   }
 
   async function loadProfileSocials(name) {
-    const socialLinks = document.getElementById("socialLinks");
-    if (!socialLinks) return;
-
     const urls = [
       `https://api.mcsrranked.com/users/${encodeURIComponent(name)}`,
       `https://mcsrranked.com/api/users/${encodeURIComponent(name)}`
@@ -440,19 +437,18 @@
     }
 
     state.profile.socials = connections || null;
-    renderSocialLinks(connections);
   }
 
   async function loadTwitchFromRuns(name) {
-    const socialLinks = document.getElementById("socialLinks");
-    if (!socialLinks) return;
-
     const runs = state.profile.timeframeRuns || [];
     const allRuns = state.profile.allRuns || [];
     const combined = [...runs, ...allRuns];
 
     const finishedRuns = combined.filter((r) => r && r.finish != null && (r.id || r.worldId));
-    if (finishedRuns.length === 0) return;
+    if (finishedRuns.length === 0) {
+      renderSocialLinks(state.profile.socials);
+      return;
+    }
 
     const seen = new Set();
     for (const run of finishedRuns.slice(0, 10)) {
@@ -466,17 +462,17 @@
         const twitch = full.twitch;
         if (twitch && typeof twitch === "string" && twitch.trim() !== "") {
           const existing = state.profile.socials || {};
-          if (!existing.twitch) {
-            existing.twitch = { id: twitch.trim(), name: twitch.trim() };
-            state.profile.socials = existing;
-            renderSocialLinks(existing);
-          }
+          existing.twitch = { id: twitch.trim(), name: twitch.trim() };
+          state.profile.socials = existing;
+          renderSocialLinks(existing);
           return;
         }
       } catch (e) {
-        // ignore and continue
+        // ignore and try next run
       }
     }
+
+    renderSocialLinks(state.profile.socials);
   }
 
   function renderSocialLinks(connections, container) {
