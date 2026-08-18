@@ -689,6 +689,7 @@
     const wrap = document.getElementById("profileSplits");
     const sessionBox = document.getElementById("sessionStats");
     if (sessionBox) sessionBox.innerHTML = "";
+    if (wrap) wrap.innerHTML = '<div class="loading">Loading stats...</div>';
     try {
       const stats = await getJSON(`${API}/getSessionStats?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`);
       if (wrap) wrap.innerHTML = "";
@@ -801,6 +802,10 @@
   async function loadProfileRuns() {
     const { name, tf } = state.profile;
     const generation = ++profileRunsGeneration;
+    const best = document.getElementById("profileBestRuns");
+    const title = document.getElementById("profileBestRunsTitle");
+    if (title) title.textContent = `Best ${tf.charAt(0).toUpperCase() + tf.slice(1)} Runs`;
+    if (best) best.innerHTML = '<div class="loading">Loading runs...</div>';
     try {
       const hours = TF_HOURS[tf] || 24;
       const [timeframe, all] = await Promise.all([
@@ -843,9 +848,6 @@
           return a.f.time - b.f.time;
         })
         .slice(0, 5);
-      const best = document.getElementById("profileBestRuns");
-      const title = document.getElementById("profileBestRunsTitle");
-      if (title) title.textContent = `Best ${tf.charAt(0).toUpperCase() + tf.slice(1)} Runs`;
       if (best) {
         best.innerHTML = "";
         if (ranked.length === 0) {
@@ -868,8 +870,7 @@
       renderRunHistoryChart();
     } catch (e) {
       if (generation !== profileRunsGeneration) return;
-      const best = document.getElementById("profileBestRuns");
-      if (best) best.innerHTML = '<div class="loading">No recent runs.</div>';
+      if (best) best.innerHTML = '<div class="loading">Failed to load runs.</div>';
     }
   }
 
