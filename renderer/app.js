@@ -809,8 +809,8 @@
     try {
       const hours = TF_HOURS[tf] || 24;
       const [timeframe, all] = await Promise.all([
-        getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=${hours}&limit=5000`),
-        getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=999999&limit=5000`),
+        safeGetRecentRuns(name, hours),
+        safeGetRecentRuns(name, 999999),
       ]);
       if (generation !== profileRunsGeneration) return;
       state.profile.timeframeRuns = timeframe || [];
@@ -871,6 +871,19 @@
     } catch (e) {
       if (generation !== profileRunsGeneration) return;
       if (best) best.innerHTML = '<div class="loading">Failed to load runs.</div>';
+      if (typeof addDevLog === "function") addDevLog("error", "loadProfileRuns failed: " + (e && e.message ? e.message : e));
+    }
+  }
+
+  async function safeGetRecentRuns(name, hours) {
+    try {
+      const data = await getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=${hours}&limit=5000`);
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      if (e && e.message && e.message.includes("HTTP 404")) {
+        return [];
+      }
+      throw e;
     }
   }
 
