@@ -173,7 +173,7 @@
     }
 
     const tf = state.profile.tf;
-    if (tf === "session" || tf === "daily") {
+    if (tf === "session") {
       container.innerHTML = "";
       chartPoints = [];
       chartCanvas = null;
