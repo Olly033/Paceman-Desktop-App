@@ -2354,6 +2354,45 @@ body {
   border-color: var(--accent);
 }
 
+.chart-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chart-toggle-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.chart-toggle-btn:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.chart-toggle-btn.hidden {
+  opacity: 0.6;
+}
+
+.profile-chart.collapsed .chart-container {
+  display: none;
+}
+
+.profile-chart.collapsed {
+  padding-bottom: 12px;
+}
+
 .chart-container {
   width: 100%;
   height: 200px;

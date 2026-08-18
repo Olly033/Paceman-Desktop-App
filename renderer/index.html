@@ -165,15 +165,23 @@
         </div>
         <div class="profile-chart" id="profileChart" title="Completion times over time for this timeframe">
           <h3>Run History</h3>
-          <select class="chart-stat-select" id="chartStatSelect">
-            <option value="finish">Completion</option>
-            <option value="nether">Nether</option>
-            <option value="bastion">Bastion</option>
-            <option value="fortress">Fortress</option>
-            <option value="first_portal">Blind Portal</option>
-            <option value="stronghold">Stronghold</option>
-            <option value="end">End</option>
-          </select>
+          <div class="chart-controls">
+            <select class="chart-stat-select" id="chartStatSelect">
+              <option value="finish">Completion</option>
+              <option value="nether">Nether</option>
+              <option value="bastion">Bastion</option>
+              <option value="fortress">Fortress</option>
+              <option value="first_portal">Blind Portal</option>
+              <option value="stronghold">Stronghold</option>
+              <option value="end">End</option>
+            </select>
+            <button class="chart-toggle-btn" id="chartToggleBtn" title="Toggle chart visibility">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
           <div class="chart-container" id="chartContainer"></div>
         </div>
         <div class="all-runs-modal" id="allRunsModal">

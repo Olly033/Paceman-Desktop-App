@@ -66,7 +66,7 @@
     playerCache: {},
     favorites: JSON.parse(localStorage.getItem("paceman_favorites") || "[]"),
     favoritePBs: JSON.parse(localStorage.getItem("paceman_favorite_pbs") || "{}"),
-    profile: { name: null, uuid: null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null },
+    profile: { name: null, uuid: null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null, chartVisible: true },
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc" },
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
   };
@@ -157,13 +157,26 @@
     }
   }
 
+  let chartPoints = [];
+  let chartCanvas = null;
+
   function renderRunHistoryChart() {
     const container = document.getElementById("chartContainer");
-    if (!container) return;
+    const chartEl = document.getElementById("profileChart");
+    if (!container || !chartEl) return;
+
+    if (!state.chartVisible) {
+      container.innerHTML = "";
+      chartPoints = [];
+      chartCanvas = null;
+      return;
+    }
 
     const tf = state.profile.tf;
     if (tf === "session" || tf === "daily") {
       container.innerHTML = "";
+      chartPoints = [];
+      chartCanvas = null;
       return;
     }
 
@@ -174,12 +187,36 @@
     const finished = runs.filter((r) => r[statKey] != null).sort((a, b) => (a.insertTime || 0) - (b.insertTime || 0));
     if (finished.length < 2) {
       container.innerHTML = finished.length === 1 ? '<div class="loading">Only 1 run with this split in this timeframe. Need at least 2 to show a chart.</div>' : "";
+      chartPoints = [];
+      chartCanvas = null;
       return;
     }
 
     const canvas = document.createElement("canvas");
     container.innerHTML = "";
     container.appendChild(canvas);
+    chartCanvas = canvas;
+
+    canvas.addEventListener("click", (e) => {
+      if (!chartPoints.length) return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = (container.clientWidth || 600) / rect.width;
+      const scaleY = 180 / rect.height;
+      const mx = (e.clientX - rect.left) * scaleX;
+      const my = (e.clientY - rect.top) * scaleY;
+      let closest = null;
+      let minDist = 12;
+      for (const p of chartPoints) {
+        const dist = Math.hypot(p.x - mx, p.y - my);
+        if (dist < minDist) {
+          minDist = dist;
+          closest = p;
+        }
+      }
+      if (closest && closest.run) {
+        openRunDetail(closest.run.id, state.profile.name, closest.run);
+      }
+    });
 
     const dpr = window.devicePixelRatio || 1;
     canvas.width = (container.clientWidth || 600) * dpr;
@@ -200,9 +237,10 @@
     const maxTime = Math.max(...times);
     const range = maxTime - minTime || 1;
 
-    const points = finished.map((r, i) => ({
+    chartPoints = finished.map((r, i) => ({
       x: padding.left + (finished.length > 1 ? (i / (finished.length - 1)) * chartW : chartW / 2),
       y: padding.top + chartH - ((r[statKey] - minTime) / range) * chartH,
+      run: r,
     }));
 
     ctx.clearRect(0, 0, width, height);
@@ -222,21 +260,21 @@
     gradient.addColorStop(1, "rgba(124, 58, 237, 0.0)");
 
     ctx.beginPath();
-    ctx.moveTo(points[0].x, padding.top + chartH);
-    for (const p of points) ctx.lineTo(p.x, p.y);
-    ctx.lineTo(points[points.length - 1].x, padding.top + chartH);
+    ctx.moveTo(chartPoints[0].x, padding.top + chartH);
+    for (const p of chartPoints) ctx.lineTo(p.x, p.y);
+    ctx.lineTo(chartPoints[chartPoints.length - 1].x, padding.top + chartH);
     ctx.closePath();
     ctx.fillStyle = gradient;
     ctx.fill();
 
     ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+    ctx.moveTo(chartPoints[0].x, chartPoints[0].y);
+    for (let i = 1; i < chartPoints.length; i++) ctx.lineTo(chartPoints[i].x, chartPoints[i].y);
     ctx.strokeStyle = "#a78bfa";
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    for (const p of points) {
+    for (const p of chartPoints) {
       ctx.beginPath();
       ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
       ctx.fillStyle = "#a78bfa";
@@ -591,7 +629,7 @@
     }
     pushNav({ page: "profile", name, uuid });
     showPage("profile");
-    state.profile = { name, uuid: uuid || null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null };
+    state.profile = { name, uuid: uuid || null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null, chartVisible: true };
     const profileName = document.getElementById("profileName");
     const profileStatsRow = document.getElementById("profileStatsRow");
     const profileSplits = document.getElementById("profileSplits");
@@ -620,6 +658,14 @@
     await Promise.all([loadProfileStats(), loadProfileRuns(), loadProfileSocials(name)]);
     await loadTwitchFromRuns(name);
     updateFavoriteButton();
+    const chartToggleBtn = document.getElementById("chartToggleBtn");
+    const profileChart = document.getElementById("profileChart");
+    if (chartToggleBtn) {
+      chartToggleBtn.classList.remove("hidden");
+    }
+    if (profileChart) {
+      profileChart.classList.remove("collapsed");
+    }
     renderRunHistoryChart();
     const pbBadge = document.getElementById("profilePB");
     if (pbBadge) {
@@ -2161,6 +2207,15 @@
     const chartStatSelect = document.getElementById("chartStatSelect");
     if (chartStatSelect) {
       chartStatSelect.addEventListener("change", () => {
+        renderRunHistoryChart();
+      });
+    }
+    const chartToggleBtn = document.getElementById("chartToggleBtn");
+    if (chartToggleBtn) {
+      chartToggleBtn.addEventListener("click", () => {
+        state.profile.chartVisible = !state.profile.chartVisible;
+        chartToggleBtn.classList.toggle("hidden", !state.profile.chartVisible);
+        document.getElementById("profileChart").classList.toggle("collapsed", !state.profile.chartVisible);
         renderRunHistoryChart();
       });
     }
