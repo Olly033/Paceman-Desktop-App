@@ -2933,6 +2933,12 @@ body {
   color: var(--accent-light);
 }
 
+.split-detail-furthest {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
 .split-detail-id {
   font-size: 12px;
   color: var(--text-muted);

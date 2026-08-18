@@ -1230,7 +1230,9 @@
       row.className = "split-detail-row";
       const runId = r.id || r.worldId || r.runId || r._id || null;
       const timeStr = fmt(r[split]);
-      row.innerHTML = `<span class="split-detail-time">${timeStr}</span><span class="split-detail-id">#${runId != null ? runId : "?"}</span>`;
+      const furthest = furthestIndex(r);
+      const furthestText = furthest.key ? SPLITS[furthest.key] || furthest.key : "—";
+      row.innerHTML = `<span class="split-detail-time">${timeStr}</span><span class="split-detail-furthest">Furthest: ${furthestText}</span><span class="split-detail-id">#${runId != null ? runId : "?"}</span>`;
       row.addEventListener("click", () => {
         if (runId) openRunDetail(runId, state.profile.name, r);
       });
