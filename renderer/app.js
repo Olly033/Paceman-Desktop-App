@@ -2278,6 +2278,11 @@
     if (devClosePanelBtn) {
       devClosePanelBtn.addEventListener("click", toggleDevMode);
     }
+    window.addEventListener("keydown", (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "d") {
+        toggleDevMode();
+      }
+    });
   }
 
   if (document.readyState === "loading") {

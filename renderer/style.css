@@ -2599,36 +2599,6 @@ body {
 }
 
 /* Dev Mode */
-.dev-mode-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid var(--border-glass);
-  background: var(--bg-glass);
-  color: var(--text-secondary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.dev-mode-btn:hover {
-  background: var(--bg-glass-hover);
-  color: var(--text-primary);
-}
-
-.dev-mode-btn.active {
-  background: var(--gradient-1);
-  color: white;
-  border-color: transparent;
-}
-
-.dev-mode-btn svg {
-  width: 16px;
-  height: 16px;
-}
-
 .dev-panel {
   display: none;
   position: fixed;
