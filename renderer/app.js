@@ -75,6 +75,7 @@
 
   let currentVod = { id: null, offset: 0, currentTime: 0 };
   let currentRunId = null;
+  let splitDetailState = { split: null, runs: [], page: 1, perPage: 10, sortAsc: true };
 
   const navHistory = [];
   let navIndex = -1;
@@ -158,6 +159,7 @@
     }
   }
 
+  let profileRunsGeneration = 0;
   let chartPoints = [];
   let chartCanvas = null;
 
@@ -695,6 +697,7 @@
         const card = document.createElement("div");
         card.className = "split-card";
         card.innerHTML = `<div class="split-name">${SPLITS[key]}</div><div class="split-value">${s.count}</div><div class="split-count">Avg ${s.avg}</div>`;
+        card.addEventListener("click", () => openSplitDetail(key));
         if (wrap) wrap.appendChild(card);
       }
       const fin = stats.finish || { count: 0, avg: "0:00" };
@@ -797,12 +800,14 @@
 
   async function loadProfileRuns() {
     const { name, tf } = state.profile;
+    const generation = ++profileRunsGeneration;
     try {
       const hours = TF_HOURS[tf] || 24;
       const [timeframe, all] = await Promise.all([
         getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=${hours}&limit=5000`),
         getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=999999&limit=5000`),
       ]);
+      if (generation !== profileRunsGeneration) return;
       state.profile.timeframeRuns = timeframe || [];
       state.profile.allRuns = all || [];
       pruneRuns();
@@ -825,6 +830,7 @@
         });
         if (notif) notif.onclick = () => openProfile(name, state.profile.uuid);
       }
+      if (generation !== profileRunsGeneration) return;
       const ranked = state.profile.timeframeRuns
         .map((r) => ({ r, f: furthestIndex(r) }))
         .sort((a, b) => {
@@ -861,6 +867,7 @@
       await loadTwitchFromRuns(name);
       renderRunHistoryChart();
     } catch (e) {
+      if (generation !== profileRunsGeneration) return;
       const best = document.getElementById("profileBestRuns");
       if (best) best.innerHTML = '<div class="loading">No recent runs.</div>';
     }
@@ -1176,6 +1183,102 @@
     if (webview) {
       webview.src = "about:blank";
       webview.style.display = "none";
+    }
+  }
+
+  function openSplitDetail(splitKey) {
+    const panel = document.getElementById("splitDetailPanel");
+    const titleEl = document.getElementById("splitDetailTitle");
+    if (!panel || !titleEl) return;
+
+    const runs = (state.profile.timeframeRuns || []).filter((r) => r[splitKey] != null);
+    if (runs.length === 0) {
+      titleEl.textContent = SPLITS[splitKey] || splitKey;
+      document.getElementById("splitDetailList").innerHTML = '<div class="loading">No runs with this split in the current timeframe.</div>';
+      document.getElementById("splitDetailPagination").innerHTML = "";
+      panel.classList.add("visible");
+      return;
+    }
+
+    splitDetailState = { split: splitKey, runs, page: 1, perPage: 10, sortAsc: true };
+    titleEl.textContent = SPLITS[splitKey] || splitKey;
+    renderSplitDetail();
+    panel.classList.add("visible");
+  }
+
+  function closeSplitDetail() {
+    const panel = document.getElementById("splitDetailPanel");
+    if (panel) panel.classList.remove("visible");
+  }
+
+  function renderSplitDetail() {
+    const { split, runs, page, perPage, sortAsc } = splitDetailState;
+    const listEl = document.getElementById("splitDetailList");
+    const paginationEl = document.getElementById("splitDetailPagination");
+    const sortBtn = document.getElementById("splitDetailSort");
+    if (!listEl) return;
+
+    const sorted = [...runs].sort((a, b) => sortAsc ? a[split] - b[split] : b[split] - a[split]);
+    const totalPages = Math.max(1, Math.ceil(sorted.length / perPage));
+    const safePage = Math.min(page, totalPages);
+    const start = (safePage - 1) * perPage;
+    const pageRuns = sorted.slice(start, start + perPage);
+
+    listEl.innerHTML = "";
+    for (const r of pageRuns) {
+      const row = document.createElement("div");
+      row.className = "split-detail-row";
+      const runId = r.id || r.worldId || r.runId || r._id || null;
+      const timeStr = fmt(r[split]);
+      row.innerHTML = `<span class="split-detail-time">${timeStr}</span><span class="split-detail-id">#${runId != null ? runId : "?"}</span>`;
+      row.addEventListener("click", () => {
+        if (runId) openRunDetail(runId, state.profile.name, r);
+      });
+      listEl.appendChild(row);
+    }
+
+    if (paginationEl) {
+      paginationEl.innerHTML = `
+        <button class="split-page-btn" data-page="prev" ${safePage <= 1 ? "disabled" : ""}>&lt;</button>
+        <span class="split-page-info">${safePage} / ${totalPages}</span>
+        <button class="split-page-btn" data-page="next" ${safePage >= totalPages ? "disabled" : ""}>&gt;</button>
+      `;
+      paginationEl.querySelectorAll(".split-page-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const dir = btn.dataset.page;
+          if (dir === "prev" && safePage > 1) {
+            splitDetailState.page = safePage - 1;
+            renderSplitDetail();
+          } else if (dir === "next" && safePage < totalPages) {
+            splitDetailState.page = safePage + 1;
+            renderSplitDetail();
+          }
+        });
+      });
+    }
+
+    if (sortBtn) {
+      sortBtn.classList.toggle("active", !sortAsc);
+      sortBtn.title = sortAsc ? "Show slowest first" : "Show fastest first";
+    }
+  }
+
+  function initSplitDetail() {
+    const closeBtn = document.getElementById("closeSplitDetail");
+    if (closeBtn) closeBtn.addEventListener("click", closeSplitDetail);
+    const sortBtn = document.getElementById("splitDetailSort");
+    if (sortBtn) {
+      sortBtn.addEventListener("click", () => {
+        splitDetailState.sortAsc = !splitDetailState.sortAsc;
+        splitDetailState.page = 1;
+        renderSplitDetail();
+      });
+    }
+    const panel = document.getElementById("splitDetailPanel");
+    if (panel) {
+      panel.addEventListener("click", (e) => {
+        if (e.target === panel) closeSplitDetail();
+      });
     }
   }
 
@@ -2242,6 +2345,7 @@
     }
     initComparisonSearch();
     initFavoritesSearch();
+    initSplitDetail();
     const autoOpenBtn = document.getElementById("autoOpenTwitchBtn");
     if (autoOpenBtn) {
       autoOpenBtn.classList.toggle("active", state.autoOpenTwitch);
