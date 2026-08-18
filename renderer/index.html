@@ -20,6 +20,7 @@
         <div class="logo">PACEMAN</div>
         <nav class="nav">
           <button class="nav-btn active" data-page="home">Live Runs</button>
+          <button class="nav-btn" data-page="favorites">Favorites</button>
           <button class="nav-btn" data-page="leaderboard">Leaderboard</button>
         </nav>
       </div>
@@ -97,10 +98,23 @@
         <div class="runs-list" id="runsList">
           <div class="loading">Loading live runs...</div>
         </div>
-        <div class="favorites-section" id="favoritesSection" style="display:none">
-          <h3>Favorite Players</h3>
-          <div class="runs-list" id="favoritesList"></div>
+      </div>
+      <div class="page" id="page-favorites">
+        <div class="page-header">
+          <h1>Favorites</h1>
+          <div class="page-header-actions">
+            <div class="search-container">
+              <input type="text" class="search-input" placeholder="Search player to favorite..." id="favSearchInput">
+              <div class="search-dropdown" id="favSearchDropdown">
+                <div class="search-section" id="favSearchResults">
+                  <div class="search-section-title">Players</div>
+                  <div class="search-list" id="favResultsList"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+        <div class="runs-list" id="favoritesList"></div>
       </div>
       <div class="page" id="page-profile">
         <div class="profile-header">

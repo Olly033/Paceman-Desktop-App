@@ -261,39 +261,36 @@
 
   function renderFavorites() {
     const list = document.getElementById("favoritesList");
-    const section = document.getElementById("favoritesSection");
-    if (!list || !section) return;
+    const pageFav = document.getElementById("page-favorites");
+    if (!list || !pageFav) return;
 
     if (state.favorites.length === 0) {
-      section.style.display = "block";
-      list.innerHTML = '<div class="loading">No favorite players yet. Star a player from their profile to add them here.</div>';
-      return;
-    }
-
-    section.style.display = "block";
-    const favRuns = state.liveRuns.filter((r) => r.nickname && isFavorite(r.nickname));
-    if (favRuns.length === 0) {
-      list.innerHTML = '<div class="loading">None of your favorite players are currently running.</div>';
+      list.innerHTML = '<div class="loading">No favorite players yet. Search for players from the home page or profile pages to add them here.</div>';
       return;
     }
 
     list.innerHTML = "";
-    for (const run of favRuns) {
+    const favRuns = state.liveRuns.filter((r) => r.nickname && isFavorite(r.nickname));
+    const activeNames = new Set(favRuns.map((r) => r.nickname));
+
+    for (const name of state.favorites) {
       const row = document.createElement("div");
       row.className = "run-row is-favorite";
-      const user = run.user || {};
-      const name = run.nickname || user.name || "Unknown";
+      const isRunning = activeNames.has(name);
+      const run = isRunning ? favRuns.find((r) => r.nickname === name) : null;
+      const user = run ? run.user : {};
+      const uuid = user.uuid || state.playerCache[name.toLowerCase()] || null;
       const channel = user.liveAccount || null;
-      const time = run.current ? formatTime(run.current) : null;
-      const stage = run.stage || "Unknown";
-      const splits = run.splits || {};
-      const rta = run.rta != null ? formatTime(run.rta) : null;
+      const stage = run ? (run.stage || "Unknown") : "Offline";
+      const time = run && run.current ? formatTime(run.current) : null;
+      const rta = run && run.rta != null ? formatTime(run.rta) : null;
 
       row.innerHTML = `
         <div class="run-row-head">
-          <img src="${avatarUrl(user.uuid || name, 28)}" onerror="this.style.visibility='hidden'">
+          <img src="${avatarUrl(uuid || name, 28)}" onerror="this.style.visibility='hidden'">
           ${escapeHtml(name)}
-          ${channel ? `<a class="run-twitch" href="https://twitch.tv/${escapeHtml(channel)}" target="_blank" rel="noopener">Twitch</a>` : ""}
+          ${isRunning ? `<span class="live-pill"><span class="live-dot"></span>LIVE</span>` : ""}
+          ${channel && isRunning ? `<a class="run-twitch" href="https://twitch.tv/${escapeHtml(channel)}" target="_blank" rel="noopener">Twitch</a>` : ""}
           <button class="fav-remove-btn" data-name="${escapeHtml(name)}" title="Remove from favorites">&times;</button>
         </div>
         <div class="run-cells">
@@ -310,7 +307,7 @@
           renderFavorites();
         });
       }
-      row.addEventListener("click", () => openProfile(name, user.uuid));
+      row.addEventListener("click", () => openProfile(name, uuid));
       list.appendChild(row);
     }
   }
@@ -1604,16 +1601,12 @@
       document.getElementById("page-home").classList.add("active");
       document.querySelector('[data-page="home"]').classList.add("active");
       document.getElementById("runsList").style.display = "";
-      document.getElementById("favoritesSection").style.display = "none";
       updateFavoritesToggleUI();
       startLiveRunsPolling();
       if (!suppressNavPush) pushNav({ page: "home" });
     } else if (p === "favorites") {
-      document.getElementById("page-home").classList.add("active");
-      const favBtn = document.querySelector('[data-page="favorites"]');
-      if (favBtn) favBtn.classList.add("active");
-      document.getElementById("runsList").style.display = "none";
-      document.getElementById("favoritesSection").style.display = "block";
+      document.getElementById("page-favorites").classList.add("active");
+      document.querySelector('[data-page="favorites"]').classList.add("active");
       renderFavorites();
       stopLiveRunsPolling();
       if (!suppressNavPush) pushNav({ page: "favorites" });
@@ -1993,6 +1986,75 @@
     });
   }
 
+  function initFavoritesSearch() {
+    const input = document.getElementById("favSearchInput");
+    const dropdown = document.getElementById("favSearchDropdown");
+    const resultsList = document.getElementById("favResultsList");
+
+    if (!input) return;
+
+    input.addEventListener("focus", () => {
+      dropdown.classList.add("visible");
+      resultsList.innerHTML = '<div class="loading">Type a name to search and add to favorites.</div>';
+    });
+
+    input.addEventListener("input", () => {
+      dropdown.classList.add("visible");
+      updateFavoritesSearchResults(input.value);
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && input.value.trim() !== "") {
+        const name = input.value.trim();
+        if (!isFavorite(name)) {
+          toggleFavorite(name);
+        }
+        renderFavorites();
+        input.value = "";
+        dropdown.classList.remove("visible");
+      }
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".search-container") || !e.target.closest("#page-favorites")) {
+        dropdown.classList.remove("visible");
+      }
+    });
+  }
+
+  function updateFavoritesSearchResults(q) {
+    const wrap = document.getElementById("favResultsList");
+    const query = q.trim().toLowerCase();
+    if (query === "") {
+      wrap.innerHTML = '<div class="loading">Type a name to search and add to favorites.</div>';
+      return;
+    }
+    const matches = Object.keys(state.playerCache)
+      .filter((n) => n.includes(query))
+      .slice(0, 10);
+    if (matches.length === 0) {
+      wrap.innerHTML = `<div class="loading">No matches. Press Enter to add "${escapeHtml(q.trim())}" as a favorite.</div>`;
+      return;
+    }
+    wrap.innerHTML = "";
+    for (const name of matches) {
+      const uuid = state.playerCache[name];
+      const item = document.createElement("div");
+      item.className = "search-item";
+      const isFav = isFavorite(name);
+      item.innerHTML = `<img src="${avatarUrl(uuid || name, 32)}" onerror="this.style.visibility='hidden'"><span class="search-item-name">${escapeHtml(name)}</span>${isFav ? '<span class="search-item-meta">★ Favorited</span>' : ''}`;
+      item.addEventListener("click", () => {
+        if (!isFavorite(name)) {
+          toggleFavorite(name);
+        }
+        renderFavorites();
+        document.getElementById("favSearchDropdown").classList.remove("visible");
+        document.getElementById("favSearchInput").value = "";
+      });
+      wrap.appendChild(item);
+    }
+  }
+
   function renderComparisonRecents() {
     const wrap = document.getElementById("compareResultsList");
     if (state.recents.length === 0) {
@@ -2080,6 +2142,7 @@
       });
     }
     initComparisonSearch();
+    initFavoritesSearch();
     const autoOpenBtn = document.getElementById("autoOpenTwitchBtn");
     if (autoOpenBtn) {
       autoOpenBtn.classList.toggle("active", state.autoOpenTwitch);
