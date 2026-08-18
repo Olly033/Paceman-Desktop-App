@@ -2598,4 +2598,138 @@ body {
   }
 }
 
+/* Dev Mode */
+.dev-mode-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.dev-mode-btn:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.dev-mode-btn.active {
+  background: var(--gradient-1);
+  color: white;
+  border-color: transparent;
+}
+
+.dev-mode-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.dev-panel {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 300px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-glass);
+  z-index: 1000;
+  flex-direction: column;
+}
+
+.dev-panel.visible {
+  display: flex;
+}
+
+.dev-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+}
+
+.dev-panel-header h3 {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.dev-panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.dev-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dev-btn:hover {
+  background: var(--bg-glass-hover);
+  border-color: var(--accent);
+}
+
+.dev-btn-secondary {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.dev-console {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.dev-console .log-entry {
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  display: flex;
+  gap: 8px;
+}
+
+.dev-console .log-time {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.dev-console .log-type {
+  font-weight: 600;
+  flex-shrink: 0;
+  width: 50px;
+}
+
+.dev-console .log-type.info {
+  color: #60a5fa;
+}
+
+.dev-console .log-type.warn {
+  color: #fbbf24;
+}
+
+.dev-console .log-type.error {
+  color: #ef4444;
+}
+
+.dev-console .log-message {
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+
 

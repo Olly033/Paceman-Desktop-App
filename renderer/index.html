@@ -60,7 +60,24 @@
           <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
         </svg>
       </button>
+      <button class="dev-mode-btn" id="devModeBtn" title="Toggle Dev Mode">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20a9 9 0 0 1 0-18 9 9 0 0 1 9 9 9 9 0 0 1-9 9"></path>
+          <path d="M12 8v4l2 2"></path>
+        </svg>
+      </button>
     </header>
+
+    <div class="dev-panel" id="devPanel">
+      <div class="dev-panel-header">
+        <h3>Dev Console</h3>
+        <div class="dev-panel-actions">
+          <button class="dev-btn" id="devClearCacheBtn">Clear Cache</button>
+          <button class="dev-btn dev-btn-secondary" id="devClosePanelBtn">Hide</button>
+        </div>
+      </div>
+      <div class="dev-console" id="devConsole"></div>
+    </div>
 
     <main class="main-content">
       <div class="page active" id="page-home">
