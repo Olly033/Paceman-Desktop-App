@@ -291,8 +291,8 @@
     ctx.fillStyle = "rgba(255,255,255,0.5)";
     ctx.font = "11px Inter, sans-serif";
     ctx.textAlign = "right";
-    ctx.fillText(formatTime(maxTime), padding.left - 8, padding.top + 4);
-    ctx.fillText(formatTime(minTime), padding.left - 8, padding.top + chartH);
+    ctx.fillText(fmt(maxTime), padding.left - 8, padding.top + 4);
+    ctx.fillText(fmt(minTime), padding.left - 8, padding.top + chartH);
 
     ctx.textAlign = "center";
     ctx.fillText("Oldest", padding.left, height - 8);
@@ -322,8 +322,8 @@
       const uuid = user.uuid || state.playerCache[name.toLowerCase()] || null;
       const channel = user.liveAccount || null;
       const stage = run ? (run.stage || "Unknown") : "Offline";
-      const time = run && run.current ? formatTime(run.current) : null;
-      const rta = run && run.rta != null ? formatTime(run.rta) : null;
+      const time = run && run.current ? fmt(run.current) : null;
+      const rta = run && run.rta != null ? fmt(run.rta) : null;
 
       row.innerHTML = `
         <div class="run-row-head">
