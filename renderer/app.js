@@ -60,13 +60,12 @@
     openTwitch: new Set(),
     focusedChannel: null,
     dockLayout: "bottom",
-    filters: { streamingOnly: false, maxTime: null },
+    filters: { streamingOnly: false, maxTime: null, favoritesOnly: false },
     autoOpenTwitch: JSON.parse(localStorage.getItem("paceman_autoOpenTwitch") || "false"),
     recents: JSON.parse(localStorage.getItem("paceman_recents") || "[]"),
     playerCache: {},
     favorites: JSON.parse(localStorage.getItem("paceman_favorites") || "[]"),
     favoritePBs: JSON.parse(localStorage.getItem("paceman_favorite_pbs") || "{}"),
-    favoritesFilterActive: false,
     profile: { name: null, uuid: null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null },
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc" },
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
@@ -521,11 +520,11 @@
   function renderLiveRuns() {
     const list = document.getElementById("runsList");
     let runs = sortLiveRuns(state.liveRuns.filter(passesFilters));
-    if (state.favoritesFilterActive) {
+    if (state.filters.favoritesOnly) {
       runs = runs.filter((r) => r.nickname && isFavorite(r.nickname));
     }
     if (runs.length === 0) {
-      const msg = state.favoritesFilterActive ? "None of your favorite players are currently running." : "No runs match the current filters.";
+      const msg = state.filters.favoritesOnly ? "None of your favorite players are currently running." : "No runs match the current filters.";
       list.innerHTML = `<div class="loading">${msg}</div>`;
       return;
     }
@@ -1511,8 +1510,10 @@
   function initFilters() {
     buildSplitFilters();
     const overlay = document.getElementById("filterOverlay");
+    const favCheckbox = document.getElementById("filterFavoritesOnly");
     document.getElementById("filterBtn").addEventListener("click", () => {
       document.getElementById("filterStreamingOnly").checked = state.filters.streamingOnly;
+      if (favCheckbox) favCheckbox.checked = state.filters.favoritesOnly;
       for (const split of SPLIT_ORDER) {
         document.getElementById(`filterSplit_${split}`).value =
           state.filters.maxTime && state.filters.maxTime[split] != null ? state.filters.maxTime[split] : "";
@@ -1525,6 +1526,7 @@
     });
     document.getElementById("applyFilters").addEventListener("click", () => {
       state.filters.streamingOnly = document.getElementById("filterStreamingOnly").checked;
+      state.filters.favoritesOnly = favCheckbox ? favCheckbox.checked : false;
       const mt = {};
       for (const split of SPLIT_ORDER) {
         const sec = parseTimeToSec(document.getElementById(`filterSplit_${split}`).value);
@@ -1535,7 +1537,7 @@
       renderLiveRuns();
     });
     document.getElementById("resetFilters").addEventListener("click", () => {
-      state.filters = { streamingOnly: false, maxTime: null };
+      state.filters = { streamingOnly: false, maxTime: null, favoritesOnly: false };
       overlay.classList.remove("visible");
       renderLiveRuns();
     });
@@ -1576,13 +1578,6 @@
 
   /* ---------------- Router ---------------- */
 
-  function updateFavoritesToggleUI() {
-    const toggle = document.getElementById("favoritesToggle");
-    if (toggle) {
-      toggle.classList.toggle("active", state.favoritesFilterActive);
-    }
-  }
-
   function showPage(p) {
     if (state.page === p && p !== "profile" && p !== "home") return;
     state.page = p;
@@ -1601,7 +1596,6 @@
       document.getElementById("page-home").classList.add("active");
       document.querySelector('[data-page="home"]').classList.add("active");
       document.getElementById("runsList").style.display = "";
-      updateFavoritesToggleUI();
       startLiveRunsPolling();
       if (!suppressNavPush) pushNav({ page: "home" });
     } else if (p === "favorites") {
@@ -2125,14 +2119,6 @@
         if (state.profile.name) {
           toggleFavorite(state.profile.name);
         }
-      });
-    }
-    const favoritesToggle = document.getElementById("favoritesToggle");
-    if (favoritesToggle) {
-      favoritesToggle.addEventListener("click", () => {
-        state.favoritesFilterActive = !state.favoritesFilterActive;
-        favoritesToggle.classList.toggle("active", state.favoritesFilterActive);
-        renderLiveRuns();
       });
     }
     const chartStatSelect = document.getElementById("chartStatSelect");

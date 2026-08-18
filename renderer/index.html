@@ -67,7 +67,6 @@
         <div class="page-header">
           <h1>Live Runs</h1>
           <div class="page-header-actions">
-            <button class="favorites-toggle" id="favoritesToggle" title="Show only favorites">Favorites</button>
             <button class="filter-btn" id="filterBtn" title="Filters">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"></path>
@@ -233,6 +232,12 @@
           <button class="modal-close" id="closeFilter">&times;</button>
         </div>
         <div class="filter-content">
+          <div class="filter-group">
+            <label>
+              <input type="checkbox" id="filterFavoritesOnly">
+              Show only favorites
+            </label>
+          </div>
           <div class="filter-group">
             <label>
               <input type="checkbox" id="filterStreamingOnly">
