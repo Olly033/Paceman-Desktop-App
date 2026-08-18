@@ -2385,12 +2385,8 @@ body {
   opacity: 0.6;
 }
 
-.profile-chart.collapsed .chart-container {
+.profile-chart.hidden {
   display: none;
-}
-
-.profile-chart.collapsed {
-  padding-bottom: 12px;
 }
 
 .chart-container {

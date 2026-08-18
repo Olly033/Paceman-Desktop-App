@@ -165,7 +165,7 @@
     const chartEl = document.getElementById("profileChart");
     if (!container || !chartEl) return;
 
-    if (!state.chartVisible) {
+    if (!state.profile.chartVisible) {
       container.innerHTML = "";
       chartPoints = [];
       chartCanvas = null;
@@ -664,7 +664,7 @@
       chartToggleBtn.classList.remove("hidden");
     }
     if (profileChart) {
-      profileChart.classList.remove("collapsed");
+      profileChart.classList.remove("hidden");
     }
     renderRunHistoryChart();
     const pbBadge = document.getElementById("profilePB");
@@ -2215,7 +2215,10 @@
       chartToggleBtn.addEventListener("click", () => {
         state.profile.chartVisible = !state.profile.chartVisible;
         chartToggleBtn.classList.toggle("hidden", !state.profile.chartVisible);
-        document.getElementById("profileChart").classList.toggle("collapsed", !state.profile.chartVisible);
+        const profileChart = document.getElementById("profileChart");
+        if (profileChart) {
+          profileChart.classList.toggle("hidden", !state.profile.chartVisible);
+        }
         renderRunHistoryChart();
       });
     }
