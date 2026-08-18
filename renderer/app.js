@@ -74,6 +74,7 @@
   const autoOpenedStreams = new Set();
 
   let currentVod = { id: null, offset: 0, currentTime: 0 };
+  let currentRunId = null;
 
   const navHistory = [];
   let navIndex = -1;
@@ -1057,6 +1058,7 @@
   }
 
   function openRunDetail(id, name, fallbackRun) {
+    currentRunId = id;
     const overlay = document.getElementById("runDetailOverlay");
     document.getElementById("runDetailTitle").textContent = name + " - Run #" + (id || "?");
     overlay.classList.add("visible");
@@ -1167,6 +1169,7 @@
   }
 
   function closeRunDetail() {
+    currentRunId = null;
     const overlay = document.getElementById("runDetailOverlay");
     overlay.classList.remove("visible");
     const webview = document.getElementById("runVodWebview");
@@ -1180,8 +1183,23 @@
     if (!currentVod.id) return;
     const webview = document.getElementById("runVodWebview");
     if (!webview) return;
+    let actualTime = null;
+    if (typeof targetTime !== "number") {
+      try {
+        actualTime = await webview.executeJavaScript(`
+          (function() {
+            var video = document.querySelector('video');
+            return video ? Math.floor(video.currentTime) : null;
+          })();
+        `);
+      } catch (e) {
+        actualTime = null;
+      }
+    }
     if (typeof targetTime === "number") {
       currentVod.currentTime = Math.max(0, Math.floor(targetTime));
+    } else if (actualTime !== null) {
+      currentVod.currentTime = Math.max(0, Math.floor(actualTime + seconds));
     } else {
       currentVod.currentTime = Math.max(0, Math.floor(currentVod.currentTime + seconds));
     }
@@ -2261,6 +2279,20 @@
       });
     }
     document.getElementById("closeRunDetail").addEventListener("click", closeRunDetail);
+    const shareRunBtn = document.getElementById("shareRunBtn");
+    if (shareRunBtn) {
+      shareRunBtn.addEventListener("click", async () => {
+        if (!currentRunId) return;
+        const url = `${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`;
+        try {
+          await navigator.clipboard.writeText(url);
+          shareRunBtn.classList.add("copied");
+          setTimeout(() => shareRunBtn.classList.remove("copied"), 1500);
+        } catch (e) {
+          console.log("Share failed", e);
+        }
+      });
+    }
     document.getElementById("runDetailOverlay").addEventListener("click", (e) => {
       if (e.target === document.getElementById("runDetailOverlay")) closeRunDetail();
     });
