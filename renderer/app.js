@@ -937,7 +937,7 @@
         const runId = r.id || r.worldId || r.runId || r._id || null;
         const ts = r.insertTime || r.createdAt || r.timestamp || r.startTime || r.lastUpdated || r.time || r.updatedTime || r.realUpdated || null;
         const dateStr = ts ? new Date(ts * 1000).toLocaleString() : "";
-        row.innerHTML = `<div class="run-row-head">${escapeHtml(state.profile.name)} <span class="run-row-sub">#${runId || "?"}</span></div><div class="run-cells">${cells}<div class="run-cell run-time-ago">${dateStr}</div></div>`;
+        row.innerHTML = `<div class="run-row-head">${escapeHtml(state.profile.name)} <span class="run-row-sub">#${runId || "?"}</span></div><div class="run-cells">${cells}</div><div class="run-time-row">${dateStr}</div>`;
         row.addEventListener("click", () => openRunDetail(runId, state.profile.name, r));
         list.appendChild(row);
       }
@@ -1090,6 +1090,12 @@
     currentRunId = id;
     const overlay = document.getElementById("runDetailOverlay");
     document.getElementById("runDetailTitle").textContent = name + " - Run #" + (id || "?");
+    const dateEl = document.getElementById("runDetailDate");
+    if (dateEl) {
+      const run = fallbackRun || {};
+      const ts = run.insertTime || run.createdAt || run.timestamp || run.startTime || run.lastUpdated || run.time || run.updatedTime || run.realUpdated || null;
+      dateEl.textContent = ts ? new Date(ts * 1000).toLocaleString() : "";
+    }
     overlay.classList.add("visible");
 
     const d = fallbackRun || {};

@@ -804,6 +804,18 @@ body {
   line-height: 1.3;
 }
 
+.modal-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.run-detail-date {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
 .modal-close {
   width: 32px;
   height: 32px;
@@ -2288,10 +2300,19 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-  padding: 6px 2px;
+
+.run-time-row {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+  padding: 6px 4px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.04);
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 500;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: initial;
+  margin-top: 6px;
 }
 
 .run-cell.empty {
