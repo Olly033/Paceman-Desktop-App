@@ -1,6 +1,9 @@
 const { app, BrowserWindow, ipcMain, shell, Menu, session } = require('electron');
 const path = require('path');
 const https = require('https');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+const execAsync = promisify(exec);
 
 const APP_VERSION = app.getVersion ? app.getVersion() : '2.1.0';
 const REPO_OWNER = 'Olly033';
@@ -9,44 +12,33 @@ const REPO_NAME = 'Paceman-Desktop-App';
 let win;
 let pendingProtocolArgs = null;
 
-if (process.defaultApp) {
-  if (process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient('paceman', process.execPath, [path.resolve(process.argv[1])]);
-  }
-} else {
-  app.setAsDefaultProtocolClient('paceman');
-}
-
-app.on('open-url', (event, url) => {
-  event.preventDefault();
-  handleProtocolUrl(url);
-});
-
-app.on('second-instance', (event, argv) => {
-  const protoArg = argv.find((a) => String(a).startsWith('paceman://'));
-  if (!protoArg) return;
-  handleProtocolUrl(protoArg);
-  if (win) {
-    if (win.isMinimized()) win.restore();
-    win.focus();
-  }
-});
-
-function handleProtocolUrl(url) {
-  try {
-    const parsed = new URL(url);
-    const args = {
-      path: parsed.pathname,
-      query: Object.fromEntries(parsed.searchParams)
-    };
-    if (win && win.webContents) {
-      win.webContents.send('protocol-args', args);
-    } else {
-      pendingProtocolArgs = args;
-    }
-  } catch (e) {
-    console.error('Failed to parse protocol arg:', url, e);
-  }
+function ensureProtocolRegistered() {
+  if (process.platform !== 'win32') return Promise.resolve();
+  const regPath = 'HKCU\\Software\\Classes\\paceman';
+  return execAsync(`reg query "${regPath}" /ve 2>&1`).then(() => {
+    return execAsync(`reg query "${regPath}\\shell\\open\\command" /ve 2>&1`);
+  }).then(() => {
+    return Promise.resolve();
+  }).catch(() => {
+    const exePath = process.execPath.replace(/\\/g, '\\\\');
+    const command = `"${exePath}" "%1"`;
+    const descPath = 'HKCU\\Software\\Classes\\paceman';
+    const shellOpenPath = `${descPath}\\shell\\open\\command`;
+    const iconPath = `${descPath}\\DefaultIcon`;
+    return execAsync(`reg add "${descPath}" /v "" /t REG_SZ /d "URL:Paceman Protocol" /f`).then(() => {
+      return execAsync(`reg add "${descPath}" /v "URL Protocol" /t REG_SZ /d "" /f`);
+    }).then(() => {
+      return execAsync(`reg add "${iconPath}" /ve /t REG_SZ /d "${exePath},0" /f`);
+    }).then(() => {
+      return execAsync(`reg add "${shellOpenPath}" /ve /t REG_SZ /d "${command}" /f`);
+    }).then(() => {
+      console.log('paceman:// protocol registered');
+      return Promise.resolve();
+    }).catch((e) => {
+      console.error('Failed to register paceman:// protocol:', e);
+      return Promise.resolve();
+    });
+  });
 }
 
 function createWindow() {
@@ -85,6 +77,7 @@ app.whenReady().then(async () => {
   }
   Menu.setApplicationMenu(null);
   createWindow();
+  ensureProtocolRegistered();
 });
 
 app.on('window-all-closed', () => {
