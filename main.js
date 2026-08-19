@@ -6,6 +6,47 @@ const APP_VERSION = app.getVersion ? app.getVersion() : '2.1.0';
 const REPO_OWNER = 'Olly033';
 const REPO_NAME = 'Paceman-Desktop-App';
 
+let win;
+
+function createWindow() {
+  win = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    minWidth: 640,
+    minHeight: 480,
+    frame: true,
+    backgroundColor: '#0f0f23',
+    title: 'Paceman v' + APP_VERSION,
+    webSecurity: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      webviewTag: true
+    }
+  });
+
+  win.loadFile('renderer/index.html');
+}
+
+app.whenReady().then(async () => {
+  try {
+    await session.defaultSession.clearCache();
+  } catch (e) {
+    console.warn('Cache clear failed:', e);
+  }
+  Menu.setApplicationMenu(null);
+  createWindow();
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
+
 function httpGetJson(url) {
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
@@ -41,6 +82,24 @@ ipcMain.handle('check-for-updates', async () => {
     return { success: true, current, latest: info.latestVersion, isNewer, downloadUrl: info.downloadUrl, releaseName: info.releaseName };
   } catch (e) {
     return { success: false, error: e.message || 'Failed to check for updates' };
+  }
+});
+
+ipcMain.handle('fetch-json', async (event, url) => {
+  try {
+    const resp = await new Promise((resolve, reject) => {
+      const req = https.request(url, { method: 'GET' }, (res) => {
+        const chunks = [];
+        res.on('data', (chunk) => chunks.push(chunk));
+        res.on('end', () => resolve({ status: res.statusCode, data: Buffer.concat(chunks).toString() }));
+      });
+      req.on('error', reject);
+      req.end();
+    });
+    if (resp.status < 200 || resp.status >= 300) throw new Error('HTTP ' + resp.status);
+    return JSON.parse(resp.data);
+  } catch (e) {
+    throw new Error('Failed to fetch ' + url + ': ' + e.message);
   }
 });
 
