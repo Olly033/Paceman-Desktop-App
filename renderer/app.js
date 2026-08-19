@@ -2498,9 +2498,13 @@
     if (shareRunBtn) {
       shareRunBtn.addEventListener("click", async () => {
         if (!currentRunId) return;
-        const url = `${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`;
+        let shareText = `${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`;
+        if (currentVod.id) {
+          const twitchUrl = `https://twitch.tv/videos/${currentVod.id}?t=${Math.floor(currentVod.currentTime || 0)}`;
+          shareText = shareText + "\n" + twitchUrl;
+        }
         try {
-          await navigator.clipboard.writeText(url);
+          await navigator.clipboard.writeText(shareText);
           shareRunBtn.classList.add("copied");
           setTimeout(() => shareRunBtn.classList.remove("copied"), 1500);
         } catch (e) {
