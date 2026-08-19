@@ -66,8 +66,8 @@
     playerCache: {},
     favorites: JSON.parse(localStorage.getItem("paceman_favorites") || "[]"),
     favoritePBs: JSON.parse(localStorage.getItem("paceman_favorite_pbs") || "{}"),
-    profile: { name: null, uuid: null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null, chartVisible: true },
-    leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc" },
+    profile: { name: null, uuid: null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null, chartVisible: true, allRunsSort: "newest" },
+    leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", page: 1 },
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
   };
 
@@ -208,7 +208,7 @@
       const mx = (e.clientX - rect.left) * scaleX;
       const my = (e.clientY - rect.top) * scaleY;
       let closest = null;
-      let minDist = 12;
+      let minDist = 14;
       for (const p of chartPoints) {
         const dist = Math.hypot(p.x - mx, p.y - my);
         if (dist < minDist) {
@@ -231,7 +231,7 @@
 
     const width = container.clientWidth || 600;
     const height = 180;
-    const padding = { top: 20, right: 20, bottom: 30, left: 50 };
+    const padding = { top: 24, right: 24, bottom: 32, left: 56 };
     const chartW = width - padding.left - padding.right;
     const chartH = height - padding.top - padding.bottom;
 
@@ -248,7 +248,7 @@
 
     ctx.clearRect(0, 0, width, height);
 
-    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+    ctx.strokeStyle = "rgba(255,255,255,0.06)";
     ctx.lineWidth = 1;
     for (let i = 0; i <= 4; i++) {
       const y = padding.top + (chartH / 4) * i;
@@ -258,45 +258,42 @@
       ctx.stroke();
     }
 
-    const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartH);
-    gradient.addColorStop(0, "rgba(124, 58, 237, 0.3)");
-    gradient.addColorStop(1, "rgba(124, 58, 237, 0.0)");
-
-    ctx.beginPath();
-    ctx.moveTo(chartPoints[0].x, padding.top + chartH);
-    for (const p of chartPoints) ctx.lineTo(p.x, p.y);
-    ctx.lineTo(chartPoints[chartPoints.length - 1].x, padding.top + chartH);
-    ctx.closePath();
-    ctx.fillStyle = gradient;
-    ctx.fill();
-
     ctx.beginPath();
     ctx.moveTo(chartPoints[0].x, chartPoints[0].y);
-    for (let i = 1; i < chartPoints.length; i++) ctx.lineTo(chartPoints[i].x, chartPoints[i].y);
+    for (let i = 1; i < chartPoints.length; i++) {
+      const prev = chartPoints[i - 1];
+      const curr = chartPoints[i];
+      const cpx = (prev.x + curr.x) / 2;
+      ctx.bezierCurveTo(cpx, prev.y, cpx, curr.y, curr.x, curr.y);
+    }
     ctx.strokeStyle = "#a78bfa";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.stroke();
 
     for (const p of chartPoints) {
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(124, 58, 237, 0.15)";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
       ctx.fillStyle = "#a78bfa";
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
       ctx.fillStyle = "#fff";
       ctx.fill();
     }
 
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
     ctx.font = "11px Inter, sans-serif";
     ctx.textAlign = "right";
-    ctx.fillText(fmt(maxTime), padding.left - 8, padding.top + 4);
-    ctx.fillText(fmt(minTime), padding.left - 8, padding.top + chartH);
+    ctx.fillText(fmt(maxTime), padding.left - 10, padding.top + 4);
+    ctx.fillText(fmt(minTime), padding.left - 10, padding.top + chartH);
 
     ctx.textAlign = "center";
-    ctx.fillText("Oldest", padding.left, height - 8);
-    ctx.fillText("Newest", width - padding.right, height - 8);
+    ctx.fillText("Oldest", padding.left, height - 10);
+    ctx.fillText("Newest", width - padding.right, height - 10);
   }
 
   function renderFavorites() {
@@ -485,6 +482,43 @@
       }
     }
     return { idx, time, key };
+  }
+
+  function renderFastestSplits() {
+    const list = document.getElementById("fastestList");
+    if (!list) return;
+    const runs = state.profile.timeframeRuns || [];
+    if (runs.length === 0) {
+      list.innerHTML = '<div class="loading">No runs yet.</div>';
+      return;
+    }
+    list.innerHTML = "";
+    for (const split of SPLIT_ORDER) {
+      const withSplit = runs.filter((r) => r[split] != null);
+      if (withSplit.length === 0) continue;
+      const sorted = withSplit.slice().sort((a, b) => a[split] - b[split]).slice(0, 5);
+      const group = document.createElement("div");
+      group.className = "fastest-group";
+      const label = document.createElement("div");
+      label.className = "fastest-group-label";
+      label.textContent = SPLITS[split] || split;
+      group.appendChild(label);
+      for (let i = 0; i < sorted.length; i++) {
+        const r = sorted[i];
+        const row = document.createElement("div");
+        row.className = "fastest-item";
+        const runId = r.id || r.worldId || r.runId || r._id || null;
+        row.innerHTML = `<span class="fastest-rank">#${i + 1}</span><span class="fastest-split">${SPLITS[split]}</span><span class="fastest-time">${fmt(r[split])}</span>`;
+        row.addEventListener("click", () => {
+          if (runId) openRunDetail(runId, state.profile.name, r);
+        });
+        group.appendChild(row);
+      }
+      list.appendChild(group);
+    }
+    if (list.innerHTML === "") {
+      list.innerHTML = '<div class="loading">No runs with splits yet.</div>';
+    }
   }
 
   function splitTimes(run) {
@@ -868,6 +902,7 @@
       renderAllRunsPage();
       await loadTwitchFromRuns(name);
       renderRunHistoryChart();
+      renderFastestSplits();
     } catch (e) {
       if (generation !== profileRunsGeneration) return;
       if (best) best.innerHTML = '<div class="loading">Failed to load runs.</div>';
@@ -910,8 +945,19 @@
     const runs = state.profile.allRuns;
     const per = 10,
       page = state.profile.page;
-    const total = Math.max(1, Math.ceil(runs.length / per));
-    const slice = runs.slice((page - 1) * per, page * per);
+    const sortKey = state.profile.allRunsSort || "newest";
+    const sorted = [...runs];
+    if (sortKey === "newest") {
+      sorted.sort((a, b) => (b.insertTime || 0) - (a.insertTime || 0));
+    } else if (sortKey === "oldest") {
+      sorted.sort((a, b) => (a.insertTime || 0) - (b.insertTime || 0));
+    } else if (sortKey === "fastest") {
+      sorted.sort((a, b) => (a.finish != null ? a.finish : Infinity) - (b.finish != null ? b.finish : Infinity));
+    } else if (sortKey === "slowest") {
+      sorted.sort((a, b) => (b.finish != null ? b.finish : -Infinity) - (a.finish != null ? a.finish : -Infinity));
+    }
+    const total = Math.max(1, Math.ceil(sorted.length / per));
+    const slice = sorted.slice((page - 1) * per, page * per);
     const list = document.getElementById("allRunsList");
     if (!list) return;
     list.innerHTML = "";
@@ -927,9 +973,9 @@
           cells += `<div class="run-cell ${t == null ? "empty" : ""}">${t == null ? "—" : fmt(t)}</div>`;
         }
         const runId = r.id || r.worldId || r.runId || r._id || null;
-        const ts = r.createdAt || r.timestamp || r.startTime || r.insertTime || r.lastUpdated || r.time || r.updatedTime || r.realUpdated || null;
-        const timeStr = ts ? timeAgo(new Date(ts * 1000).getTime()) : "";
-        row.innerHTML = `<div class="run-row-head">${escapeHtml(state.profile.name)} <span class="run-row-sub">#${runId || "?"}</span></div><div class="run-cells">${cells}<div class="run-cell run-time-ago">${timeStr}</div></div>`;
+        const ts = r.insertTime || r.createdAt || r.timestamp || r.startTime || r.lastUpdated || r.time || r.updatedTime || r.realUpdated || null;
+        const dateStr = ts ? new Date(ts * 1000).toLocaleString() : "";
+        row.innerHTML = `<div class="run-row-head">${escapeHtml(state.profile.name)} <span class="run-row-sub">#${runId || "?"}</span></div><div class="run-cells">${cells}<div class="run-cell run-time-ago">${dateStr}</div></div>`;
         row.addEventListener("click", () => openRunDetail(runId, state.profile.name, r));
         list.appendChild(row);
       }
@@ -1218,6 +1264,19 @@
     titleEl.textContent = SPLITS[splitKey] || splitKey;
     renderSplitDetail();
     panel.classList.add("visible");
+
+    const sessionBox = document.getElementById("sessionStats");
+    if (sessionBox && state.profile.name) {
+      const dailyHours = TF_HOURS.daily || 24;
+      const dailyBetween = TF_BETWEEN.daily || 24;
+      getJSON(`${API}/getNPH?name=${encodeURIComponent(state.profile.name)}&hours=${dailyHours}&hoursBetween=${dailyBetween}`)
+        .then((nph) => {
+          if (sessionBox) sessionBox.innerHTML = renderSessionStats(nph);
+        })
+        .catch(() => {
+          if (sessionBox) sessionBox.innerHTML = "";
+        });
+    }
   }
 
   function closeSplitDetail() {
@@ -1524,7 +1583,7 @@
           if (sortBy === "avg") return av - bv;
           return sortDir === "asc" ? av - bv : bv - av;
         });
-        byCat[cat] = raw.slice(0, 3);
+        byCat[cat] = raw.slice(0, 50);
       });
       state.leaderboard.rows = byCat;
       renderLeaderboard(byCat);
@@ -1539,20 +1598,26 @@
     if (!byCat) return;
     const sortBy = state.leaderboard.sortBy;
     const rankLabel = sortBy === "avg" ? "Best Avg" : "Most Enters";
+    const perPage = 10;
     for (const cat of LB_CATEGORIES) {
       const players = byCat[cat] || [];
       const card = document.createElement("div");
       card.className = "lb-card";
+      const totalPages = Math.max(1, Math.ceil(players.length / perPage));
+      const page = Math.min(state.leaderboard.page || 1, totalPages);
+      const start = (page - 1) * perPage;
+      const pagePlayers = players.slice(start, start + perPage);
       let rowsHtml = "";
-      for (let i = 0; i < players.length; i++) {
-        const p = players[i];
+      for (let i = 0; i < pagePlayers.length; i++) {
+        const p = pagePlayers[i];
+        const globalIdx = start + i + 1;
         const avatar = avatarUrl(p.uuid || p.name, 32);
         const mainVal = sortBy === "avg" ? fmt(p.avg) : p.count;
         const mainLabel = sortBy === "avg" ? "Avg" : "Enters";
         const otherVal = sortBy === "avg" ? p.count : fmt(p.avg);
         const otherLabel = sortBy === "avg" ? "Enters" : "Avg";
         rowsHtml += `<div class="lb-card-row" data-name="${escapeHtml(p.name)}" data-uuid="${escapeHtml(p.uuid || "")}">
-          <div class="lb-card-rank">${i + 1}</div>
+          <div class="lb-card-rank">${globalIdx}</div>
           <div class="lb-card-player">
             <img src="${avatar}" onerror="this.style.visibility='hidden'">
             <span class="lb-card-name">${escapeHtml(p.name)}</span>
@@ -1569,11 +1634,31 @@
           </div>
         </div>`;
       }
-      card.innerHTML = `<div class="lb-card-head">${SPLITS[cat]} <span class="lb-card-rank-label">${rankLabel}</span></div><div class="lb-card-list">${rowsHtml || '<div class="loading">No data.</div>'}</div>`;
+      const paginationHtml = players.length > perPage ? `
+        <div class="lb-pagination">
+          <button class="lb-page-btn" data-cat="${cat}" data-dir="prev" ${page <= 1 ? "disabled" : ""}>&lt;</button>
+          <span class="lb-page-info">${page} / ${totalPages}</span>
+          <button class="lb-page-btn" data-cat="${cat}" data-dir="next" ${page >= totalPages ? "disabled" : ""}>&gt;</button>
+        </div>
+      ` : "";
+      card.innerHTML = `<div class="lb-card-head">${SPLITS[cat]} <span class="lb-card-rank-label">${rankLabel}</span></div><div class="lb-card-list">${rowsHtml || '<div class="loading">No data.</div>'}</div>${paginationHtml}`;
       grid.appendChild(card);
     }
     grid.querySelectorAll(".lb-card-row").forEach((row) => {
       row.addEventListener("click", () => openProfile(row.dataset.name, row.dataset.uuid));
+    });
+    grid.querySelectorAll(".lb-page-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const dir = btn.dataset.dir;
+        const currentPage = state.leaderboard.page || 1;
+        if (dir === "prev" && currentPage > 1) {
+          state.leaderboard.page = currentPage - 1;
+          renderLeaderboard(state.leaderboard.rows);
+        } else if (dir === "next") {
+          state.leaderboard.page = currentPage + 1;
+          renderLeaderboard(state.leaderboard.rows);
+        }
+      });
     });
   }
 
@@ -1830,6 +1915,7 @@
       b.addEventListener("click", () => {
         state.leaderboard.tf = b.dataset.tf;
         state.leaderboard.rows = null;
+        state.leaderboard.page = 1;
         document.querySelectorAll("#leaderboardTimeframes .timeframe-btn").forEach((x) => x.classList.remove("active"));
         b.classList.add("active");
         loadLeaderboard(true);
@@ -1839,14 +1925,26 @@
       b.addEventListener("click", () => {
         state.leaderboard.sortBy = b.dataset.sort;
         state.leaderboard.rows = null;
+        state.leaderboard.page = 1;
         document.querySelectorAll("#lbSortToggle .lb-sort-btn").forEach((x) => x.classList.remove("active"));
         b.classList.add("active");
         loadLeaderboard(true);
       });
     });
     document.getElementById("viewAllRunsBtn").addEventListener("click", () => {
+      const sortSelect = document.getElementById("allRunsSort");
+      if (sortSelect) sortSelect.value = state.profile.allRunsSort || "newest";
       document.getElementById("allRunsModal").classList.add("visible");
+      renderAllRunsPage();
     });
+    const allRunsSort = document.getElementById("allRunsSort");
+    if (allRunsSort) {
+      allRunsSort.addEventListener("change", () => {
+        state.profile.allRunsSort = allRunsSort.value;
+        state.profile.page = 1;
+        renderAllRunsPage();
+      });
+    }
     document.getElementById("closeAllRuns").addEventListener("click", () => {
       document.getElementById("allRunsModal").classList.remove("visible");
     });

@@ -818,6 +818,21 @@ body {
   border-color: transparent;
 }
 
+.all-runs-sort {
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+}
+
+.all-runs-sort:focus {
+  border-color: var(--accent);
+}
+
 .filter-content {
   display: flex;
   flex-direction: column;
@@ -1112,6 +1127,17 @@ body {
   height: 2px;
   background: var(--gradient-3);
   opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.split-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border-color: var(--accent);
+}
+
+.split-card:hover::before {
+  opacity: 1;
 }
 
 .split-name {
@@ -1151,6 +1177,80 @@ body {
   font-weight: 600;
   margin-bottom: 16px;
   color: var(--text-secondary);
+}
+
+.profile-fastest {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  padding: 20px;
+  backdrop-filter: blur(10px);
+}
+
+.profile-fastest h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+}
+
+.fastest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fastest-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--bg-glass-hover);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.fastest-item:hover {
+  border-color: var(--accent);
+  transform: translateX(4px);
+}
+
+.fastest-item .fastest-split {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.fastest-item .fastest-time {
+  font-weight: 700;
+  color: var(--accent-light);
+}
+
+.fastest-item .fastest-rank {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-right: 8px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.fastest-group {
+  margin-bottom: 16px;
+}
+
+.fastest-group:last-child {
+  margin-bottom: 0;
+}
+
+.fastest-group-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  padding-left: 4px;
 }
 
 .runs-list-small {
@@ -1392,6 +1492,46 @@ body {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.lb-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0 4px;
+}
+
+.lb-page-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.lb-page-btn:hover:not(:disabled) {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.lb-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.lb-page-info {
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 40px;
+  text-align: center;
 }
 
 /* Streams dock (multi-Twitch) */

@@ -163,7 +163,11 @@
             <button class="view-all-btn" id="viewAllRunsBtn">View All Runs</button>
           </div>
         </div>
-        <div class="profile-chart" id="profileChart" title="Completion times over time for this timeframe">
+        <div class="profile-fastest" id="profileFastest">
+          <h3>Fastest Splits</h3>
+          <div class="fastest-list" id="fastestList"></div>
+        </div>
+        <div class="profile-chart" id="profileChart">
           <h3>Run History</h3>
           <div class="chart-controls">
             <select class="chart-stat-select" id="chartStatSelect">
@@ -188,7 +192,15 @@
           <div class="modal-content">
             <div class="modal-header">
               <h2>All Runs</h2>
-              <button class="modal-close" id="closeAllRuns">&times;</button>
+              <div class="modal-header-actions">
+                <select class="all-runs-sort" id="allRunsSort">
+                  <option value="newest">Newest</option>
+                  <option value="oldest">Oldest</option>
+                  <option value="fastest">Fastest</option>
+                  <option value="slowest">Slowest</option>
+                </select>
+                <button class="modal-close" id="closeAllRuns">&times;</button>
+              </div>
             </div>
             <div class="runs-list" id="allRunsList"></div>
             <div class="pagination" id="runsPagination"></div>
