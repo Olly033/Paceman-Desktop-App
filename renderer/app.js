@@ -484,43 +484,6 @@
     return { idx, time, key };
   }
 
-  function renderFastestSplits() {
-    const list = document.getElementById("fastestList");
-    if (!list) return;
-    const runs = state.profile.timeframeRuns || [];
-    if (runs.length === 0) {
-      list.innerHTML = '<div class="loading">No runs yet.</div>';
-      return;
-    }
-    list.innerHTML = "";
-    for (const split of SPLIT_ORDER) {
-      const withSplit = runs.filter((r) => r[split] != null);
-      if (withSplit.length === 0) continue;
-      const sorted = withSplit.slice().sort((a, b) => a[split] - b[split]).slice(0, 5);
-      const group = document.createElement("div");
-      group.className = "fastest-group";
-      const label = document.createElement("div");
-      label.className = "fastest-group-label";
-      label.textContent = SPLITS[split] || split;
-      group.appendChild(label);
-      for (let i = 0; i < sorted.length; i++) {
-        const r = sorted[i];
-        const row = document.createElement("div");
-        row.className = "fastest-item";
-        const runId = r.id || r.worldId || r.runId || r._id || null;
-        row.innerHTML = `<span class="fastest-rank">#${i + 1}</span><span class="fastest-split">${SPLITS[split]}</span><span class="fastest-time">${fmt(r[split])}</span>`;
-        row.addEventListener("click", () => {
-          if (runId) openRunDetail(runId, state.profile.name, r);
-        });
-        group.appendChild(row);
-      }
-      list.appendChild(group);
-    }
-    if (list.innerHTML === "") {
-      list.innerHTML = '<div class="loading">No runs with splits yet.</div>';
-    }
-  }
-
   function splitTimes(run) {
     const t = {};
     for (const ev of run.eventList || []) {
@@ -902,7 +865,6 @@
       renderAllRunsPage();
       await loadTwitchFromRuns(name);
       renderRunHistoryChart();
-      renderFastestSplits();
     } catch (e) {
       if (generation !== profileRunsGeneration) return;
       if (best) best.innerHTML = '<div class="loading">Failed to load runs.</div>';
