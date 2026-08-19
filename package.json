@@ -24,6 +24,13 @@
     "appId": "com.paceman.app",
     "productName": "Paceman",
     "icon": "icon.ico",
+    "fileAssociations": [],
+    "protocols": [
+      {
+        "name": "paceman",
+        "schemes": ["paceman"]
+      }
+    ],
     "win": {
       "target": [
         {

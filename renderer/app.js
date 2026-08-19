@@ -77,6 +77,18 @@
   let currentRunId = null;
   let splitDetailState = { split: null, runs: [], page: 1, perPage: 10, sortAsc: true };
 
+  window.addEventListener("paceman-protocol-args", (e) => {
+    const args = e.detail || {};
+    if (args.path === "/run" && args.query && args.query.id) {
+      const runId = String(args.query.id);
+      const playerName = args.query.name || "";
+      openRunDetail(runId, playerName, null);
+    } else if (args.path.startsWith("/player/")) {
+      const name = decodeURIComponent(args.path.replace("/player/", "").split("/")[0]);
+      if (name) openProfile(name, null);
+    }
+  });
+
   const navHistory = [];
   let navIndex = -1;
   let suppressNavPush = false;
@@ -2420,27 +2432,15 @@
     initFilters();
     initThemes();
     seedSuggestions();
-    window.addEventListener("paceman-protocol-args", (e) => {
-      const args = e.detail || {};
-      if (args.path === "/run" && args.query && args.query.id) {
-        const runId = String(args.query.id);
-        const playerName = args.query.name || "";
-        openRunDetail(runId, playerName, null);
-      } else if (args.path.startsWith("/player/")) {
-        const name = decodeURIComponent(args.path.replace("/player/", "").split("/")[0]);
-        if (name) openProfile(name, null);
-      }
-    });
     (async () => {
       const protoArgs = await window.pacemanAPI.getProtocolArgs();
-      if (!protoArgs) return;
-      const args = protoArgs;
-      if (args.path === "/run" && args.query && args.query.id) {
-        const runId = String(args.query.id);
-        const playerName = args.query.name || "";
+      if (!protoArgs || protoArgs.consumed === true) return;
+      if (protoArgs.path === "/run" && protoArgs.query && protoArgs.query.id) {
+        const runId = String(protoArgs.query.id);
+        const playerName = protoArgs.query.name || "";
         openRunDetail(runId, playerName, null);
-      } else if (args.path.startsWith("/player/")) {
-        const name = decodeURIComponent(args.path.replace("/player/", "").split("/")[0]);
+      } else if (protoArgs.path.startsWith("/player/")) {
+        const name = decodeURIComponent(protoArgs.path.replace("/player/", "").split("/")[0]);
         if (name) openProfile(name, null);
       }
     })();
