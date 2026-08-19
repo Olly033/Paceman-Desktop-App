@@ -2518,18 +2518,39 @@
       });
     }
     document.getElementById("closeRunDetail").addEventListener("click", closeRunDetail);
-    const shareRunBtn = document.getElementById("shareRunBtn");
-    if (shareRunBtn) {
-      shareRunBtn.addEventListener("click", async () => {
+    const openVodBtn = document.getElementById("openVodBtn");
+    if (openVodBtn) {
+      openVodBtn.addEventListener("click", () => {
+        if (!currentVod.id) return;
+        const url = `https://twitch.tv/videos/${currentVod.id}${currentVod.currentTime ? "?t=" + Math.floor(currentVod.currentTime) : ""}`;
+        window.open(url, "_blank");
+      });
+    }
+    const downloadRunBtn = document.getElementById("downloadRunBtn");
+    if (downloadRunBtn) {
+      downloadRunBtn.addEventListener("click", async () => {
         if (!currentRunId) return;
-        const runName = state.profile.name || "";
-        const shareLink = `paceman://run?id=${encodeURIComponent(currentRunId)}${runName ? "&name=" + encodeURIComponent(runName) : ""}`;
         try {
-          await navigator.clipboard.writeText(shareLink);
-          shareRunBtn.classList.add("copied");
-          setTimeout(() => shareRunBtn.classList.remove("copied"), 1500);
+          downloadRunBtn.classList.add("downloading");
+          const data = await getJSON(`${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`);
+          const runData = data && data.data ? data.data : data;
+          const blob = new Blob([JSON.stringify(runData, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `run-${currentRunId}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          downloadRunBtn.classList.add("downloaded");
+          setTimeout(() => {
+            downloadRunBtn.classList.remove("downloading");
+            downloadRunBtn.classList.remove("downloaded");
+          }, 1500);
         } catch (e) {
-          console.log("Share failed", e);
+          console.log("Download failed", e);
+          downloadRunBtn.classList.remove("downloading");
         }
       });
     }
