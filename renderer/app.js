@@ -1116,6 +1116,8 @@
     }
 
     function showVodLoading() {
+      const existing = document.getElementById("vodLoading");
+      if (existing) existing.remove();
       document.getElementById("runDetailVod").style.display = "";
       document.getElementById("runVodWebview").style.display = "none";
       document.getElementById("runDetailSplits").insertAdjacentHTML("afterend", '<div class="vod-loading" id="vodLoading"><div class="vod-loading-bar-track"><div class="vod-loading-bar-fill"></div></div><div class="vod-loading-text">Loading VOD...</div></div>');
