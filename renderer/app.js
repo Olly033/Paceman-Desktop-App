@@ -2420,6 +2420,30 @@
     initFilters();
     initThemes();
     seedSuggestions();
+    window.addEventListener("paceman-protocol-args", (e) => {
+      const args = e.detail || {};
+      if (args.path === "/run" && args.query && args.query.id) {
+        const runId = String(args.query.id);
+        const playerName = args.query.name || "";
+        openRunDetail(runId, playerName, null);
+      } else if (args.path.startsWith("/player/")) {
+        const name = decodeURIComponent(args.path.replace("/player/", "").split("/")[0]);
+        if (name) openProfile(name, null);
+      }
+    });
+    (async () => {
+      const protoArgs = await window.pacemanAPI.getProtocolArgs();
+      if (!protoArgs) return;
+      const args = protoArgs;
+      if (args.path === "/run" && args.query && args.query.id) {
+        const runId = String(args.query.id);
+        const playerName = args.query.name || "";
+        openRunDetail(runId, playerName, null);
+      } else if (args.path.startsWith("/player/")) {
+        const name = decodeURIComponent(args.path.replace("/player/", "").split("/")[0]);
+        if (name) openProfile(name, null);
+      }
+    })();
     const compareBtn = document.getElementById("compareBtn");
     if (compareBtn) {
       compareBtn.addEventListener("click", toggleComparison);
@@ -2498,13 +2522,10 @@
     if (shareRunBtn) {
       shareRunBtn.addEventListener("click", async () => {
         if (!currentRunId) return;
-        let shareText = `${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`;
-        if (currentVod.id) {
-          const twitchUrl = `https://twitch.tv/videos/${currentVod.id}?t=${Math.floor(currentVod.currentTime || 0)}`;
-          shareText = shareText + "\n" + twitchUrl;
-        }
+        const runName = state.profile.name || "";
+        const shareLink = `paceman://run?id=${encodeURIComponent(currentRunId)}${runName ? "&name=" + encodeURIComponent(runName) : ""}`;
         try {
-          await navigator.clipboard.writeText(shareText);
+          await navigator.clipboard.writeText(shareLink);
           shareRunBtn.classList.add("copied");
           setTimeout(() => shareRunBtn.classList.remove("copied"), 1500);
         } catch (e) {

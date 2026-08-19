@@ -7,6 +7,7 @@ const REPO_OWNER = 'Olly033';
 const REPO_NAME = 'Paceman-Desktop-App';
 
 let win;
+let pendingProtocolArgs = null;
 
 function createWindow() {
   win = new BrowserWindow({
@@ -36,7 +37,27 @@ app.whenReady().then(async () => {
     console.warn('Cache clear failed:', e);
   }
   Menu.setApplicationMenu(null);
+  if (!pendingProtocolArgs && process.argv.length > 1) {
+    const protoArg = process.argv.find((a) => String(a).startsWith('paceman://'));
+    if (protoArg) {
+      try {
+        const parsed = new URL(protoArg);
+        pendingProtocolArgs = {
+          path: parsed.pathname,
+          query: Object.fromEntries(parsed.searchParams)
+        };
+      } catch (e) {
+        console.error('Failed to parse protocol arg:', protoArg, e);
+      }
+    }
+  }
   createWindow();
+  if (pendingProtocolArgs) {
+    win.webContents.on('did-finish-load', () => {
+      win.webContents.send('protocol-args', pendingProtocolArgs);
+      pendingProtocolArgs = null;
+    });
+  }
 });
 
 app.on('window-all-closed', () => {
@@ -45,6 +66,47 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
+
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('paceman', process.execPath, [path.resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient('paceman');
+}
+
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  const parsed = new URL(url);
+  const args = {
+    path: parsed.pathname,
+    query: Object.fromEntries(parsed.searchParams)
+  };
+  if (win && win.webContents) {
+    win.webContents.send('protocol-args', args);
+  } else {
+    pendingProtocolArgs = args;
+  }
+});
+
+app.on('second-instance', (event, argv) => {
+  const protoArg = argv.find((a) => String(a).startsWith('paceman://'));
+  if (!protoArg) return;
+  try {
+    const parsed = new URL(protoArg);
+    const args = {
+      path: parsed.pathname,
+      query: Object.fromEntries(parsed.searchParams)
+    };
+    if (win && win.webContents) {
+      win.webContents.send('protocol-args', args);
+    } else {
+      pendingProtocolArgs = args;
+    }
+  } catch (e) {
+    console.error('Failed to parse protocol arg:', protoArg, e);
+  }
 });
 
 function httpGetJson(url) {
@@ -128,4 +190,8 @@ ipcMain.handle('open-external', (event, url) => {
   } catch (e) {
     console.error('Blocked invalid external URL:', url);
   }
+});
+
+ipcMain.handle('get-protocol-args', async () => {
+  return pendingProtocolArgs ? { ...pendingProtocolArgs, consumed: true } : null;
 });
