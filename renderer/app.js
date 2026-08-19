@@ -1802,6 +1802,33 @@
       e.stopPropagation();
       opts.classList.toggle("visible");
     });
+    const updateBtn = document.getElementById("updateBtn");
+    if (updateBtn) {
+      updateBtn.addEventListener("click", async () => {
+        updateBtn.classList.add("checking");
+        try {
+          const result = await window.pacemanAPI.checkForUpdates();
+          if (result && result.success && result.isNewer) {
+            updateBtn.classList.add("has-update");
+            updateBtn.title = `Update available: v${result.latest}`;
+            if (confirm(`A newer version is available: v${result.latest}\nYou are on v${result.current}.\n\nOpen the release page?`)) {
+              window.pacemanAPI.openExternal(result.downloadUrl);
+            }
+          } else if (result && result.success) {
+            updateBtn.title = `You are on the latest version (v${result.current})`;
+            setTimeout(() => { updateBtn.classList.remove("has-update"); }, 2000);
+          } else {
+            updateBtn.title = "Update check failed: " + (result ? result.error : "unknown");
+            setTimeout(() => { updateBtn.classList.remove("checking"); }, 2000);
+          }
+        } catch (e) {
+          updateBtn.title = "Update check failed";
+          setTimeout(() => { updateBtn.classList.remove("checking"); }, 2000);
+        } finally {
+          updateBtn.classList.remove("checking");
+        }
+      });
+    }
     document.addEventListener("click", (e) => {
       if (!e.target.closest("#themeSwitcher")) opts.classList.remove("visible");
     });
