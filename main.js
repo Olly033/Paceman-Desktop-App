@@ -49,10 +49,13 @@ app.on('activate', () => {
 
 function httpGetJson(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    const req = https.get(url, { headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.0' } }, (res) => {
       const chunks = [];
       res.on('data', (c) => chunks.push(c));
       res.on('end', () => {
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          return reject(new Error('GitHub API returned HTTP ' + res.statusCode));
+        }
         try {
           const data = JSON.parse(Buffer.concat(chunks).toString());
           resolve(data);
@@ -74,12 +77,25 @@ async function checkGithubLatest() {
   return { latestVersion, downloadUrl, releaseName };
 }
 
+function parseVersion(v) {
+  const parts = String(v).split('.').map(Number);
+  return { major: parts[0] || 0, minor: parts[1] || 0, patch: parts[2] || 0 };
+}
+
+function isNewerVersion(latest, current) {
+  const l = parseVersion(latest);
+  const c = parseVersion(current);
+  if (l.major !== c.major) return l.major > c.major;
+  if (l.minor !== c.minor) return l.minor > c.minor;
+  return l.patch > c.patch;
+}
+
 ipcMain.handle('check-for-updates', async () => {
   try {
     const info = await checkGithubLatest();
     const current = APP_VERSION;
-    const isNewer = info.latestVersion !== current;
-    return { success: true, current, latest: info.latestVersion, isNewer, downloadUrl: info.downloadUrl, releaseName: info.releaseName };
+    const newer = isNewerVersion(info.latestVersion, current);
+    return { success: true, current, latest: info.latestVersion, isNewer: newer, downloadUrl: info.downloadUrl, releaseName: info.releaseName };
   } catch (e) {
     return { success: false, error: e.message || 'Failed to check for updates' };
   }
@@ -88,7 +104,7 @@ ipcMain.handle('check-for-updates', async () => {
 ipcMain.handle('fetch-json', async (event, url) => {
   try {
     const resp = await new Promise((resolve, reject) => {
-      const req = https.request(url, { method: 'GET' }, (res) => {
+      const req = https.request(url, { method: 'GET', headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.0' } }, (res) => {
         const chunks = [];
         res.on('data', (chunk) => chunks.push(chunk));
         res.on('end', () => resolve({ status: res.statusCode, data: Buffer.concat(chunks).toString() }));
