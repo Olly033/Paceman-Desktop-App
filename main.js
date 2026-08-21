@@ -11,6 +11,7 @@ const APP_VERSION = app.getVersion ? app.getVersion() : '2.1.1';
 const REPO_OWNER = 'Olly033';
 const REPO_NAME = 'Paceman-Desktop-App';
 const YTDLP_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe';
+const FFMPEG_URL = 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip';
 
 let win;
 let pendingProtocolArgs = null;
@@ -82,6 +83,7 @@ app.whenReady().then(async () => {
   createWindow();
   ensureProtocolRegistered();
   ensureYtDlp().catch((e) => console.warn('yt-dlp pre-download failed:', e.message));
+  ensureFfmpeg().catch((e) => console.warn('ffmpeg pre-download failed:', e.message));
 });
 
 app.on('window-all-closed', () => {
@@ -221,6 +223,14 @@ function getYtDlpPath() {
   return path.join(app.getPath('userData'), 'yt-dlp.exe');
 }
 
+function getFfmpegDir() {
+  return path.join(app.getPath('userData'), 'ffmpeg');
+}
+
+function getFfmpegExe() {
+  return path.join(getFfmpegDir(), 'bin', 'ffmpeg.exe');
+}
+
 async function ensureYtDlp() {
   const ytDlpPath = getYtDlpPath();
   if (fs.existsSync(ytDlpPath)) {
@@ -236,14 +246,68 @@ async function ensureYtDlp() {
   }
 }
 
+async function ensureFfmpeg() {
+  const ffmpegExe = getFfmpegExe();
+  if (fs.existsSync(ffmpegExe)) {
+    return ffmpegExe;
+  }
+  
+  const zipPath = path.join(app.getPath('userData'), 'ffmpeg.zip');
+  
+  try {
+    const buffer = await httpGetBuffer(FFMPEG_URL);
+    fs.writeFileSync(zipPath, buffer);
+    
+    const ffmpegDir = getFfmpegDir();
+    if (!fs.existsSync(ffmpegDir)) {
+      fs.mkdirSync(ffmpegDir, { recursive: true });
+    }
+    
+    await execAsync(`powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${ffmpegDir}' -Force"`, { timeout: 120000 });
+    
+    const entries = fs.readdirSync(ffmpegDir);
+    for (const entry of entries) {
+      const entryPath = path.join(ffmpegDir, entry);
+      const stat = fs.statSync(entryPath);
+      if (stat.isDirectory() && entry.startsWith('ffmpeg-')) {
+        const binDir = path.join(entryPath, 'bin');
+        if (fs.existsSync(binDir) && fs.existsSync(path.join(binDir, 'ffmpeg.exe'))) {
+          const finalDir = path.join(ffmpegDir, 'bin');
+          if (!fs.existsSync(finalDir)) {
+            fs.mkdirSync(finalDir, { recursive: true });
+          }
+          const finalExe = path.join(finalDir, 'ffmpeg.exe');
+          fs.copyFileSync(path.join(binDir, 'ffmpeg.exe'), finalExe);
+          if (fs.existsSync(path.join(binDir, 'ffprobe.exe'))) {
+            fs.copyFileSync(path.join(binDir, 'ffprobe.exe'), path.join(finalDir, 'ffprobe.exe'));
+          }
+          fs.rmSync(entryPath, { recursive: true, force: true });
+          break;
+        }
+      }
+    }
+    
+    fs.unlinkSync(zipPath);
+    
+    if (!fs.existsSync(ffmpegExe)) {
+      throw new Error('ffmpeg.exe not found after extraction');
+    }
+    
+    return ffmpegExe;
+  } catch (e) {
+    throw new Error('Failed to download ffmpeg: ' + e.message);
+  }
+}
+
 ipcMain.handle('download-vod', async (event, { vodId, startTime, endTime }) => {
   const downloadsDir = app.getPath('downloads');
   const outputPath = path.join(downloadsDir, `run-vod-${vodId}-${Date.now()}.mp4`);
   
   try {
     const ytDlpPath = await ensureYtDlp();
+    const ffmpegPath = await ensureFfmpeg();
     const section = `${startTime.toFixed(2)}-${endTime.toFixed(2)}`;
-    const command = `"${ytDlpPath}" --download-sections "*${section}" -o "${outputPath}" "https://www.twitch.tv/videos/${vodId}"`;
+    const command = `"${ytDlpPath}" --ffmpeg-location "${path.dirname(ffmpegPath)}" --download-sections "*${section}" -o "${outputPath}" "https://www.twitch.tv/videos/${vodId}"`;
     
     try {
       await execAsync(command, { timeout: 600000 });
