@@ -2720,18 +2720,19 @@
             alert("No VOD available for this run.");
             return;
           }
+          alert('Starting download - vodId: ' + vodId + ', vodOffset: ' + vodOffset);
           downloadRunBtn.classList.add("downloading");
           if (progressWrap) progressWrap.style.display = "flex";
           if (progressFill) progressFill.style.width = "0%";
           if (progressText) progressText.textContent = "Starting download...";
           
           if (window.pacemanAPI && window.pacemanAPI.downloadVod) {
-            console.log('Starting VOD download:', { vodId, vodOffset, currentDownloadId });
             currentDownloadId = Date.now().toString();
             const runData = currentRunData || await getJSON(`${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`).then(d => (d && d.data) || d).catch(() => ({}));
             const finish = runData && runData.finish != null ? runData.finish : null;
             const startTime = vodOffset || 0;
             const endTime = finish ? startTime + finish / 1000 : startTime + 3600;
+            alert('Calling downloadVod IPC - startTime: ' + startTime + ', endTime: ' + endTime);
             console.log('Calling downloadVod IPC:', { downloadId: currentDownloadId, vodId, startTime, endTime });
             const result = await window.pacemanAPI.downloadVod({
               downloadId: currentDownloadId,
@@ -2740,6 +2741,7 @@
               endTime,
             });
             console.log('Download result:', result);
+            alert('Download result: ' + JSON.stringify(result));
             
             if (result && result.success) {
               if (progressFill) progressFill.style.width = "100%";
