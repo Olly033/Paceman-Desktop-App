@@ -302,13 +302,18 @@ async function ensureFfmpeg() {
 }
 
 ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, endTime }) => {
+  console.log('download-vod called:', { downloadId, vodId, startTime, endTime });
   const downloadsDir = app.getPath('downloads');
   const outputPath = path.join(downloadsDir, `run-vod-${vodId}-${Date.now()}.mp4`);
   const effectiveDownloadId = downloadId || `${vodId}-${Date.now()}`;
   
   try {
+    console.log('Ensuring yt-dlp...');
     const ytDlpPath = await ensureYtDlp();
+    console.log('yt-dlp path:', ytDlpPath);
+    console.log('Ensuring ffmpeg...');
     const ffmpegPath = await ensureFfmpeg();
+    console.log('ffmpeg path:', ffmpegPath);
     const section = `${startTime.toFixed(2)}-${endTime.toFixed(2)}`;
     const args = [
       '--ffmpeg-location', path.dirname(ffmpegPath),
@@ -318,6 +323,7 @@ ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, end
       '-o', outputPath,
       `https://www.twitch.tv/videos/${vodId}`
     ];
+    console.log('Spawning yt-dlp with args:', args);
     
     return new Promise((resolve, reject) => {
       const child = spawn(ytDlpPath, args, { cwd: app.getPath('userData') });
