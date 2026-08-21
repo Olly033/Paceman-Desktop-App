@@ -836,9 +836,10 @@
     if (best) best.innerHTML = '<div class="loading">Loading runs...</div>';
     try {
       const hours = TF_HOURS[tf] || 24;
+      const between = TF_BETWEEN[tf] || 24;
       const [timeframe, all] = await Promise.all([
-        safeGetRecentRuns(name, hours),
-        safeGetRecentRuns(name, 999999),
+        safeGetRecentRuns(name, hours, between),
+        safeGetRecentRuns(name, 999999, 999999),
       ]);
       if (generation !== profileRunsGeneration) return;
       state.profile.timeframeRuns = timeframe || [];
@@ -903,9 +904,9 @@
     }
   }
 
-  async function safeGetRecentRuns(name, hours) {
+  async function safeGetRecentRuns(name, hours, hoursBetween) {
     try {
-      const data = await getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=${hours}&limit=5000`);
+      const data = await getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${hoursBetween}&limit=5000`);
       return Array.isArray(data) ? data : [];
     } catch (e) {
       if (e && e.message && e.message.includes("HTTP 404")) {
