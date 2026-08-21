@@ -73,6 +73,8 @@
 
   const autoOpenedStreams = new Set();
 
+  console.log('App starting, currentVod:', currentVod, 'currentRunId:', currentRunId);
+  
   let currentVod = { id: null, offset: 0, currentTime: 0 };
   let currentRunId = null;
   let currentRunData = null;
@@ -2658,10 +2660,13 @@
       });
     }
     const downloadRunBtn = document.getElementById("downloadRunBtn");
+    console.log('Download button element:', downloadRunBtn);
     if (downloadRunBtn) {
+      console.log('Attaching download button listener');
       const progressWrap = document.getElementById("downloadProgress");
       const progressFill = document.getElementById("downloadProgressFill");
       const progressText = document.getElementById("downloadProgressText");
+      console.log('Progress elements:', { progressWrap, progressFill, progressText });
       
       const updateProgress = (data) => {
         if (!progressWrap || !progressFill || !progressText) return;
@@ -2689,9 +2694,20 @@
       
       window.addEventListener('paceman-download-vod-progress', onProgress);
       
-      downloadRunBtn.addEventListener("click", async () => {
-        console.log('Download button clicked, currentRunId:', currentRunId, 'currentVod:', currentVod);
-        if (!currentRunId) return;
+      downloadRunBtn.addEventListener("click", async (e) => {
+        console.log('=== DOWNLOAD BUTTON CLICKED ===', e);
+        e.stopPropagation();
+        console.log('currentRunId:', currentRunId, 'currentVod:', currentVod);
+        if (!currentRunId) {
+          console.log('No currentRunId, returning');
+          return;
+        }
+        console.log('pacemanAPI exists:', !!window.pacemanAPI);
+        console.log('downloadVod exists:', !!(window.pacemanAPI && window.pacemanAPI.downloadVod));
+        if (!window.pacemanAPI || !window.pacemanAPI.downloadVod) {
+          alert("VOD download is not available.");
+          return;
+        }
         try {
           let vodId = currentVod.id;
           let vodOffset = currentVod.offset || 0;
