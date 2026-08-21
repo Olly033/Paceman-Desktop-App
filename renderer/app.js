@@ -2503,8 +2503,15 @@
     }
     const sessionShareBtn = document.getElementById("sessionShareBtn");
     if (sessionShareBtn) {
+      const getActiveTimeframe = () => {
+        const activeBtn = document.querySelector("#profileTimeframes .timeframe-btn.active");
+        if (activeBtn && activeBtn.dataset && activeBtn.dataset.tf) return activeBtn.dataset.tf;
+        const tf = state.profile.tf;
+        if (tf) return tf;
+        return "daily";
+      };
       const updateSessionShareTooltip = () => {
-        const tf = state.profile.tf || "session";
+        const tf = getActiveTimeframe();
         const labels = {
           session: "Copy session stats",
           daily: "Copy daily stats",
@@ -2519,7 +2526,7 @@
         const sessionBox = document.getElementById("sessionStats");
         if (!sessionBox) return;
         const name = state.profile.name || "Player";
-        const tf = state.profile.tf || "session";
+        const tf = getActiveTimeframe();
         const hours = TF_HOURS[tf] || 24;
         const between = TF_BETWEEN[tf] || 24;
         let header = "";
