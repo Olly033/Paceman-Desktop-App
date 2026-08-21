@@ -2639,7 +2639,7 @@
     if (openVodBtn) {
       openVodBtn.addEventListener("click", () => {
         if (!currentVod.id) return;
-        const url = `https://twitch.tv/videos/${currentVod.id}${currentVod.currentTime ? "?t=" + Math.floor(currentVod.currentTime) : ""}`;
+        const url = `https://twitch.tv/videos/${currentVod.id}${currentVod.offset ? "?t=" + Math.floor(currentVod.offset) : ""}`;
         if (window.pacemanAPI && window.pacemanAPI.openExternal) {
           window.pacemanAPI.openExternal(url);
         } else {
