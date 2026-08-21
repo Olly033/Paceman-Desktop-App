@@ -2690,6 +2690,7 @@
       window.addEventListener('paceman-download-vod-progress', onProgress);
       
       downloadRunBtn.addEventListener("click", async () => {
+        console.log('Download button clicked, currentRunId:', currentRunId, 'currentVod:', currentVod);
         if (!currentRunId) return;
         try {
           let vodId = currentVod.id;
