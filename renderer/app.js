@@ -2504,21 +2504,43 @@
       sessionShareBtn.addEventListener("click", async () => {
         const sessionBox = document.getElementById("sessionStats");
         if (!sessionBox) return;
-        const badges = sessionBox.querySelectorAll(".stat-badge");
-        if (badges.length === 0) return;
         const name = state.profile.name || "Player";
         const tf = state.profile.tf || "session";
+        const hours = TF_HOURS[tf] || 24;
+        const between = TF_BETWEEN[tf] || 24;
         let text = `${name} ${tf} stats:\n`;
-        badges.forEach((badge) => {
-          const valueEl = badge.querySelector("b");
-          if (!valueEl) return;
-          const valueText = valueEl.textContent.trim();
-          const raw = badge.innerHTML.replace(valueEl.outerHTML, "").trim();
-          const labelText = raw.replace(/<[^>]*>/g, "").trim();
-          if (labelText && valueText) {
-            text += `${labelText}: ${valueText}\n`;
+        try {
+          const [stats, nph] = await Promise.all([
+            getJSON(`${API}/getSessionStats?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`),
+            getJSON(`${API}/getNPH?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`).catch(() => null),
+          ]);
+          for (const key of SPLIT_ORDER) {
+            const s = stats[key] || { count: 0, avg: "0:00" };
+            if (s.count > 0) {
+              text += `${SPLITS[key]}: ${s.count} enters, avg ${s.avg}\n`;
+            }
           }
-        });
+          if (nph) {
+            text += `NPH (IGT): ${(nph.rnph || 0).toFixed(2)}\n`;
+            text += `RPE: ${(nph.rpe || 0).toFixed(2)}\n`;
+          }
+          const duration = calcSessionDuration(state.profile.timeframeRuns);
+          if (duration) {
+            text += `Session: ${duration}\n`;
+          }
+        } catch (e) {
+          const badges = sessionBox.querySelectorAll(".stat-badge");
+          badges.forEach((badge) => {
+            const valueEl = badge.querySelector("b");
+            if (!valueEl) return;
+            const valueText = valueEl.textContent.trim();
+            const raw = badge.innerHTML.replace(valueEl.outerHTML, "").trim();
+            const labelText = raw.replace(/<[^>]*>/g, "").trim();
+            if (labelText && valueText) {
+              text += `${labelText}: ${valueText}\n`;
+            }
+          });
+        }
         try {
           await navigator.clipboard.writeText(text.trim());
           sessionShareBtn.classList.add("copied");
