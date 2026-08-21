@@ -698,6 +698,10 @@
     const tf = state.profile.tf;
     const name = state.profile.name;
     if (!name) return;
+    if (tf === "daily") {
+      sessionBox.innerHTML = "";
+      return;
+    }
     const hours = TF_HOURS[tf] || 24;
     const between = TF_BETWEEN[tf] || 24;
     if (tf === "session") {
