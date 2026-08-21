@@ -329,12 +329,15 @@ ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, end
       const parseProgress = (text) => {
         const lines = text.split(/\r?\n/);
         for (const line of lines) {
-          const progressMatch = line.match(/\[download\]\s+([\d.]+)%\s+of\s+([\d.]+(\w+)?)\s+at\s+([\d.]+(\w+\/s)?)\s+ETA\s+([\d:]+)/);
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          const progressMatch = trimmed.match(/\[download\]\s+([\d.]+)%\s+of\s+([\d.]+(\w+)?)\s+at\s+([\d.]+(\w+\/s)?)\s+ETA\s+([\d:]+)/);
           if (progressMatch) {
             const percent = parseFloat(progressMatch[1]);
             const total = progressMatch[2] + (progressMatch[3] || '');
             const speed = progressMatch[4] + (progressMatch[5] || '');
             const eta = progressMatch[6];
+            console.log('Progress parsed:', percent, total, speed, eta);
             event.sender.send('download-vod-progress', {
               downloadId,
               percent: Math.min(100, Math.max(0, percent)),
@@ -342,16 +345,21 @@ ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, end
               speed,
               eta,
             });
+          } else if (trimmed.includes('[download]')) {
+            console.log('Download line (no match):', trimmed);
           }
         }
       };
       
       child.stdout.on('data', (data) => {
-        parseProgress(data.toString());
+        const text = data.toString();
+        console.log('yt-dlp stdout:', text.slice(0, 500));
+        parseProgress(text);
       });
       
       child.stderr.on('data', (data) => {
         const text = data.toString();
+        console.log('yt-dlp stderr:', text.slice(0, 500));
         stderr += text;
         parseProgress(text);
       });

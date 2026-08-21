@@ -2681,6 +2681,7 @@
       };
       
       const onProgress = (e) => {
+        console.log('Progress event received:', e.detail);
         if (e.detail && e.detail.downloadId === currentDownloadId) {
           updateProgress(e.detail);
         }
