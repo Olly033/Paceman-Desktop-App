@@ -670,6 +670,7 @@
     await Promise.all([loadProfileStats(), loadProfileRuns(), loadProfileSocials(name)]);
     await loadTwitchFromRuns(name);
     updateFavoriteButton();
+    await updateSessionStats();
     const chartToggleBtn = document.getElementById("chartToggleBtn");
     const profileChart = document.getElementById("profileChart");
     if (chartToggleBtn) {
@@ -709,11 +710,7 @@
       }
     } else {
       const duration = calcSessionDuration(state.profile.timeframeRuns);
-      if (duration) {
-        sessionBox.innerHTML = renderSessionStats({ rnph: 0, rpe: 0 }, duration);
-      } else {
-        sessionBox.innerHTML = "";
-      }
+      sessionBox.innerHTML = renderSessionStats({ rnph: 0, rpe: 0 }, duration);
     }
   }
 
@@ -816,7 +813,7 @@
 
   function calcSessionDuration(runs) {
     if (!runs || runs.length === 0) return null;
-    const times = runs.map((r) => r.insertTime || r.createdAt || r.timestamp || r.startTime || 0).filter((t) => t > 0);
+    const times = runs.map((r) => r.insertTime || r.createdAt || r.timestamp || r.startTime || r.lastUpdated || r.time || r.updatedTime || r.realUpdated || 0).filter((t) => t > 0);
     if (times.length === 0) return null;
     const min = Math.min(...times);
     const max = Math.max(...times);
@@ -834,9 +831,7 @@
       ["NPH", (n.rnph || 0).toFixed(2)],
       ["RPE", (n.rpe || 0).toFixed(2)],
     ];
-    if (durationText) {
-      badges.push(["Session", durationText]);
-    }
+    badges.push(["Session", durationText || "--"]);
     return badges
       .map(([l, v]) => `<span class="stat-badge"><b>${v}</b> ${l}</span>`)
       .join("");
@@ -912,11 +907,12 @@
       renderAllRunsPage();
       await loadTwitchFromRuns(name);
       renderRunHistoryChart();
-      await updateSessionStats();
     } catch (e) {
       if (generation !== profileRunsGeneration) return;
       if (best) best.innerHTML = '<div class="loading">Failed to load runs.</div>';
       if (typeof addDevLog === "function") addDevLog("error", "loadProfileRuns failed: " + (e && e.message ? e.message : e));
+    } finally {
+      await updateSessionStats();
     }
   }
 
@@ -2565,12 +2561,8 @@
             text += `NPH: ${(nph.rnph || 0).toFixed(2)}\n`;
             text += `RPE: ${(nph.rpe || 0).toFixed(2)}\n`;
           }
-          if (tf === "session") {
-            const duration = calcSessionDuration(state.profile.timeframeRuns);
-            if (duration) {
-              text += `Session length: ${duration}\n`;
-            }
-          }
+          const duration = calcSessionDuration(state.profile.timeframeRuns);
+          text += `Session length: ${duration || "--"}\n`;
         } catch (e) {
           const badges = sessionBox.querySelectorAll(".stat-badge");
           badges.forEach((badge) => {
