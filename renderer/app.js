@@ -816,7 +816,7 @@
 
   function renderSessionStats(n, durationText) {
     const badges = [
-      ["NPH (IGT)", (n.rnph || 0).toFixed(2)],
+      ["NPH", (n.rnph || 0).toFixed(2)],
       ["RPE", (n.rpe || 0).toFixed(2)],
     ];
     if (durationText) {
@@ -2518,11 +2518,11 @@
           for (const key of SPLIT_ORDER) {
             const s = stats[key] || { count: 0, avg: "0:00" };
             if (s.count > 0) {
-              text += `${SPLITS[key]}: ${s.count} enters, avg ${s.avg}\n`;
+              text += `${SPLITS[key]}: ${s.count}x avg ${s.avg}\n`;
             }
           }
           if (nph) {
-            text += `NPH (IGT): ${(nph.rnph || 0).toFixed(2)}\n`;
+            text += `NPH: ${(nph.rnph || 0).toFixed(2)}\n`;
             text += `RPE: ${(nph.rpe || 0).toFixed(2)}\n`;
           }
           const duration = calcSessionDuration(state.profile.timeframeRuns);
