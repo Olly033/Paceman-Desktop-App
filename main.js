@@ -180,6 +180,11 @@ function httpGetText(url, headers) {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return resolve(httpGetText(res.headers.location, headers));
       }
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        res.on('data', () => {});
+        res.on('end', () => reject(new Error(`HTTP ${res.statusCode} for ${url}`)));
+        return;
+      }
       const chunks = [];
       res.on('data', (c) => chunks.push(c));
       res.on('end', () => resolve(Buffer.concat(chunks).toString()));
@@ -196,6 +201,11 @@ async function httpGetBuffer(url, headers) {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return resolve(httpGetBuffer(res.headers.location, headers));
       }
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        res.on('data', () => {});
+        res.on('end', () => reject(new Error(`HTTP ${res.statusCode} for ${url}`)));
+        return;
+      }
       const chunks = [];
       res.on('data', (c) => chunks.push(c));
       res.on('end', () => resolve(Buffer.concat(chunks)));
@@ -206,11 +216,25 @@ async function httpGetBuffer(url, headers) {
 }
 
 async function getVodAccessToken(vodId) {
-  const url = `https://api.twitch.tv/api/vods/${vodId}/access_token?client_id=kimne78kx3ncx6brgo4mv6wki5h1ko`;
-  const text = await httpGetText(url);
-  const data = JSON.parse(text);
-  if (!data || !data.token) throw new Error('Failed to get VOD access token');
-  return data;
+  const clientIds = [
+    'kimne78kx3ncx6brgo4mv6wki5h1ko',
+    'jzkbprvs40kjxtfq9sz19w7cgx7emf',
+  ];
+  
+  for (const clientId of clientIds) {
+    try {
+      const url = `https://api.twitch.tv/api/vods/${vodId}/access_token?client_id=${clientId}`;
+      const text = await httpGetText(url);
+      const data = JSON.parse(text);
+      if (data && data.token) {
+        return data;
+      }
+    } catch (e) {
+      console.error(`Failed to get VOD access token with client ${clientId}:`, e.message);
+    }
+  }
+  
+  throw new Error('Failed to get VOD access token with any client ID');
 }
 
 async function getM3U8(vodId, token, sig) {
