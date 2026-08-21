@@ -1940,7 +1940,18 @@
         b.classList.add("active");
         loadProfileStats();
         loadProfileRuns().then(() => renderRunHistoryChart());
-        updateSessionShareTooltip();
+        const shareBtn = document.getElementById("sessionShareBtn");
+        if (shareBtn) {
+          const tf = b.dataset.tf || "daily";
+          const labels = {
+            session: "Copy session stats",
+            daily: "Copy daily stats",
+            weekly: "Copy weekly stats",
+            monthly: "Copy monthly stats",
+            lifetime: "Copy lifetime stats",
+          };
+          shareBtn.title = labels[tf] || `Copy ${tf} stats`;
+        }
       });
     });
     document.querySelectorAll("#leaderboardTimeframes .timeframe-btn").forEach((b) => {
