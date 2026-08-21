@@ -2664,32 +2664,31 @@
           }
           downloadRunBtn.classList.add("downloading");
           if (window.pacemanAPI && window.pacemanAPI.downloadVod) {
-            try {
-              const runData = currentRunData || await getJSON(`${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`).then(d => (d && d.data) || d).catch(() => ({}));
-              const finish = runData && runData.finish != null ? runData.finish : null;
-              const startTime = vodOffset || 0;
-              const endTime = finish ? startTime + finish / 1000 : startTime + 3600;
-              const result = await window.pacemanAPI.downloadVod({
-                vodId,
-                startTime,
-                endTime,
-              });
-              if (result && result.success) {
-                downloadRunBtn.classList.add("downloaded");
-                setTimeout(() => {
-                  downloadRunBtn.classList.remove("downloading");
-                  downloadRunBtn.classList.remove("downloaded");
-                }, 1500);
-                return;
-              }
-            } catch (e) {
-              console.log("VOD download failed:", e);
+            const runData = currentRunData || await getJSON(`${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`).then(d => (d && d.data) || d).catch(() => ({}));
+            const finish = runData && runData.finish != null ? runData.finish : null;
+            const startTime = vodOffset || 0;
+            const endTime = finish ? startTime + finish / 1000 : startTime + 3600;
+            const result = await window.pacemanAPI.downloadVod({
+              vodId,
+              startTime,
+              endTime,
+            });
+            if (result && result.success) {
+              downloadRunBtn.classList.add("downloaded");
+              setTimeout(() => {
+                downloadRunBtn.classList.remove("downloading");
+                downloadRunBtn.classList.remove("downloaded");
+              }, 1500);
+              return;
             }
+            alert(result && result.error ? result.error : "VOD download failed. The VOD may be unavailable or the download was blocked.");
+          } else {
+            alert("VOD download is not available.");
           }
-          alert("VOD download failed. The VOD may be unavailable.");
           downloadRunBtn.classList.remove("downloading");
         } catch (e) {
           console.log("Download failed", e);
+          alert("Download failed: " + (e && e.message ? e.message : e));
           downloadRunBtn.classList.remove("downloading");
         }
       });

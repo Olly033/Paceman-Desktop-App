@@ -242,11 +242,25 @@ ipcMain.handle('download-vod', async (event, { vodId, startTime, endTime }) => {
   
   try {
     const ytDlpPath = await ensureYtDlp();
-    const command = `"${ytDlpPath}" --download-sections "*:${startTime.toFixed(2)}-${endTime.toFixed(2)}" -o "${outputPath}" "https://www.twitch.tv/videos/${vodId}"`;
-    await execAsync(command, { timeout: 600000 });
+    const section = `*:${startTime.toFixed(2)}-${endTime.toFixed(2)}`;
+    const command = `"${ytDlpPath}" --download-sections "${section}" -o "${outputPath}" "https://www.twitch.tv/videos/${vodId}"`;
+    
+    try {
+      await execAsync(command, { timeout: 600000 });
+    } catch (e) {
+      const stderr = e.stderr || '';
+      const stdout = e.stdout || '';
+      const errorDetail = [stderr, stdout].filter(Boolean).join('\n').slice(0, 2000);
+      return { success: false, error: 'Download failed: ' + (e.message || 'Unknown error') + (errorDetail ? '\n' + errorDetail : '') };
+    }
+    
+    if (!fs.existsSync(outputPath)) {
+      return { success: false, error: 'Download completed but file not found. The VOD segment may be unavailable or the download was blocked.' };
+    }
+    
     return { success: true, path: outputPath };
   } catch (e) {
-    return { success: false, error: 'Download failed: ' + e.message };
+    return { success: false, error: 'Download failed: ' + (e.message || 'Unknown error') };
   }
 });
 
