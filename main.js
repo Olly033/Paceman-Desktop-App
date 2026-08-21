@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, shell, Menu, session } = require('electron'
 const path = require('path');
 const https = require('https');
 const http = require('http');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const { promisify } = require('util');
 const execAsync = promisify(exec);
 const fs = require('fs');
@@ -12,6 +12,8 @@ const REPO_OWNER = 'Olly033';
 const REPO_NAME = 'Paceman-Desktop-App';
 const YTDLP_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe';
 const FFMPEG_URL = 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip';
+
+let activeDownloads = new Map();
 
 let win;
 let pendingProtocolArgs = null;
@@ -299,33 +301,84 @@ async function ensureFfmpeg() {
   }
 }
 
-ipcMain.handle('download-vod', async (event, { vodId, startTime, endTime }) => {
+ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, endTime }) => {
   const downloadsDir = app.getPath('downloads');
   const outputPath = path.join(downloadsDir, `run-vod-${vodId}-${Date.now()}.mp4`);
+  const effectiveDownloadId = downloadId || `${vodId}-${Date.now()}`;
   
   try {
     const ytDlpPath = await ensureYtDlp();
     const ffmpegPath = await ensureFfmpeg();
     const section = `${startTime.toFixed(2)}-${endTime.toFixed(2)}`;
-    const command = `"${ytDlpPath}" --ffmpeg-location "${path.dirname(ffmpegPath)}" --download-sections "*${section}" -o "${outputPath}" "https://www.twitch.tv/videos/${vodId}"`;
+    const args = [
+      '--ffmpeg-location', path.dirname(ffmpegPath),
+      '--download-sections', `*${section}`,
+      '-o', outputPath,
+      `https://www.twitch.tv/videos/${vodId}`
+    ];
     
-    try {
-      await execAsync(command, { timeout: 600000 });
-    } catch (e) {
-      const stderr = e.stderr || '';
-      const stdout = e.stdout || '';
-      const errorDetail = [stderr, stdout].filter(Boolean).join('\n').slice(0, 2000);
-      return { success: false, error: 'Download failed: ' + (e.message || 'Unknown error') + (errorDetail ? '\n' + errorDetail : '') };
-    }
-    
-    if (!fs.existsSync(outputPath)) {
-      return { success: false, error: 'Download completed but file not found. The VOD segment may be unavailable or the download was blocked.' };
-    }
-    
-    return { success: true, path: outputPath };
+    return new Promise((resolve, reject) => {
+      const child = spawn(ytDlpPath, args, { cwd: app.getPath('userData') });
+      activeDownloads.set(downloadId, child);
+      
+      let stderr = '';
+      let finished = false;
+      
+      child.stdout.on('data', (data) => {
+        const text = data.toString();
+        const progressMatch = text.match(/\[download\]\s+([\d.]+)%\s+of\s+([\d.]+(\w+)?)\s+at\s+([\d.]+(\w+\/s)?)\s+ETA\s+([\d:]+)/);
+        if (progressMatch) {
+          const percent = parseFloat(progressMatch[1]);
+          const total = progressMatch[2] + (progressMatch[3] || '');
+          const speed = progressMatch[4] + (progressMatch[5] || '');
+          const eta = progressMatch[6];
+          event.sender.send('download-vod-progress', {
+            downloadId,
+            percent: Math.min(100, Math.max(0, percent)),
+            total,
+            speed,
+            eta,
+          });
+        }
+      });
+      
+      child.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+      
+      child.on('close', async (code) => {
+        activeDownloads.delete(downloadId);
+        if (finished) return;
+        finished = true;
+        
+        if (code === 0 && fs.existsSync(outputPath)) {
+          resolve({ success: true, path: outputPath });
+        } else {
+          const errorDetail = stderr.slice(-2000);
+          resolve({ success: false, error: `Download failed with code ${code}: ${errorDetail || 'Unknown error'}` });
+        }
+      });
+      
+      child.on('error', (err) => {
+        activeDownloads.delete(downloadId);
+        if (finished) return;
+        finished = true;
+        resolve({ success: false, error: 'Failed to start yt-dlp: ' + err.message });
+      });
+    });
   } catch (e) {
     return { success: false, error: 'Download failed: ' + (e.message || 'Unknown error') };
   }
+});
+
+ipcMain.handle('cancel-download-vod', (event, downloadId) => {
+  const child = activeDownloads.get(downloadId);
+  if (child) {
+    child.kill('SIGTERM');
+    activeDownloads.delete(downloadId);
+    return { success: true };
+  }
+  return { success: false, error: 'Download not found' };
 });
 
 ipcMain.handle('get-protocol-args', async () => {

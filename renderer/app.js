@@ -76,6 +76,7 @@
   let currentVod = { id: null, offset: 0, currentTime: 0 };
   let currentRunId = null;
   let currentRunData = null;
+  let currentDownloadId = null;
   let splitDetailState = { split: null, runs: [], page: 1, perPage: 10, sortAsc: true };
 
   window.addEventListener("paceman-protocol-args", (e) => {
@@ -1257,8 +1258,12 @@
   }
 
   function closeRunDetail() {
+    if (currentDownloadId && window.pacemanAPI && window.pacemanAPI.cancelDownloadVod) {
+      window.pacemanAPI.cancelDownloadVod(currentDownloadId);
+    }
     currentRunId = null;
     currentRunData = null;
+    currentDownloadId = null;
     const overlay = document.getElementById("runDetailOverlay");
     overlay.classList.remove("visible");
     const webview = document.getElementById("runVodWebview");
@@ -1266,6 +1271,11 @@
       webview.src = "about:blank";
       webview.style.display = "none";
     }
+    const progressWrap = document.getElementById("downloadProgress");
+    const progressFill = document.getElementById("downloadProgressFill");
+    const progressText = document.getElementById("downloadProgressText");
+    if (progressWrap) progressWrap.style.display = "none";
+    if (progressFill) progressFill.style.width = "0%";
   }
 
   function openSplitDetail(splitKey) {
@@ -2649,6 +2659,35 @@
     }
     const downloadRunBtn = document.getElementById("downloadRunBtn");
     if (downloadRunBtn) {
+      const progressWrap = document.getElementById("downloadProgress");
+      const progressFill = document.getElementById("downloadProgressFill");
+      const progressText = document.getElementById("downloadProgressText");
+      
+      const updateProgress = (data) => {
+        if (!progressWrap || !progressFill || !progressText) return;
+        progressWrap.style.display = "flex";
+        const percent = Math.max(0, Math.min(100, data.percent || 0));
+        progressFill.style.width = percent + "%";
+        const total = data.total || "";
+        const speed = data.speed || "";
+        const eta = data.eta || "";
+        progressText.textContent = `Downloading ${percent.toFixed(1)}%${total ? ` of ${total}` : ""}${speed ? ` at ${speed}` : ""}${eta ? ` ETA ${eta}` : ""}`;
+      };
+      
+      const finishProgress = () => {
+        if (progressWrap) progressWrap.style.display = "none";
+        if (progressFill) progressFill.style.width = "0%";
+        currentDownloadId = null;
+      };
+      
+      const onProgress = (e) => {
+        if (e.detail && e.detail.downloadId === currentDownloadId) {
+          updateProgress(e.detail);
+        }
+      };
+      
+      window.addEventListener('paceman-download-vod-progress', onProgress);
+      
       downloadRunBtn.addEventListener("click", async () => {
         if (!currentRunId) return;
         try {
@@ -2663,19 +2702,29 @@
             return;
           }
           downloadRunBtn.classList.add("downloading");
+          if (progressWrap) progressWrap.style.display = "flex";
+          if (progressFill) progressFill.style.width = "0%";
+          if (progressText) progressText.textContent = "Starting download...";
+          
           if (window.pacemanAPI && window.pacemanAPI.downloadVod) {
+            currentDownloadId = Date.now().toString();
             const runData = currentRunData || await getJSON(`${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`).then(d => (d && d.data) || d).catch(() => ({}));
             const finish = runData && runData.finish != null ? runData.finish : null;
             const startTime = vodOffset || 0;
             const endTime = finish ? startTime + finish / 1000 : startTime + 3600;
             const result = await window.pacemanAPI.downloadVod({
+              downloadId: currentDownloadId,
               vodId,
               startTime,
               endTime,
             });
+            
             if (result && result.success) {
+              if (progressFill) progressFill.style.width = "100%";
+              if (progressText) progressText.textContent = "Download complete!";
               downloadRunBtn.classList.add("downloaded");
               setTimeout(() => {
+                finishProgress();
                 downloadRunBtn.classList.remove("downloading");
                 downloadRunBtn.classList.remove("downloaded");
               }, 1500);
@@ -2685,10 +2734,12 @@
           } else {
             alert("VOD download is not available.");
           }
+          finishProgress();
           downloadRunBtn.classList.remove("downloading");
         } catch (e) {
           console.log("Download failed", e);
           alert("Download failed: " + (e && e.message ? e.message : e));
+          finishProgress();
           downloadRunBtn.classList.remove("downloading");
         }
       });
