@@ -4,6 +4,7 @@ const https = require('https');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const execAsync = promisify(exec);
+const fs = require('fs');
 
 const APP_VERSION = app.getVersion ? app.getVersion() : '2.1.1';
 const REPO_OWNER = 'Olly033';
@@ -168,6 +169,26 @@ ipcMain.handle('open-external', (event, url) => {
     }
   } catch (e) {
     console.error('Blocked invalid external URL:', url);
+  }
+});
+
+ipcMain.handle('download-vod', async (event, { vodId, startTime, endTime }) => {
+  const downloadsDir = app.getPath('downloads');
+  const outputPath = path.join(downloadsDir, `run-vod-${vodId}-${Date.now()}.mp4`);
+  
+  const ytDlpCommand = `yt-dlp --download-sections "*:${startTime.toFixed(2)}-${endTime.toFixed(2)}" -o "${outputPath}" "https://www.twitch.tv/videos/${vodId}"`;
+  const streamlinkCommand = `streamlink "https://www.twitch.tv/videos/${vodId}" best --hls-start-offset ${startTime.toFixed(2)} --hls-stop-offset ${endTime.toFixed(2)} -o "${outputPath}"`;
+  
+  try {
+    await execAsync(ytDlpCommand, { timeout: 600000 });
+    return { success: true, path: outputPath };
+  } catch (e) {
+    try {
+      await execAsync(streamlinkCommand, { timeout: 600000 });
+      return { success: true, path: outputPath };
+    } catch (e2) {
+      return { success: false, error: 'Download failed. Ensure yt-dlp or streamlink is installed and in PATH.' };
+    }
   }
 });
 

@@ -2636,7 +2636,11 @@
       openVodBtn.addEventListener("click", () => {
         if (!currentVod.id) return;
         const url = `https://twitch.tv/videos/${currentVod.id}${currentVod.currentTime ? "?t=" + Math.floor(currentVod.currentTime) : ""}`;
-        window.open(url, "_blank");
+        if (window.pacemanAPI && window.pacemanAPI.openExternal) {
+          window.pacemanAPI.openExternal(url);
+        } else {
+          window.open(url, "_blank");
+        }
       });
     }
     const downloadRunBtn = document.getElementById("downloadRunBtn");
@@ -2645,6 +2649,30 @@
         if (!currentRunId) return;
         try {
           downloadRunBtn.classList.add("downloading");
+          if (currentVod.id && window.pacemanAPI && window.pacemanAPI.downloadVod) {
+            try {
+              const data = await getJSON(`${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`);
+              const runData = data && data.data ? data.data : data;
+              const finish = runData && runData.finish != null ? runData.finish : null;
+              const startTime = currentVod.offset || 0;
+              const endTime = finish ? startTime + finish / 1000 : startTime + 3600;
+              const result = await window.pacemanAPI.downloadVod({
+                vodId: currentVod.id,
+                startTime,
+                endTime,
+              });
+              if (result && result.success) {
+                downloadRunBtn.classList.add("downloaded");
+                setTimeout(() => {
+                  downloadRunBtn.classList.remove("downloading");
+                  downloadRunBtn.classList.remove("downloaded");
+                }, 1500);
+                return;
+              }
+            } catch (e) {
+              console.log("VOD download failed, falling back to JSON", e);
+            }
+          }
           const data = await getJSON(`${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`);
           const runData = data && data.data ? data.data : data;
           const blob = new Blob([JSON.stringify(runData, null, 2)], { type: "application/json" });
