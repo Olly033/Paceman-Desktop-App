@@ -242,8 +242,8 @@ ipcMain.handle('download-vod', async (event, { vodId, startTime, endTime }) => {
   
   try {
     const ytDlpPath = await ensureYtDlp();
-    const section = `*:${startTime.toFixed(2)}-${endTime.toFixed(2)}`;
-    const command = `"${ytDlpPath}" --download-sections "${section}" -o "${outputPath}" "https://www.twitch.tv/videos/${vodId}"`;
+    const section = `${startTime.toFixed(2)}-${endTime.toFixed(2)}`;
+    const command = `"${ytDlpPath}" --download-sections "*${section}" -o "${outputPath}" "https://www.twitch.tv/videos/${vodId}"`;
     
     try {
       await execAsync(command, { timeout: 600000 });
