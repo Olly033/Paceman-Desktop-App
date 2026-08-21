@@ -1091,24 +1091,25 @@ body {
 }
 
 .stat-badge {
-  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
   border-radius: 8px;
   background: var(--bg-glass);
   border: 1px solid var(--border-glass);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary);
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  height: 30px;
+  box-sizing: border-box;
 }
 
-.stat-badge.clickable {
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.stat-badge.clickable:hover {
-  background: var(--bg-glass-hover);
+.stat-badge:hover {
   border-color: var(--accent);
-  color: var(--accent-light);
+  color: var(--text-primary);
 }
 
 .stat-badge b {
@@ -1133,8 +1134,9 @@ body {
 .session-stats-wrap {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 20px;
+  min-height: 36px;
 }
 
 .session-stats-wrap:empty {
@@ -1143,30 +1145,41 @@ body {
 }
 
 .session-share-btn {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 8px;
-  border: 1px solid var(--border-glass);
+  border: none;
   background: var(--bg-glass);
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   flex-shrink: 0;
+  position: relative;
 }
 
 .session-share-btn:hover {
   background: var(--bg-glass-hover);
-  color: var(--text-primary);
-  border-color: var(--accent);
+  color: var(--accent-light);
+  transform: translateY(-1px);
+}
+
+.session-share-btn:active {
+  transform: translateY(0);
 }
 
 .session-share-btn.copied {
   background: var(--gradient-1);
   color: white;
-  border-color: transparent;
+  transform: translateY(-1px);
+}
+
+.session-share-btn svg {
+  width: 15px;
+  height: 15px;
+  pointer-events: none;
 }
 
 .timeframe-tabs {
