@@ -81,6 +81,7 @@ app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
   createWindow();
   ensureProtocolRegistered();
+  ensureYtDlp().catch((e) => console.warn('yt-dlp pre-download failed:', e.message));
 });
 
 app.on('window-all-closed', () => {
