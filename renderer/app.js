@@ -1196,7 +1196,6 @@
       attachSplitSeek(vodId, vodOffset, webview);
       webview.addEventListener("did-fail-load", function() {
         webview.style.display = "none";
-        attachSplitSeek(null, 0, webview);
       });
     }
 
