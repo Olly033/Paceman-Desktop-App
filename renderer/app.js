@@ -698,7 +698,7 @@
     const tf = state.profile.tf;
     const name = state.profile.name;
     if (!name) return;
-    if (tf === "daily") {
+    if (tf !== "session") {
       sessionBox.innerHTML = "";
       return;
     }
@@ -2561,12 +2561,14 @@
               text += `${SPLITS[key]}: ${s.count}x avg ${s.avg}\n`;
             }
           }
-          if (nph) {
+          if (tf === "session" && nph) {
             text += `NPH: ${(nph.rnph || 0).toFixed(2)}\n`;
             text += `RPE: ${(nph.rpe || 0).toFixed(2)}\n`;
           }
-          const duration = calcSessionDuration(state.profile.timeframeRuns);
-          text += `Session length: ${duration || "--"}\n`;
+          if (tf === "session") {
+            const duration = calcSessionDuration(state.profile.timeframeRuns);
+            text += `Session length: ${duration || "--"}\n`;
+          }
         } catch (e) {
           const badges = sessionBox.querySelectorAll(".stat-badge");
           badges.forEach((badge) => {
