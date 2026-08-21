@@ -691,13 +691,37 @@
     }
   }
 
+  async function updateSessionStats() {
+    const sessionBox = document.getElementById("sessionStats");
+    if (!sessionBox) return;
+    const tf = state.profile.tf;
+    const name = state.profile.name;
+    if (!name) return;
+    const hours = TF_HOURS[tf] || 24;
+    const between = TF_BETWEEN[tf] || 24;
+    if (tf === "session") {
+      try {
+        const nph = await getJSON(`${API}/getNPH?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`);
+        const duration = calcSessionDuration(state.profile.timeframeRuns);
+        sessionBox.innerHTML = renderSessionStats(nph, duration);
+      } catch (e) {
+        sessionBox.innerHTML = "";
+      }
+    } else {
+      const duration = calcSessionDuration(state.profile.timeframeRuns);
+      if (duration) {
+        sessionBox.innerHTML = renderSessionStats({ rnph: 0, rpe: 0 }, duration);
+      } else {
+        sessionBox.innerHTML = "";
+      }
+    }
+  }
+
   async function loadProfileStats() {
     const { name, tf } = state.profile;
     const hours = TF_HOURS[tf],
       between = TF_BETWEEN[tf];
     const wrap = document.getElementById("profileSplits");
-    const sessionBox = document.getElementById("sessionStats");
-    if (sessionBox) sessionBox.innerHTML = "";
     if (wrap) wrap.innerHTML = '<div class="loading">Loading stats...</div>';
     try {
       const stats = await getJSON(`${API}/getSessionStats?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`);
@@ -715,15 +739,6 @@
       const avgEl = document.getElementById("profileAvg");
       if (completionEl) completionEl.textContent = `${fin.count} completions`;
       if (avgEl) avgEl.textContent = `Avg: ${fin.avg}`;
-      if (tf === "session") {
-        try {
-          const nph = await getJSON(`${API}/getNPH?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`);
-          const duration = calcSessionDuration(state.profile.timeframeRuns);
-          if (sessionBox) sessionBox.innerHTML = renderSessionStats(nph, duration);
-        } catch (e) {
-          if (sessionBox) sessionBox.innerHTML = "";
-        }
-      }
     } catch (e) {
       if (wrap) wrap.innerHTML = '<div class="loading">No stats available.</div>';
     }
@@ -897,6 +912,7 @@
       renderAllRunsPage();
       await loadTwitchFromRuns(name);
       renderRunHistoryChart();
+      await updateSessionStats();
     } catch (e) {
       if (generation !== profileRunsGeneration) return;
       if (best) best.innerHTML = '<div class="loading">Failed to load runs.</div>';
@@ -1266,21 +1282,7 @@
     titleEl.textContent = SPLITS[splitKey] || splitKey;
     renderSplitDetail();
     panel.classList.add("visible");
-
-    const sessionBox = document.getElementById("sessionStats");
-    if (sessionBox && state.profile.name) {
-      const tf = state.profile.tf;
-      const hours = TF_HOURS[tf] || 24;
-      const between = TF_BETWEEN[tf] || 24;
-      getJSON(`${API}/getNPH?name=${encodeURIComponent(state.profile.name)}&hours=${hours}&hoursBetween=${between}`)
-        .then((nph) => {
-          const duration = calcSessionDuration(state.profile.timeframeRuns);
-          if (sessionBox) sessionBox.innerHTML = renderSessionStats(nph, duration);
-        })
-        .catch(() => {
-          if (sessionBox) sessionBox.innerHTML = "";
-        });
-    }
+    updateSessionStats();
   }
 
   function closeSplitDetail() {
