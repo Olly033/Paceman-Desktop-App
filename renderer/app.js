@@ -2509,7 +2509,14 @@
         const tf = state.profile.tf || "session";
         const hours = TF_HOURS[tf] || 24;
         const between = TF_BETWEEN[tf] || 24;
-        let text = `${name} ${tf} stats:\n`;
+        let header = "";
+        if (tf === "session") header = `${name} session stats:`;
+        else if (tf === "daily") header = `${name} daily stats:`;
+        else if (tf === "weekly") header = `${name} weekly stats:`;
+        else if (tf === "monthly") header = `${name} monthly stats:`;
+        else if (tf === "lifetime") header = `${name} lifetime stats:`;
+        else header = `${name} ${tf} stats:`;
+        let text = header + "\n";
         try {
           const [stats, nph] = await Promise.all([
             getJSON(`${API}/getSessionStats?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`),
@@ -2525,9 +2532,11 @@
             text += `NPH: ${(nph.rnph || 0).toFixed(2)}\n`;
             text += `RPE: ${(nph.rpe || 0).toFixed(2)}\n`;
           }
-          const duration = calcSessionDuration(state.profile.timeframeRuns);
-          if (duration) {
-            text += `Session: ${duration}\n`;
+          if (tf === "session") {
+            const duration = calcSessionDuration(state.profile.timeframeRuns);
+            if (duration) {
+              text += `Session length: ${duration}\n`;
+            }
           }
         } catch (e) {
           const badges = sessionBox.querySelectorAll(".stat-badge");
