@@ -2698,7 +2698,7 @@
       downloadRunBtn.addEventListener("click", async (e) => {
         console.log('=== DOWNLOAD BUTTON CLICKED ===', e);
         e.stopPropagation();
-        console.log('currentRunId:', currentRunId, 'currentVod:', currentVod);
+        alert('DOWNLOAD CLICKED - currentRunId: ' + currentRunId + ', currentVod: ' + JSON.stringify(currentVod));
         if (!currentRunId) {
           console.log('No currentRunId, returning');
           return;
