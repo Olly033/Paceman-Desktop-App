@@ -303,6 +303,8 @@ async function ensureFfmpeg() {
 
 ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, endTime }) => {
   console.log('download-vod called:', { downloadId, vodId, startTime, endTime });
+  console.log('Event sender:', event.sender);
+  console.log('Event sender id:', event.sender.id);
   const downloadsDir = app.getPath('downloads');
   const outputPath = path.join(downloadsDir, `run-vod-${vodId}-${Date.now()}.mp4`);
   const effectiveDownloadId = downloadId || `${vodId}-${Date.now()}`;
@@ -326,11 +328,21 @@ ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, end
     console.log('Spawning yt-dlp with args:', args);
     
     return new Promise((resolve, reject) => {
+      console.log('Spawning yt-dlp...');
       const child = spawn(ytDlpPath, args, { cwd: app.getPath('userData') });
+      console.log('yt-dlp spawned, pid:', child.pid);
       activeDownloads.set(downloadId, child);
       
       let stderr = '';
       let finished = false;
+      
+      child.on('error', (err) => {
+        console.log('yt-dlp error:', err);
+        activeDownloads.delete(downloadId);
+        if (finished) return;
+        finished = true;
+        resolve({ success: false, error: 'Failed to start yt-dlp: ' + err.message });
+      });
       
       const parseProgress = (text) => {
         const lines = text.split(/\r?\n/);
@@ -359,18 +371,19 @@ ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, end
       
       child.stdout.on('data', (data) => {
         const text = data.toString();
-        console.log('yt-dlp stdout:', text.slice(0, 500));
+        console.log('yt-dlp stdout:', text.slice(0, 200));
         parseProgress(text);
       });
       
       child.stderr.on('data', (data) => {
         const text = data.toString();
-        console.log('yt-dlp stderr:', text.slice(0, 500));
+        console.log('yt-dlp stderr:', text.slice(0, 200));
         stderr += text;
         parseProgress(text);
       });
       
       child.on('close', async (code) => {
+        console.log('yt-dlp closed with code:', code);
         activeDownloads.delete(downloadId);
         if (finished) return;
         finished = true;
@@ -383,12 +396,17 @@ ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, end
         }
       });
       
-      child.on('error', (err) => {
-        activeDownloads.delete(downloadId);
-        if (finished) return;
-        finished = true;
-        resolve({ success: false, error: 'Failed to start yt-dlp: ' + err.message });
-      });
+      console.log('Waiting for yt-dlp to finish...');
+      
+      setTimeout(() => {
+        if (!finished) {
+          console.log('Download timeout - killing yt-dlp');
+          child.kill('SIGTERM');
+          activeDownloads.delete(downloadId);
+          finished = true;
+          resolve({ success: false, error: 'Download timed out after 5 minutes' });
+        }
+      }, 300000);
     });
   } catch (e) {
     return { success: false, error: 'Download failed: ' + (e.message || 'Unknown error') };
