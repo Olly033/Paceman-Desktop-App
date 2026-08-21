@@ -1249,9 +1249,10 @@
 
     const sessionBox = document.getElementById("sessionStats");
     if (sessionBox && state.profile.name) {
-      const dailyHours = TF_HOURS.daily || 24;
-      const dailyBetween = TF_BETWEEN.daily || 24;
-      getJSON(`${API}/getNPH?name=${encodeURIComponent(state.profile.name)}&hours=${dailyHours}&hoursBetween=${dailyBetween}`)
+      const tf = state.profile.tf;
+      const hours = TF_HOURS[tf] || 24;
+      const between = TF_BETWEEN[tf] || 24;
+      getJSON(`${API}/getNPH?name=${encodeURIComponent(state.profile.name)}&hours=${hours}&hoursBetween=${between}`)
         .then((nph) => {
           if (sessionBox) sessionBox.innerHTML = renderSessionStats(nph);
         })
