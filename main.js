@@ -313,6 +313,8 @@ ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, end
     const args = [
       '--ffmpeg-location', path.dirname(ffmpegPath),
       '--download-sections', `*${section}`,
+      '--newline',
+      '--no-color',
       '-o', outputPath,
       `https://www.twitch.tv/videos/${vodId}`
     ];
@@ -324,26 +326,34 @@ ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, end
       let stderr = '';
       let finished = false;
       
-      child.stdout.on('data', (data) => {
-        const text = data.toString();
-        const progressMatch = text.match(/\[download\]\s+([\d.]+)%\s+of\s+([\d.]+(\w+)?)\s+at\s+([\d.]+(\w+\/s)?)\s+ETA\s+([\d:]+)/);
-        if (progressMatch) {
-          const percent = parseFloat(progressMatch[1]);
-          const total = progressMatch[2] + (progressMatch[3] || '');
-          const speed = progressMatch[4] + (progressMatch[5] || '');
-          const eta = progressMatch[6];
-          event.sender.send('download-vod-progress', {
-            downloadId,
-            percent: Math.min(100, Math.max(0, percent)),
-            total,
-            speed,
-            eta,
-          });
+      const parseProgress = (text) => {
+        const lines = text.split(/\r?\n/);
+        for (const line of lines) {
+          const progressMatch = line.match(/\[download\]\s+([\d.]+)%\s+of\s+([\d.]+(\w+)?)\s+at\s+([\d.]+(\w+\/s)?)\s+ETA\s+([\d:]+)/);
+          if (progressMatch) {
+            const percent = parseFloat(progressMatch[1]);
+            const total = progressMatch[2] + (progressMatch[3] || '');
+            const speed = progressMatch[4] + (progressMatch[5] || '');
+            const eta = progressMatch[6];
+            event.sender.send('download-vod-progress', {
+              downloadId,
+              percent: Math.min(100, Math.max(0, percent)),
+              total,
+              speed,
+              eta,
+            });
+          }
         }
+      };
+      
+      child.stdout.on('data', (data) => {
+        parseProgress(data.toString());
       });
       
       child.stderr.on('data', (data) => {
-        stderr += data.toString();
+        const text = data.toString();
+        stderr += text;
+        parseProgress(text);
       });
       
       child.on('close', async (code) => {
