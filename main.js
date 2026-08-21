@@ -5,7 +5,7 @@ const { exec } = require('child_process');
 const { promisify } = require('util');
 const execAsync = promisify(exec);
 
-const APP_VERSION = app.getVersion ? app.getVersion() : '2.1.0';
+const APP_VERSION = app.getVersion ? app.getVersion() : '2.1.1';
 const REPO_OWNER = 'Olly033';
 const REPO_NAME = 'Paceman-Desktop-App';
 
@@ -90,7 +90,7 @@ app.on('activate', () => {
 
 function httpGetJson(url) {
   return new Promise((resolve, reject) => {
-    const req = https.get(url, { headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.0' } }, (res) => {
+      const req = https.get(url, { headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.1' } }, (res) => {
       const chunks = [];
       res.on('data', (c) => chunks.push(c));
       res.on('end', () => {
@@ -145,7 +145,7 @@ ipcMain.handle('check-for-updates', async () => {
 ipcMain.handle('fetch-json', async (event, url) => {
   try {
     const resp = await new Promise((resolve, reject) => {
-      const req = https.request(url, { method: 'GET', headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.0' } }, (res) => {
+      const req = https.request(url, { method: 'GET', headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.1' } }, (res) => {
         const chunks = [];
         res.on('data', (chunk) => chunks.push(chunk));
         res.on('end', () => resolve({ status: res.statusCode, data: Buffer.concat(chunks).toString() }));

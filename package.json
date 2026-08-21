@@ -1,6 +1,6 @@
 {
   "name": "paceman-app",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Paceman MCSR Desktop App",
   "main": "main.js",
   "scripts": {
