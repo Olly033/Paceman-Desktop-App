@@ -718,7 +718,8 @@
       if (tf === "session") {
         try {
           const nph = await getJSON(`${API}/getNPH?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`);
-          if (sessionBox) sessionBox.innerHTML = renderSessionStats(nph);
+          const duration = calcSessionDuration(state.profile.timeframeRuns);
+          if (sessionBox) sessionBox.innerHTML = renderSessionStats(nph, duration);
         } catch (e) {
           if (sessionBox) sessionBox.innerHTML = "";
         }
@@ -798,11 +799,29 @@
     }
   }
 
-  function renderSessionStats(n) {
+  function calcSessionDuration(runs) {
+    if (!runs || runs.length === 0) return null;
+    const times = runs.map((r) => r.insertTime || r.createdAt || r.timestamp || r.startTime || 0).filter((t) => t > 0);
+    if (times.length === 0) return null;
+    const min = Math.min(...times);
+    const max = Math.max(...times);
+    const diff = max - min;
+    if (diff <= 0) return "0m";
+    const hours = Math.floor(diff / 3600);
+    const minutes = Math.floor((diff % 3600) / 60);
+    if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
+    if (hours > 0) return `${hours}h`;
+    return `${minutes}m`;
+  }
+
+  function renderSessionStats(n, durationText) {
     const badges = [
       ["NPH (IGT)", (n.rnph || 0).toFixed(2)],
       ["RPE", (n.rpe || 0).toFixed(2)],
     ];
+    if (durationText) {
+      badges.push(["Session", durationText]);
+    }
     return badges
       .map(([l, v]) => `<span class="stat-badge"><b>${v}</b> ${l}</span>`)
       .join("");
@@ -1254,7 +1273,8 @@
       const between = TF_BETWEEN[tf] || 24;
       getJSON(`${API}/getNPH?name=${encodeURIComponent(state.profile.name)}&hours=${hours}&hoursBetween=${between}`)
         .then((nph) => {
-          if (sessionBox) sessionBox.innerHTML = renderSessionStats(nph);
+          const duration = calcSessionDuration(state.profile.timeframeRuns);
+          if (sessionBox) sessionBox.innerHTML = renderSessionStats(nph, duration);
         })
         .catch(() => {
           if (sessionBox) sessionBox.innerHTML = "";
@@ -2477,6 +2497,35 @@
           profileChart.classList.toggle("hidden", !state.profile.chartVisible);
         }
         renderRunHistoryChart();
+      });
+    }
+    const sessionShareBtn = document.getElementById("sessionShareBtn");
+    if (sessionShareBtn) {
+      sessionShareBtn.addEventListener("click", async () => {
+        const sessionBox = document.getElementById("sessionStats");
+        if (!sessionBox) return;
+        const badges = sessionBox.querySelectorAll(".stat-badge");
+        if (badges.length === 0) return;
+        const name = state.profile.name || "Player";
+        const tf = state.profile.tf || "session";
+        let text = `${name} ${tf} stats:\n`;
+        badges.forEach((badge) => {
+          const valueEl = badge.querySelector("b");
+          if (!valueEl) return;
+          const valueText = valueEl.textContent.trim();
+          const raw = badge.innerHTML.replace(valueEl.outerHTML, "").trim();
+          const labelText = raw.replace(/<[^>]*>/g, "").trim();
+          if (labelText && valueText) {
+            text += `${labelText}: ${valueText}\n`;
+          }
+        });
+        try {
+          await navigator.clipboard.writeText(text.trim());
+          sessionShareBtn.classList.add("copied");
+          setTimeout(() => sessionShareBtn.classList.remove("copied"), 1500);
+        } catch (e) {
+          console.log("Share session stats failed", e);
+        }
       });
     }
     initComparisonSearch();

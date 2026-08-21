@@ -1130,6 +1130,45 @@ body {
   margin-bottom: 0;
 }
 
+.session-stats-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.session-stats-wrap:empty {
+  display: none;
+  margin-bottom: 0;
+}
+
+.session-share-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.session-share-btn:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.session-share-btn.copied {
+  background: var(--gradient-1);
+  color: white;
+  border-color: transparent;
+}
+
 .timeframe-tabs {
   display: flex;
   gap: 6px;
