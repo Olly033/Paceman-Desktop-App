@@ -75,6 +75,7 @@
 
   let currentVod = { id: null, offset: 0, currentTime: 0 };
   let currentRunId = null;
+  let currentRunData = null;
   let splitDetailState = { split: null, runs: [], page: 1, perPage: 10, sortAsc: true };
 
   window.addEventListener("paceman-protocol-args", (e) => {
@@ -1136,6 +1137,7 @@
 
   function openRunDetail(id, name, fallbackRun) {
     currentRunId = id;
+    currentRunData = null;
     const overlay = document.getElementById("runDetailOverlay");
     document.getElementById("runDetailTitle").textContent = name + " - Run #" + (id || "?");
     const dateEl = document.getElementById("runDetailDate");
@@ -1225,7 +1227,8 @@
     if (id != null && !isNaN(id)) {
       showVodLoading();
       getJSON(API + "/getWorld?worldId=" + encodeURIComponent(id)).then(function(data) {
-        const full = (data && data.data) || {};
+        currentRunData = (data && data.data) || data || null;
+        const full = currentRunData || {};
         if (full.vodId) {
           renderVod(full.vodId, full.vodOffset || 0, full.twitch || null, webview);
         } else {
@@ -1242,6 +1245,7 @@
           }
         }
       }).catch(function() {
+        currentRunData = null;
         const loadingEl = document.getElementById("vodLoading");
         if (loadingEl) loadingEl.remove();
         document.getElementById("runDetailVod").style.display = "none";
@@ -1255,6 +1259,7 @@
 
   function closeRunDetail() {
     currentRunId = null;
+    currentRunData = null;
     const overlay = document.getElementById("runDetailOverlay");
     overlay.classList.remove("visible");
     const webview = document.getElementById("runVodWebview");
@@ -2649,15 +2654,20 @@
         if (!currentRunId) return;
         try {
           downloadRunBtn.classList.add("downloading");
-          if (currentVod.id && window.pacemanAPI && window.pacemanAPI.downloadVod) {
+          let vodId = currentVod.id;
+          let vodOffset = currentVod.offset || 0;
+          if (!vodId && currentRunData) {
+            vodId = currentRunData.vodId || null;
+            vodOffset = currentRunData.vodOffset || 0;
+          }
+          if (vodId && window.pacemanAPI && window.pacemanAPI.downloadVod) {
             try {
-              const data = await getJSON(`${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`);
-              const runData = data && data.data ? data.data : data;
+              const runData = currentRunData || await getJSON(`${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`).then(d => (d && d.data) || d).catch(() => ({}));
               const finish = runData && runData.finish != null ? runData.finish : null;
-              const startTime = currentVod.offset || 0;
+              const startTime = vodOffset || 0;
               const endTime = finish ? startTime + finish / 1000 : startTime + 3600;
               const result = await window.pacemanAPI.downloadVod({
-                vodId: currentVod.id,
+                vodId,
                 startTime,
                 endTime,
               });
