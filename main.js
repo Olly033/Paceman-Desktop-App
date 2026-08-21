@@ -10,6 +10,7 @@ const fs = require('fs');
 const APP_VERSION = app.getVersion ? app.getVersion() : '2.1.1';
 const REPO_OWNER = 'Olly033';
 const REPO_NAME = 'Paceman-Desktop-App';
+const YTDLP_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe';
 
 let win;
 let pendingProtocolArgs = null;
@@ -215,116 +216,33 @@ async function httpGetBuffer(url, headers) {
   });
 }
 
-async function getVodAccessToken(vodId) {
-  const clientIds = [
-    'kimne78kx3ncx6brgo4mv6wki5h1ko',
-    'jzkbprvs40kjxtfq9sz19w7cgx7emf',
-  ];
-  
-  for (const clientId of clientIds) {
-    try {
-      const url = `https://api.twitch.tv/api/vods/${vodId}/access_token?client_id=${clientId}`;
-      const text = await httpGetText(url);
-      const data = JSON.parse(text);
-      if (data && data.token) {
-        return data;
-      }
-    } catch (e) {
-      console.error(`Failed to get VOD access token with client ${clientId}:`, e.message);
-    }
+function getYtDlpPath() {
+  return path.join(app.getPath('userData'), 'yt-dlp.exe');
+}
+
+async function ensureYtDlp() {
+  const ytDlpPath = getYtDlpPath();
+  if (fs.existsSync(ytDlpPath)) {
+    return ytDlpPath;
   }
   
-  throw new Error('Failed to get VOD access token with any client ID');
-}
-
-async function getM3U8(vodId, token, sig) {
-  const params = new URLSearchParams({
-    allow_source: 'true',
-    allow_audio_only: 'true',
-    allow_spectre: 'false',
-    player: 'twitchweb',
-    p: String(Math.floor(Math.random() * 999999)),
-    type: 'any',
-    nauth: token,
-    nauthsig: sig,
-  });
-  const url = `https://usher.twitch.tv/api/channel/hls/${vodId}.m3u8?${params.toString()}`;
-  return await httpGetText(url);
-}
-
-function parseM3U8(content, baseUrl) {
-  const lines = content.split(/\r?\n/);
-  const segments = [];
-  let currentDuration = 0;
-  let currentTime = 0;
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (line.startsWith('#EXTINF:')) {
-      const match = line.match(/#EXTINF:([\d.]+)/);
-      if (match) {
-        currentDuration = parseFloat(match[1]);
-      }
-    } else if (line && !line.startsWith('#')) {
-      let segmentUrl = line;
-      if (!segmentUrl.startsWith('http')) {
-        const base = baseUrl || `https://usher.twitch.tv/api/channel/hls/${Date.now()}`;
-        segmentUrl = new URL(segmentUrl, base).toString();
-      }
-      segments.push({
-        url: segmentUrl,
-        duration: currentDuration,
-        startTime: currentTime,
-        endTime: currentTime + currentDuration,
-      });
-      currentTime += currentDuration;
-      currentDuration = 0;
-    }
+  try {
+    const buffer = await httpGetBuffer(YTDLP_URL);
+    fs.writeFileSync(ytDlpPath, buffer);
+    return ytDlpPath;
+  } catch (e) {
+    throw new Error('Failed to download yt-dlp: ' + e.message);
   }
-  
-  return segments;
-}
-
-async function downloadVodSegment(url) {
-  return await httpGetBuffer(url);
 }
 
 ipcMain.handle('download-vod', async (event, { vodId, startTime, endTime }) => {
   const downloadsDir = app.getPath('downloads');
-  const outputPath = path.join(downloadsDir, `run-vod-${vodId}-${Date.now()}.ts`);
+  const outputPath = path.join(downloadsDir, `run-vod-${vodId}-${Date.now()}.mp4`);
   
   try {
-    const { token, sig } = await getVodAccessToken(vodId);
-    const m3u8Content = await getM3U8(vodId, token, sig);
-    const baseM3U8 = `https://usher.twitch.tv/api/channel/hls/${vodId}.m3u8`;
-    const segments = parseM3U8(m3u8Content, baseM3U8);
-    
-    if (segments.length === 0) {
-      return { success: false, error: 'No VOD segments found. The VOD may be unavailable or expired.' };
-    }
-    
-    const relevantSegments = segments.filter(s => s.endTime > startTime && s.startTime < endTime);
-    if (relevantSegments.length === 0) {
-      return { success: false, error: 'No segments found in the requested time range.' };
-    }
-    
-    const buffers = [];
-    for (const segment of relevantSegments) {
-      try {
-        const buffer = await downloadVodSegment(segment.url);
-        buffers.push(buffer);
-      } catch (e) {
-        console.error('Failed to download segment:', segment.url, e);
-      }
-    }
-    
-    if (buffers.length === 0) {
-      return { success: false, error: 'Failed to download any VOD segments.' };
-    }
-    
-    const combined = Buffer.concat(buffers);
-    fs.writeFileSync(outputPath, combined);
-    
+    const ytDlpPath = await ensureYtDlp();
+    const command = `"${ytDlpPath}" --download-sections "*:${startTime.toFixed(2)}-${endTime.toFixed(2)}" -o "${outputPath}" "https://www.twitch.tv/videos/${vodId}"`;
+    await execAsync(command, { timeout: 600000 });
     return { success: true, path: outputPath };
   } catch (e) {
     return { success: false, error: 'Download failed: ' + e.message };
