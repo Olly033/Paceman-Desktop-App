@@ -1148,7 +1148,7 @@ body {
   width: 30px;
   height: 30px;
   border-radius: 8px;
-  border: none;
+  border: 1px solid var(--border-glass);
   background: var(--bg-glass);
   color: var(--text-secondary);
   cursor: pointer;
@@ -1158,6 +1158,7 @@ body {
   transition: all 0.2s ease;
   flex-shrink: 0;
   position: relative;
+  margin-left: 4px;
 }
 
 .session-share-btn:hover {
@@ -1187,6 +1188,7 @@ body {
   gap: 6px;
   margin-bottom: 20px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .timeframe-btn {

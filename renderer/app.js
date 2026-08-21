@@ -1940,6 +1940,7 @@
         b.classList.add("active");
         loadProfileStats();
         loadProfileRuns().then(() => renderRunHistoryChart());
+        updateSessionShareTooltip();
       });
     });
     document.querySelectorAll("#leaderboardTimeframes .timeframe-btn").forEach((b) => {
@@ -2502,6 +2503,18 @@
     }
     const sessionShareBtn = document.getElementById("sessionShareBtn");
     if (sessionShareBtn) {
+      const updateSessionShareTooltip = () => {
+        const tf = state.profile.tf || "session";
+        const labels = {
+          session: "Copy session stats",
+          daily: "Copy daily stats",
+          weekly: "Copy weekly stats",
+          monthly: "Copy monthly stats",
+          lifetime: "Copy lifetime stats",
+        };
+        sessionShareBtn.title = labels[tf] || `Copy ${tf} stats`;
+      };
+      updateSessionShareTooltip();
       sessionShareBtn.addEventListener("click", async () => {
         const sessionBox = document.getElementById("sessionStats");
         if (!sessionBox) return;
