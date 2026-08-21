@@ -176,24 +176,32 @@ ipcMain.handle('open-external', (event, url) => {
 function httpGetText(url, headers) {
   return new Promise((resolve, reject) => {
     const mod = url.startsWith('https') ? https : http;
-    const req = mod.get(url, { headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.1', ...(headers || {}) } }, (res) => {
+    const req = mod.get(url, { headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.1', 'Accept': '*/*', 'Accept-Encoding': 'identity', ...(headers || {}) } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return resolve(httpGetText(res.headers.location, headers));
+      }
       const chunks = [];
       res.on('data', (c) => chunks.push(c));
       res.on('end', () => resolve(Buffer.concat(chunks).toString()));
     });
     req.on('error', reject);
+    req.setTimeout(30000, () => { req.destroy(); reject(new Error('Request timeout')); });
   });
 }
 
 async function httpGetBuffer(url, headers) {
   return new Promise((resolve, reject) => {
     const mod = url.startsWith('https') ? https : http;
-    const req = mod.get(url, { headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.1', ...(headers || {}) } }, (res) => {
+    const req = mod.get(url, { headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.1', 'Accept': '*/*', 'Accept-Encoding': 'identity', ...(headers || {}) } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return resolve(httpGetBuffer(res.headers.location, headers));
+      }
       const chunks = [];
       res.on('data', (c) => chunks.push(c));
       res.on('end', () => resolve(Buffer.concat(chunks)));
     });
     req.on('error', reject);
+    req.setTimeout(30000, () => { req.destroy(); reject(new Error('Request timeout')); });
   });
 }
 
