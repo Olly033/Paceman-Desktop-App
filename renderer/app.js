@@ -73,7 +73,7 @@
 
   const autoOpenedStreams = new Set();
 
-  console.log('App starting, currentVod:', currentVod, 'currentRunId:', currentRunId);
+  console.log('APP LOADED - looking for download button:', document.getElementById("downloadRunBtn"));
   
   let currentVod = { id: null, offset: 0, currentTime: 0 };
   let currentRunId = null;
