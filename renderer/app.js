@@ -2721,7 +2721,7 @@
           } else {
             const furthest = furthestIndex(runData);
             if (furthest.time > 0) {
-              endTime = startTime + furthest.time / 1000 + 30;
+              endTime = startTime + furthest.time / 1000 * 2 + 60;
             } else {
               if (progressText) progressText.textContent = "No VOD available for this run.";
               setTimeout(() => finishProgress(), 2000);
