@@ -3191,8 +3191,12 @@
     const scaleValue = document.getElementById("settingUiScaleValue");
     if (scaleSlider && scaleValue) {
       scaleSlider.addEventListener("input", () => {
-        const val = Math.round(parseFloat(scaleSlider.value) * 100);
-        scaleValue.textContent = val + "%";
+        const val = parseFloat(scaleSlider.value);
+        const pct = Math.round(val * 100);
+        scaleValue.textContent = pct + "%";
+        settings.uiScale = val;
+        localStorage.setItem("paceman_settings_ui_scale", val);
+        updateAppScale();
       });
     }
 
