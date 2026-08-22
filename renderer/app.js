@@ -76,6 +76,7 @@
     liveNotifications: JSON.parse(localStorage.getItem("paceman_settings_live_notifications") || "false"),
     notificationSound: JSON.parse(localStorage.getItem("paceman_settings_notification_sound") || "false"),
     compactMode: JSON.parse(localStorage.getItem("paceman_settings_compact_mode") || "false"),
+    uiScale: parseFloat(localStorage.getItem("paceman_settings_ui_scale") || "1"),
   };
 
   const autoOpenedStreams = new Set();
@@ -3155,10 +3156,16 @@
       const liveToggle = document.getElementById("settingLiveNotifications");
       const soundToggle = document.getElementById("settingNotificationSound");
       const compactToggle = document.getElementById("settingCompactMode");
+      const scaleSlider = document.getElementById("settingUiScale");
+      const scaleValue = document.getElementById("settingUiScaleValue");
       if (pbToggle) pbToggle.checked = settings.pbNotifications;
       if (liveToggle) liveToggle.checked = settings.liveNotifications;
       if (soundToggle) soundToggle.checked = settings.notificationSound;
       if (compactToggle) compactToggle.checked = settings.compactMode;
+      if (scaleSlider) {
+        scaleSlider.value = settings.uiScale;
+        if (scaleValue) scaleValue.textContent = Math.round(settings.uiScale * 100) + "%";
+      }
       settingsOverlay.classList.add("visible");
     };
 
@@ -3169,15 +3176,19 @@
       const liveToggle = document.getElementById("settingLiveNotifications");
       const soundToggle = document.getElementById("settingNotificationSound");
       const compactToggle = document.getElementById("settingCompactMode");
+      const scaleSlider = document.getElementById("settingUiScale");
       if (pbToggle) settings.pbNotifications = pbToggle.checked;
       if (liveToggle) settings.liveNotifications = liveToggle.checked;
       if (soundToggle) settings.notificationSound = soundToggle.checked;
       if (compactToggle) settings.compactMode = compactToggle.checked;
+      if (scaleSlider) settings.uiScale = parseFloat(scaleSlider.value);
       localStorage.setItem("paceman_settings_pb_notifications", settings.pbNotifications);
       localStorage.setItem("paceman_settings_live_notifications", settings.liveNotifications);
       localStorage.setItem("paceman_settings_notification_sound", settings.notificationSound);
       localStorage.setItem("paceman_settings_compact_mode", settings.compactMode);
+      localStorage.setItem("paceman_settings_ui_scale", settings.uiScale);
       applyCompactMode();
+      updateAppScale();
     };
 
     if (settingsBtn) {
@@ -3192,6 +3203,15 @@
       });
     }
 
+    const scaleSlider = document.getElementById("settingUiScale");
+    const scaleValue = document.getElementById("settingUiScaleValue");
+    if (scaleSlider && scaleValue) {
+      scaleSlider.addEventListener("input", () => {
+        const val = Math.round(parseFloat(scaleSlider.value) * 100);
+        scaleValue.textContent = val + "%";
+      });
+    }
+
     applyCompactMode();
 
     const appScaleWrapper = document.getElementById("appScaleWrapper");
@@ -3203,8 +3223,10 @@
       const baseH = 900;
       const scaleX = w / baseW;
       const scaleY = h / baseH;
-      const scale = Math.min(scaleX, scaleY, 1);
-      const clampedScale = Math.max(scale, 0.65);
+      const autoScale = Math.min(scaleX, scaleY, 1);
+      const userScale = settings.uiScale || 1;
+      const finalScale = Math.min(autoScale * userScale, 1);
+      const clampedScale = Math.max(finalScale, 0.35);
       appScaleWrapper.style.setProperty("--app-scale", clampedScale);
       appScaleWrapper.style.transform = `scale(${clampedScale})`;
       appScaleWrapper.style.width = `${100 / clampedScale}%`;
