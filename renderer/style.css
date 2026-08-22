@@ -2330,6 +2330,124 @@ body {
   border-color: transparent;
 }
 
+.vod-trim {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+}
+
+.vod-trim-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.vod-trim-header label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.vod-trim-header input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+.vod-trim-info {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.vod-trim-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vod-timeline {
+  position: relative;
+  height: 24px;
+  background: var(--bg-glass-hover);
+  border-radius: 99px;
+  border: 1px solid var(--border-glass);
+  cursor: pointer;
+}
+
+.vod-timeline-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 99px;
+  background: var(--border-glass);
+  overflow: hidden;
+}
+
+.vod-timeline-start,
+.vod-timeline-end {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--accent-light);
+  border-radius: 2px;
+  cursor: ew-resize;
+}
+
+.vod-timeline-start {
+  background: #22c55e;
+}
+
+.vod-timeline-end {
+  background: #ef4444;
+}
+
+.vod-trim-inputs {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.vod-trim-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.vod-trim-field label {
+  font-weight: 600;
+  min-width: 32px;
+}
+
+.vod-trim-field input[type="number"] {
+  width: 70px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+}
+
+.vod-trim-field input[type="number"]:focus {
+  border-color: var(--accent);
+}
+
+.vod-trim-field span {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
 /* All runs split rows */
 .run-row {
   padding: 14px 16px;

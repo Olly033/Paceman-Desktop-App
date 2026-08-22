@@ -353,6 +353,32 @@
               <button class="vod-speed" id="vodSpeed" title="Toggle 2x speed">1x</button>
               <button class="vod-seek-forward" id="vodSeekForward" title="Forward 5s">+5s</button>
             </div>
+            <div class="vod-trim" id="vodTrim" style="display:none">
+              <div class="vod-trim-header">
+                <label><input type="checkbox" id="vodTrimEnabled"> Manual trim</label>
+                <span class="vod-trim-info" id="vodTrimInfo"></span>
+              </div>
+              <div class="vod-trim-controls">
+                <div class="vod-timeline" id="vodTimeline">
+                  <div class="vod-timeline-track" id="vodTimelineTrack">
+                    <div class="vod-timeline-start" id="vodTrimStartMarker"></div>
+                    <div class="vod-timeline-end" id="vodTrimEndMarker"></div>
+                  </div>
+                </div>
+                <div class="vod-trim-inputs">
+                  <div class="vod-trim-field">
+                    <label>Start</label>
+                    <input type="number" id="vodTrimStart" value="0" min="0" step="1">
+                    <span>s</span>
+                  </div>
+                  <div class="vod-trim-field">
+                    <label>End</label>
+                    <input type="number" id="vodTrimEnd" value="0" min="0" step="1">
+                    <span>s</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
