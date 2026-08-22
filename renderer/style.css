@@ -3087,18 +3087,16 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .app-scale-wrapper {
-  transform-origin: top left;
-  transition: zoom 0.15s ease;
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
   overflow: hidden;
-  zoom: 1;
 }
 
 .app {
-  height: auto;
-  min-height: 100vh;
-  overflow: visible;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transform-origin: top left;
 }
 
 ::selection {

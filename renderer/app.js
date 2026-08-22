@@ -3255,7 +3255,7 @@
       const userScale = settings.uiScale || 1;
       const finalScale = Math.min(autoScale * userScale, 1);
       const clampedScale = Math.max(finalScale, 0.35);
-      appScaleWrapper.style.zoom = clampedScale;
+      appScaleWrapper.style.transform = `scale(${clampedScale})`;
     };
 
     window.addEventListener("resize", updateAppScale);
