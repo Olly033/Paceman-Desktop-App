@@ -358,25 +358,36 @@
                 <label><input type="checkbox" id="vodTrimEnabled"> Manual trim</label>
                 <span class="vod-trim-info" id="vodTrimInfo"></span>
               </div>
-              <div class="vod-trim-controls">
-                <div class="vod-timeline" id="vodTimeline">
-                  <div class="vod-timeline-track" id="vodTimelineTrack">
-                    <div class="vod-timeline-start" id="vodTrimStartMarker"></div>
-                    <div class="vod-timeline-end" id="vodTrimEndMarker"></div>
-                  </div>
+              <div class="vod-trim-timeline" id="vodTimeline">
+                <div class="vod-timeline-track" id="vodTimelineTrack">
+                  <div class="vod-selected-region" id="vodSelectedRegion"></div>
+                  <div class="vod-timeline-handle vod-handle-start" id="vodTrimStartMarker" data-handle="start"></div>
+                  <div class="vod-timeline-handle vod-handle-end" id="vodTrimEndMarker" data-handle="end"></div>
                 </div>
-                <div class="vod-trim-inputs">
-                  <div class="vod-trim-field">
-                    <label>Start</label>
-                    <input type="number" id="vodTrimStart" value="0" min="0" step="1">
-                    <span>s</span>
-                  </div>
-                  <div class="vod-trim-field">
-                    <label>End</label>
-                    <input type="number" id="vodTrimEnd" value="0" min="0" step="1">
-                    <span>s</span>
-                  </div>
+                <div class="vod-playhead" id="vodPlayhead" style="left:0%"></div>
+              </div>
+              <div class="vod-trim-inputs">
+                <div class="vod-trim-field">
+                  <label>Start</label>
+                  <input type="text" id="vodTrimStart" value="00:00" readonly>
                 </div>
+                <div class="vod-trim-field">
+                  <label>End</label>
+                  <input type="text" id="vodTrimEnd" value="00:00" readonly>
+                </div>
+                <div class="vod-trim-field">
+                  <label>Duration</label>
+                  <input type="text" id="vodTrimDuration" value="00:00" readonly>
+                </div>
+              </div>
+              <div class="vod-trim-actions">
+                <button class="vod-trim-btn vod-trim-play" id="vodTrimPlaySelection" title="Play selected region">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  Play Selection
+                </button>
+                <button class="vod-trim-btn vod-trim-reset" id="vodTrimReset" title="Reset to auto-calculated values">
+                  Reset to Auto
+                </button>
               </div>
             </div>
           </div>

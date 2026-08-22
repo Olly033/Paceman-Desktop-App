@@ -2362,21 +2362,18 @@ body {
 .vod-trim-info {
   font-size: 12px;
   color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
-.vod-trim-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.vod-timeline {
+.vod-trim-timeline {
   position: relative;
-  height: 24px;
+  height: 28px;
   background: var(--bg-glass-hover);
-  border-radius: 99px;
+  border-radius: 8px;
   border: 1px solid var(--border-glass);
   cursor: pointer;
+  user-select: none;
+  touch-action: none;
 }
 
 .vod-timeline-track {
@@ -2385,34 +2382,58 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  border-radius: 99px;
-  background: var(--border-glass);
-  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
 }
 
-.vod-timeline-start,
-.vod-timeline-end {
+.vod-selected-region {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 4px;
-  background: var(--accent-light);
-  border-radius: 2px;
+  background: rgba(99, 102, 241, 0.25);
+  border-left: 2px solid #22c55e;
+  border-right: 2px solid #ef4444;
+  pointer-events: none;
+}
+
+.vod-timeline-handle {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 14px;
+  background: white;
+  border: 2px solid;
+  border-radius: 4px;
   cursor: ew-resize;
+  z-index: 2;
+  transform: translateX(-50%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
-.vod-timeline-start {
-  background: #22c55e;
+.vod-handle-start {
+  border-color: #22c55e;
 }
 
-.vod-timeline-end {
-  background: #ef4444;
+.vod-handle-end {
+  border-color: #ef4444;
+}
+
+.vod-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.85);
+  z-index: 1;
+  pointer-events: none;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
 }
 
 .vod-trim-inputs {
   display: flex;
   gap: 12px;
   align-items: center;
+  margin-top: 10px;
 }
 
 .vod-trim-field {
@@ -2425,11 +2446,11 @@ body {
 
 .vod-trim-field label {
   font-weight: 600;
-  min-width: 32px;
+  min-width: 56px;
 }
 
-.vod-trim-field input[type="number"] {
-  width: 70px;
+.vod-trim-field input[type="text"] {
+  width: 72px;
   padding: 4px 8px;
   border-radius: 6px;
   border: 1px solid var(--border-glass);
@@ -2437,15 +2458,58 @@ body {
   color: var(--text-primary);
   font-size: 12px;
   outline: none;
+  text-align: center;
 }
 
-.vod-trim-field input[type="number"]:focus {
+.vod-trim-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.vod-trim-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.vod-trim-btn:hover {
+  background: var(--bg-glass-hover);
   border-color: var(--accent);
+  color: var(--accent-light);
 }
 
-.vod-trim-field span {
-  font-size: 11px;
-  color: var(--text-secondary);
+.vod-trim-play {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.vod-trim-play:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: #22c55e;
+  color: #4ade80;
+}
+
+.vod-trim-reset {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #ef4444;
+}
+
+.vod-trim-reset:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #f87171;
 }
 
 /* All runs split rows */

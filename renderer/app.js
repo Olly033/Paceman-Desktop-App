@@ -80,35 +80,79 @@
   let currentRunData = null;
   let currentDownloadId = null;
   let splitDetailState = { split: null, runs: [], page: 1, perPage: 10, sortAsc: true };
-  let vodTrimState = { active: false, start: 0, end: 0, duration: 0 };
+  let vodTrimState = { active: false, timelineStart: 0, timelineDuration: 0, selectionStart: 0, selectionEnd: 0 };
+
+  const formatTime = (totalSeconds) => {
+    const s = Math.max(0, Math.floor(totalSeconds));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    const mm = m.toString().padStart(2, "0");
+    const ss = sec.toString().padStart(2, "0");
+    if (h > 0) return `${h}:${mm}:${ss}`;
+    return `${mm}:${ss}`;
+  };
+
+  const parseTime = (str) => {
+    const text = String(str).trim();
+    const parts = text.split(":").map(Number);
+    if (parts.length === 3 && !parts.some(isNaN)) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2 && !parts.some(isNaN)) return parts[0] * 60 + parts[1];
+    const num = Number(text);
+    return isNaN(num) ? 0 : num;
+  };
 
   function updateVodTrim(start, duration) {
-    vodTrimState.start = start;
-    vodTrimState.end = start + duration;
-    vodTrimState.duration = duration;
+    vodTrimState.timelineStart = start;
+    vodTrimState.timelineDuration = Math.max(1, duration);
+    vodTrimState.selectionStart = start;
+    vodTrimState.selectionEnd = start + duration;
     const trimStart = document.getElementById("vodTrimStart");
     const trimEnd = document.getElementById("vodTrimEnd");
+    const trimDuration = document.getElementById("vodTrimDuration");
     const trimEnabled = document.getElementById("vodTrimEnabled");
     const trim = document.getElementById("vodTrim");
     const trimInfo = document.getElementById("vodTrimInfo");
     const startMarker = document.getElementById("vodTrimStartMarker");
     const endMarker = document.getElementById("vodTrimEndMarker");
-    if (trimStart) trimStart.value = Math.floor(vodTrimState.start);
-    if (trimEnd) trimEnd.value = Math.floor(vodTrimState.end);
+    const selectedRegion = document.getElementById("vodSelectedRegion");
+    if (trimStart) trimStart.value = formatTime(vodTrimState.selectionStart);
+    if (trimEnd) trimEnd.value = formatTime(vodTrimState.selectionEnd);
+    if (trimDuration) trimDuration.value = formatTime(vodTrimState.selectionEnd - vodTrimState.selectionStart);
     if (trimEnabled) trimEnabled.checked = false;
     if (trim) trim.style.display = "none";
-    if (!duration || duration <= 0) {
+    if (!vodTrimState.timelineDuration) {
       if (trimInfo) trimInfo.textContent = "";
       if (startMarker) startMarker.style.left = "0%";
       if (endMarker) endMarker.style.left = "0%";
+      if (selectedRegion) { selectedRegion.style.left = "0%"; selectedRegion.style.width = "0%"; }
       return;
     }
-    const startPct = Math.max(0, Math.min(100, (vodTrimState.start / duration) * 100));
-    const endPct = Math.max(0, Math.min(100, (vodTrimState.end / duration) * 100));
+    updateTrimMarkers();
+  }
+
+  const updateTrimMarkers = () => {
+    if (!vodTrimState.timelineDuration) return;
+    const startPct = Math.max(0, Math.min(100, ((vodTrimState.selectionStart - vodTrimState.timelineStart) / vodTrimState.timelineDuration) * 100));
+    const endPct = Math.max(0, Math.min(100, ((vodTrimState.selectionEnd - vodTrimState.timelineStart) / vodTrimState.timelineDuration) * 100));
+    const startMarker = document.getElementById("vodTrimStartMarker");
+    const endMarker = document.getElementById("vodTrimEndMarker");
+    const selectedRegion = document.getElementById("vodSelectedRegion");
+    const trimInfo = document.getElementById("vodTrimInfo");
+    const trimStart = document.getElementById("vodTrimStart");
+    const trimEnd = document.getElementById("vodTrimEnd");
+    const trimDuration = document.getElementById("vodTrimDuration");
     if (startMarker) startMarker.style.left = startPct + "%";
     if (endMarker) endMarker.style.left = endPct + "%";
-    if (trimInfo) trimInfo.textContent = `Selection: ${Math.floor(vodTrimState.start)}s - ${Math.floor(vodTrimState.end)}s (${Math.floor(vodTrimState.end - vodTrimState.start)}s)`;
-  }
+    if (selectedRegion) {
+      selectedRegion.style.left = startPct + "%";
+      selectedRegion.style.width = Math.max(0, endPct - startPct) + "%";
+    }
+    if (trimInfo) trimInfo.textContent = `${formatTime(vodTrimState.selectionStart)} → ${formatTime(vodTrimState.selectionEnd)} (${formatTime(vodTrimState.selectionEnd - vodTrimState.selectionStart)})`;
+    if (trimStart) trimStart.value = formatTime(vodTrimState.selectionStart);
+    if (trimEnd) trimEnd.value = formatTime(vodTrimState.selectionEnd);
+    if (trimDuration) trimDuration.value = formatTime(vodTrimState.selectionEnd - vodTrimState.selectionStart);
+  };
 
   window.addEventListener("paceman-protocol-args", (e) => {
     const args = e.detail || {};
@@ -1323,6 +1367,7 @@
     currentRunId = null;
     currentRunData = null;
     currentDownloadId = null;
+    currentVod = { id: null, offset: 0, currentTime: 0 };
     const overlay = document.getElementById("runDetailOverlay");
     overlay.classList.remove("visible");
     const webview = document.getElementById("runVodWebview");
@@ -1339,7 +1384,13 @@
     if (trim) trim.style.display = "none";
     const trimEnabled = document.getElementById("vodTrimEnabled");
     if (trimEnabled) trimEnabled.checked = false;
+    const playhead = document.getElementById("vodPlayhead");
+    if (playhead) playhead.style.left = "0%";
     vodTrimState.active = false;
+    vodTrimState.timelineStart = 0;
+    vodTrimState.timelineDuration = 0;
+    vodTrimState.selectionStart = 0;
+    vodTrimState.selectionEnd = 0;
   }
 
   function openSplitDetail(splitKey) {
@@ -2811,9 +2862,9 @@
             }
           }
           
-          if (vodTrimEnabled && vodTrimEnabled.checked && vodTrimState.end > vodTrimState.start) {
-            startTime = vodTrimState.start;
-            endTime = vodTrimState.end;
+          if (vodTrimEnabled && vodTrimEnabled.checked && vodTrimState.selectionEnd > vodTrimState.selectionStart) {
+            startTime = vodTrimState.selectionStart;
+            endTime = vodTrimState.selectionEnd;
           }
           
           const result = await window.pacemanAPI.downloadVod({
@@ -2855,82 +2906,121 @@
       if (document.getElementById("runDetailVod").style.display !== "none") seekVod(5);
     });
     document.getElementById("vodSpeed").addEventListener("click", toggleVodSpeed);
-    
-    const vodTrim = document.getElementById("vodTrim");
-    const vodTrimEnabled = document.getElementById("vodTrimEnabled");
-    const vodTrimStart = document.getElementById("vodTrimStart");
-    const vodTrimEnd = document.getElementById("vodTrimEnd");
-    const vodTrimInfo = document.getElementById("vodTrimInfo");
-    const vodTimeline = document.getElementById("vodTimeline");
-    const vodTimelineTrack = document.getElementById("vodTimelineTrack");
-    const vodTrimStartMarker = document.getElementById("vodTrimStartMarker");
-    const vodTrimEndMarker = document.getElementById("vodTrimEndMarker");
-    
-    const updateTrimMarkers = () => {
-      if (!vodTrimState.duration || vodTrimState.duration <= 0) return;
-      const startPct = Math.max(0, Math.min(100, (vodTrimState.start / vodTrimState.duration) * 100));
-      const endPct = Math.max(0, Math.min(100, (vodTrimState.end / vodTrimState.duration) * 100));
-      if (vodTrimStartMarker) vodTrimStartMarker.style.left = startPct + "%";
-      if (vodTrimEndMarker) vodTrimEndMarker.style.left = endPct + "%";
-      if (vodTrimInfo) vodTrimInfo.textContent = `Selection: ${Math.floor(vodTrimState.start)}s - ${Math.floor(vodTrimState.end)}s (${Math.floor(vodTrimState.end - vodTrimState.start)}s)`;
-    };
-    
-    const setTrimFromClick = (e) => {
-      if (!vodTrimState.duration || vodTrimState.duration <= 0) return;
-      const rect = vodTimeline.getBoundingClientRect();
-      const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-      const clickTime = pct * vodTrimState.duration;
-      const distToStart = Math.abs(clickTime - vodTrimState.start);
-      const distToEnd = Math.abs(clickTime - vodTrimState.end);
-      if (distToStart <= distToEnd) {
-        vodTrimState.start = Math.min(clickTime, vodTrimState.end - 1);
-        if (vodTrimStart) vodTrimStart.value = Math.floor(vodTrimState.start);
-      } else {
-        vodTrimState.end = Math.max(clickTime, vodTrimState.start + 1);
-        if (vodTrimEnd) vodTrimEnd.value = Math.floor(vodTrimState.end);
+
+    let trimDragging = null;
+
+    const setTrimFromClientX = (clientX) => {
+      if (!vodTrimState.timelineDuration) return;
+      const timeline = document.getElementById("vodTimeline");
+      if (!timeline) return;
+      const rect = timeline.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const clickTime = vodTrimState.timelineStart + pct * vodTrimState.timelineDuration;
+      if (trimDragging === "start") {
+        vodTrimState.selectionStart = Math.max(vodTrimState.timelineStart, Math.min(clickTime, vodTrimState.selectionEnd - 1));
+      } else if (trimDragging === "end") {
+        vodTrimState.selectionEnd = Math.min(vodTrimState.timelineStart + vodTrimState.timelineDuration, Math.max(clickTime, vodTrimState.selectionStart + 1));
       }
       updateTrimMarkers();
     };
-    
+
+    const startHandle = document.getElementById("vodTrimStartMarker");
+    const endHandle = document.getElementById("vodTrimEndMarker");
+    const timeline = document.getElementById("vodTimeline");
+
+    if (startHandle) {
+      startHandle.addEventListener("mousedown", (e) => { e.preventDefault(); e.stopPropagation(); trimDragging = "start"; });
+      startHandle.addEventListener("touchstart", (e) => { e.preventDefault(); trimDragging = "start"; }, { passive: false });
+    }
+    if (endHandle) {
+      endHandle.addEventListener("mousedown", (e) => { e.preventDefault(); e.stopPropagation(); trimDragging = "end"; });
+      endHandle.addEventListener("touchstart", (e) => { e.preventDefault(); trimDragging = "end"; }, { passive: false });
+    }
+
+    document.addEventListener("mousemove", (e) => { if (trimDragging) { e.preventDefault(); setTrimFromClientX(e.clientX); } });
+    document.addEventListener("touchmove", (e) => { if (trimDragging && e.touches.length > 0) { e.preventDefault(); setTrimFromClientX(e.touches[0].clientX); } }, { passive: false });
+    document.addEventListener("mouseup", () => { trimDragging = null; });
+    document.addEventListener("touchend", () => { trimDragging = null; });
+
+    if (timeline) {
+      timeline.addEventListener("click", (e) => {
+        if (trimDragging) return;
+        if (!vodTrimState.timelineDuration || !currentVod.id) return;
+        const rect = timeline.getBoundingClientRect();
+        const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        const seekTime = vodTrimState.timelineStart + pct * vodTrimState.timelineDuration;
+        currentVod.currentTime = seekTime;
+        seekVod(0, seekTime);
+      });
+    }
+
+    const playSelectionBtn = document.getElementById("vodTrimPlaySelection");
+    if (playSelectionBtn) {
+      playSelectionBtn.addEventListener("click", () => {
+        if (!currentVod.id) return;
+        currentVod.currentTime = vodTrimState.selectionStart;
+        seekVod(0, vodTrimState.selectionStart);
+      });
+    }
+
+    const resetTrimBtn = document.getElementById("vodTrimReset");
+    if (resetTrimBtn) {
+      resetTrimBtn.addEventListener("click", async () => {
+        if (!currentRunId) return;
+        const runData = currentRunData || await getJSON(`${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`).then(d => (d && d.data) || d).catch(() => ({}));
+        const finish = runData && runData.finish != null ? runData.finish : null;
+        const start = currentVod.offset || 0;
+        let duration = 0;
+        if (finish) {
+          duration = finish / 1000 + 30;
+        } else {
+          const nextBoundary = await getNextRunBoundary(currentRunId, state.profile.name);
+          if (nextBoundary && nextBoundary.type === "vodOffset" && nextBoundary.value > start) {
+            duration = nextBoundary.value - start;
+          } else if (nextBoundary && nextBoundary.type === "timestamp") {
+            const currentRunTs = runData && (runData.insertTime || runData.createdAt || runData.timestamp || runData.startTime) || 0;
+            const nextTs = nextBoundary.value;
+            if (nextTs > currentRunTs) {
+              duration = (nextTs - currentRunTs) / 1000;
+            }
+          }
+          if (duration <= 0) {
+            const furthestEv = furthestEvent(runData);
+            const furthestSplit = furthestIndex(runData);
+            const realTimeMs = (furthestEv && furthestEv.rta != null) ? furthestEv.rta : (furthestSplit.time > 0 ? furthestSplit.time * 2 : 0);
+            duration = realTimeMs > 0 ? realTimeMs / 1000 + 30 : 3600;
+          }
+        }
+        updateVodTrim(start, duration);
+        seekVod(0, start);
+      });
+    }
+
     if (vodTrimEnabled) {
       vodTrimEnabled.addEventListener("change", () => {
         vodTrimState.active = vodTrimEnabled.checked;
         if (vodTrim) vodTrim.style.display = vodTrimState.active ? "block" : "none";
-        if (vodTrimState.active) {
-          if (vodTrimState.duration > 0) {
-            if (vodTrimStart) vodTrimStart.value = Math.floor(vodTrimState.start);
-            if (vodTrimEnd) vodTrimEnd.value = Math.floor(vodTrimState.end);
-            updateTrimMarkers();
-          }
+        if (vodTrimState.active && vodTrimState.timelineDuration > 0) {
+          updateTrimMarkers();
         }
       });
     }
-    
-    if (vodTimeline) {
-      vodTimeline.addEventListener("click", setTrimFromClick);
-    }
-    
-    const updateTrimInputs = () => {
-      vodTrimState.start = Math.max(0, parseFloat(vodTrimStart.value) || 0);
-      vodTrimState.end = Math.max(vodTrimState.start + 1, parseFloat(vodTrimEnd.value) || 0);
-      if (vodTrimState.duration > 0) {
-        vodTrimState.start = Math.min(vodTrimState.start, vodTrimState.duration);
-        vodTrimState.end = Math.min(vodTrimState.end, vodTrimState.duration);
-      }
-      if (vodTrimStart) vodTrimStart.value = Math.floor(vodTrimState.start);
-      if (vodTrimEnd) vodTrimEnd.value = Math.floor(vodTrimState.end);
-      updateTrimMarkers();
-    };
-    
-    if (vodTrimStart) {
-      vodTrimStart.addEventListener("input", updateTrimInputs);
-      vodTrimStart.addEventListener("change", updateTrimInputs);
-    }
-    if (vodTrimEnd) {
-      vodTrimEnd.addEventListener("input", updateTrimInputs);
-      vodTrimEnd.addEventListener("change", updateTrimInputs);
-    }
-    
+
+    const playheadInterval = setInterval(() => {
+      if (!currentVod.id) return;
+      const webview = document.getElementById("runVodWebview");
+      if (!webview || webview.style.display === "none") return;
+      webview.executeJavaScript(`document.querySelector('video')?.currentTime || 0`).then((time) => {
+        if (time != null && vodTrimState.timelineDuration > 0) {
+          const playhead = document.getElementById("vodPlayhead");
+          if (playhead) {
+            const pct = Math.max(0, Math.min(100, ((time - vodTrimState.timelineStart) / vodTrimState.timelineDuration) * 100));
+            playhead.style.left = pct + "%";
+          }
+        }
+      }).catch(() => {});
+    }, 1000);
+
     if (vodTrim) {
       vodTrim.style.display = "none";
     }
