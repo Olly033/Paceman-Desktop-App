@@ -2714,14 +2714,21 @@
           currentDownloadId = Date.now().toString();
           const runData = currentRunData || await getJSON(`${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`).then(d => (d && d.data) || d).catch(() => ({}));
           const finish = runData && runData.finish != null ? runData.finish : null;
-          if (!finish) {
-            if (progressText) progressText.textContent = "No VOD available for unfinished run.";
-            setTimeout(() => finishProgress(), 2000);
-            downloadRunBtn.classList.remove("downloading");
-            return;
+          let startTime = vodOffset || 0;
+          let endTime = null;
+          if (finish) {
+            endTime = startTime + finish / 1000;
+          } else {
+            const furthest = furthestIndex(runData);
+            if (furthest.time > 0) {
+              endTime = startTime + furthest.time / 1000 + 30;
+            } else {
+              if (progressText) progressText.textContent = "No VOD available for this run.";
+              setTimeout(() => finishProgress(), 2000);
+              downloadRunBtn.classList.remove("downloading");
+              return;
+            }
           }
-          const startTime = vodOffset || 0;
-          const endTime = startTime + finish / 1000;
           const result = await window.pacemanAPI.downloadVod({
             downloadId: currentDownloadId,
             vodId,
