@@ -75,8 +75,6 @@
     pbNotifications: JSON.parse(localStorage.getItem("paceman_settings_pb_notifications") || "true"),
     liveNotifications: JSON.parse(localStorage.getItem("paceman_settings_live_notifications") || "false"),
     notificationSound: JSON.parse(localStorage.getItem("paceman_settings_notification_sound") || "false"),
-    compactMode: JSON.parse(localStorage.getItem("paceman_settings_compact_mode") || "false"),
-    uiScale: parseFloat(localStorage.getItem("paceman_settings_ui_scale") || "1"),
   };
 
   const autoOpenedStreams = new Set();
@@ -3139,17 +3137,9 @@
       const pbToggle = document.getElementById("settingPbNotifications");
       const liveToggle = document.getElementById("settingLiveNotifications");
       const soundToggle = document.getElementById("settingNotificationSound");
-      const compactToggle = document.getElementById("settingCompactMode");
-      const scaleSlider = document.getElementById("settingUiScale");
-      const scaleValue = document.getElementById("settingUiScaleValue");
       if (pbToggle) pbToggle.checked = settings.pbNotifications;
       if (liveToggle) liveToggle.checked = settings.liveNotifications;
       if (soundToggle) soundToggle.checked = settings.notificationSound;
-      if (compactToggle) compactToggle.checked = settings.compactMode;
-      if (scaleSlider) {
-        scaleSlider.value = settings.uiScale;
-        if (scaleValue) scaleValue.textContent = Math.round(settings.uiScale * 100) + "%";
-      }
       settingsOverlay.classList.add("visible");
     };
 
@@ -3159,20 +3149,12 @@
       const pbToggle = document.getElementById("settingPbNotifications");
       const liveToggle = document.getElementById("settingLiveNotifications");
       const soundToggle = document.getElementById("settingNotificationSound");
-      const compactToggle = document.getElementById("settingCompactMode");
-      const scaleSlider = document.getElementById("settingUiScale");
       if (pbToggle) settings.pbNotifications = pbToggle.checked;
       if (liveToggle) settings.liveNotifications = liveToggle.checked;
       if (soundToggle) settings.notificationSound = soundToggle.checked;
-      if (compactToggle) settings.compactMode = compactToggle.checked;
-      if (scaleSlider) settings.uiScale = parseFloat(scaleSlider.value);
       localStorage.setItem("paceman_settings_pb_notifications", settings.pbNotifications);
       localStorage.setItem("paceman_settings_live_notifications", settings.liveNotifications);
       localStorage.setItem("paceman_settings_notification_sound", settings.notificationSound);
-      localStorage.setItem("paceman_settings_compact_mode", settings.compactMode);
-      localStorage.setItem("paceman_settings_ui_scale", settings.uiScale);
-      applyCompactMode();
-      updateAppScale();
     };
 
     if (settingsBtn) {
@@ -3184,19 +3166,6 @@
     if (settingsOverlay) {
       settingsOverlay.addEventListener("click", (e) => {
         if (e.target === settingsOverlay) closeSettings();
-      });
-    }
-
-    const scaleSlider = document.getElementById("settingUiScale");
-    const scaleValue = document.getElementById("settingUiScaleValue");
-    if (scaleSlider && scaleValue) {
-      scaleSlider.addEventListener("input", () => {
-        const val = parseFloat(scaleSlider.value);
-        const pct = Math.round(val * 100);
-        scaleValue.textContent = pct + "%";
-        settings.uiScale = val;
-        localStorage.setItem("paceman_settings_ui_scale", val);
-        updateAppScale();
       });
     }
 
@@ -3239,25 +3208,6 @@
         }
       });
     }
-
-    applyCompactMode();
-
-    const updateAppScale = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const baseW = 1400;
-      const baseH = 900;
-      const scaleX = w / baseW;
-      const scaleY = h / baseH;
-      const autoScale = Math.min(scaleX, scaleY, 1);
-      const userScale = settings.uiScale || 1;
-      const finalScale = Math.min(autoScale * userScale, 1);
-      const clampedScale = Math.max(finalScale, 0.35);
-      document.body.style.zoom = clampedScale;
-    };
-
-    window.addEventListener("resize", updateAppScale);
-    updateAppScale();
     window.addEventListener("keydown", (e) => {
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "d") {
         toggleDevMode();

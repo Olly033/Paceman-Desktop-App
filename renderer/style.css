@@ -2574,23 +2574,6 @@ body {
   color: #a5b4fc;
 }
 
-.settings-scale-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 180px;
-  justify-content: flex-end;
-}
-
-.settings-scale-value {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  min-width: 40px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -3049,43 +3032,6 @@ input[type="range"]::-moz-range-thumb {
 .toggle input:checked + .toggle-slider::before {
   transform: translateX(20px);
   background: #fff;
-}
-
-.app-compact .header {
-  padding: 10px 16px;
-}
-
-.app-compact .nav-btn {
-  padding: 8px 14px;
-  font-size: 13px;
-}
-
-.app-compact .main-content {
-  padding: 16px;
-}
-
-.app-compact .page-header h1 {
-  font-size: 20px;
-}
-
-.app-compact .run-card {
-  padding: 10px 12px;
-}
-
-.app-compact .profile-header {
-  gap: 12px;
-}
-
-.app-compact .profile-grid {
-  gap: 10px;
-}
-
-.app-compact .filter-content {
-  padding: 12px;
-}
-
-.app-compact .run-detail-modal {
-  padding: 16px;
 }
 
 html {
