@@ -131,6 +131,33 @@
     updateTrimMarkers();
   }
 
+  function updateSplitMarkers(run, vodOffset) {
+    const container = document.getElementById("vodSplitMarkers");
+    if (!container || !run) return;
+    container.innerHTML = "";
+    if (!vodTrimState.timelineDuration) return;
+    
+    for (const split of SPLIT_ORDER) {
+      const igtMs = run[split];
+      if (igtMs == null || igtMs <= 0) continue;
+      const vodTime = vodOffset + igtMs / 1000;
+      const pct = ((vodTime - vodTrimState.timelineStart) / vodTrimState.timelineDuration) * 100;
+      if (pct < 0 || pct > 100) continue;
+      
+      const marker = document.createElement("div");
+      marker.className = "vod-split-marker";
+      marker.style.left = pct + "%";
+      marker.dataset.label = SPLITS[split];
+      marker.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!currentVod.id) return;
+        currentVod.currentTime = vodTime;
+        seekVod(0, vodTime);
+      });
+      container.appendChild(marker);
+    }
+  }
+
   const updateTrimMarkers = () => {
     if (!vodTrimState.timelineDuration) return;
     const startPct = Math.max(0, Math.min(100, ((vodTrimState.selectionStart - vodTrimState.timelineStart) / vodTrimState.timelineDuration) * 100));
@@ -1334,6 +1361,7 @@
           const furthest = furthestIndex(full);
           const duration = finish > 0 ? finish / 1000 + 30 : (furthest.time > 0 ? furthest.time / 1000 * 2 + 30 : 3600);
           updateVodTrim(full.vodOffset || 0, duration);
+          updateSplitMarkers(full, full.vodOffset || 0);
         } else {
           document.getElementById("runDetailVod").style.display = "none";
           const loadingEl = document.getElementById("vodLoading");
@@ -1386,6 +1414,8 @@
     if (trimEnabled) trimEnabled.checked = false;
     const playhead = document.getElementById("vodPlayhead");
     if (playhead) playhead.style.left = "0%";
+    const splitMarkers = document.getElementById("vodSplitMarkers");
+    if (splitMarkers) splitMarkers.innerHTML = "";
     vodTrimState.active = false;
     vodTrimState.timelineStart = 0;
     vodTrimState.timelineDuration = 0;
@@ -3007,6 +3037,7 @@
           }
         }
         updateVodTrim(start, duration);
+        updateSplitMarkers(runData, start);
         seekVod(0, start);
       });
     }

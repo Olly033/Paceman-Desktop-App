@@ -2429,6 +2429,54 @@ body {
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
 }
 
+.vod-split-markers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.vod-split-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.35);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.vod-split-marker:hover {
+  background: rgba(255, 255, 255, 0.9);
+  z-index: 3;
+}
+
+.vod-split-marker::after {
+  content: attr(data-label);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.vod-split-marker:hover::after {
+  opacity: 1;
+}
+
 .vod-trim-inputs {
   display: flex;
   gap: 12px;
