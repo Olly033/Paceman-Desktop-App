@@ -500,6 +500,30 @@
     return { idx, time, key };
   }
 
+  async function getNextRunBoundary(runId, name) {
+    try {
+      const hours = TF_HOURS[state.profile.tf] || 24;
+      const between = TF_BETWEEN[state.profile.tf] || 24;
+      const runs = await getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}&limit=5000`);
+      if (!Array.isArray(runs) || runs.length < 2) return null;
+      
+      const currentIdx = runs.findIndex(r => (r.id || r.worldId || r.runId || r._id) == runId);
+      if (currentIdx < 0 || currentIdx >= runs.length - 1) return null;
+      
+      const nextRun = runs[currentIdx + 1];
+      if (nextRun.vodOffset != null) {
+        return { type: 'vodOffset', value: nextRun.vodOffset };
+      }
+      if (nextRun.insertTime || nextRun.createdAt || nextRun.timestamp || nextRun.startTime) {
+        const nextTs = nextRun.insertTime || nextRun.createdAt || nextRun.timestamp || nextRun.startTime;
+        return { type: 'timestamp', value: nextTs };
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   function splitTimes(run) {
     const t = {};
     for (const ev of run.eventList || []) {
@@ -2719,16 +2743,43 @@
           if (finish) {
             endTime = startTime + finish / 1000 + 30;
           } else {
-            const furthestEv = furthestEvent(runData);
-            const furthestSplit = furthestIndex(runData);
-            const realTimeMs = (furthestEv && furthestEv.rta != null) ? furthestEv.rta : (furthestSplit.time > 0 ? furthestSplit.time * 2 : 0);
-            if (realTimeMs > 0) {
-              endTime = startTime + realTimeMs / 1000 + 30;
+            let nextBoundary = null;
+            if (state.profile.name) {
+              nextBoundary = await getNextRunBoundary(currentRunId, state.profile.name);
+            }
+            if (nextBoundary && nextBoundary.type === 'vodOffset' && nextBoundary.value > startTime) {
+              endTime = nextBoundary.value;
+            } else if (nextBoundary && nextBoundary.type === 'timestamp') {
+              const currentRunTs = runData && (runData.insertTime || runData.createdAt || runData.timestamp || runData.startTime) || 0;
+              const nextTs = nextBoundary.value;
+              if (nextTs > currentRunTs) {
+                const diffSeconds = (nextTs - currentRunTs) / 1000;
+                endTime = startTime + diffSeconds + 30;
+              } else {
+                const furthestEv = furthestEvent(runData);
+                const furthestSplit = furthestIndex(runData);
+                const realTimeMs = (furthestEv && furthestEv.rta != null) ? furthestEv.rta : (furthestSplit.time > 0 ? furthestSplit.time * 2 : 0);
+                if (realTimeMs > 0) {
+                  endTime = startTime + realTimeMs / 1000 + 30;
+                } else {
+                  if (progressText) progressText.textContent = "No VOD available for this run.";
+                  setTimeout(() => finishProgress(), 2000);
+                  downloadRunBtn.classList.remove("downloading");
+                  return;
+                }
+              }
             } else {
-              if (progressText) progressText.textContent = "No VOD available for this run.";
-              setTimeout(() => finishProgress(), 2000);
-              downloadRunBtn.classList.remove("downloading");
-              return;
+              const furthestEv = furthestEvent(runData);
+              const furthestSplit = furthestIndex(runData);
+              const realTimeMs = (furthestEv && furthestEv.rta != null) ? furthestEv.rta : (furthestSplit.time > 0 ? furthestSplit.time * 2 : 0);
+              if (realTimeMs > 0) {
+                endTime = startTime + realTimeMs / 1000 + 30;
+              } else {
+                if (progressText) progressText.textContent = "No VOD available for this run.";
+                setTimeout(() => finishProgress(), 2000);
+                downloadRunBtn.classList.remove("downloading");
+                return;
+              }
             }
           }
           const result = await window.pacemanAPI.downloadVod({
