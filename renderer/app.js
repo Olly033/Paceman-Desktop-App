@@ -74,7 +74,6 @@
   const autoOpenedStreams = new Set();
 
   console.log('APP LOADED - looking for download button:', document.getElementById("downloadRunBtn"));
-  alert('APP LOADED - download button: ' + document.getElementById("downloadRunBtn"));
   
   let currentVod = { id: null, offset: 0, currentTime: 0 };
   let currentRunId = null;
@@ -2696,19 +2695,9 @@
       window.addEventListener('paceman-download-vod-progress', onProgress);
       
       downloadRunBtn.addEventListener("click", async (e) => {
-        console.log('=== DOWNLOAD BUTTON CLICKED ===', e);
         e.stopPropagation();
-        alert('DOWNLOAD CLICKED - currentRunId: ' + currentRunId + ', currentVod: ' + JSON.stringify(currentVod));
-        if (!currentRunId) {
-          console.log('No currentRunId, returning');
-          return;
-        }
-        console.log('pacemanAPI exists:', !!window.pacemanAPI);
-        console.log('downloadVod exists:', !!(window.pacemanAPI && window.pacemanAPI.downloadVod));
-        if (!window.pacemanAPI || !window.pacemanAPI.downloadVod) {
-          alert("VOD download is not available.");
-          return;
-        }
+        if (!currentRunId) return;
+        if (!window.pacemanAPI || !window.pacemanAPI.downloadVod) return;
         try {
           let vodId = currentVod.id;
           let vodOffset = currentVod.offset || 0;
@@ -2716,54 +2705,48 @@
             vodId = currentRunData.vodId || null;
             vodOffset = currentRunData.vodOffset || 0;
           }
-          if (!vodId) {
-            alert("No VOD available for this run.");
-            return;
-          }
-          alert('Starting download - vodId: ' + vodId + ', vodOffset: ' + vodOffset);
+          if (!vodId) return;
           downloadRunBtn.classList.add("downloading");
           if (progressWrap) progressWrap.style.display = "flex";
           if (progressFill) progressFill.style.width = "0%";
           if (progressText) progressText.textContent = "Starting download...";
           
-          if (window.pacemanAPI && window.pacemanAPI.downloadVod) {
-            currentDownloadId = Date.now().toString();
-            const runData = currentRunData || await getJSON(`${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`).then(d => (d && d.data) || d).catch(() => ({}));
-            const finish = runData && runData.finish != null ? runData.finish : null;
-            const startTime = vodOffset || 0;
-            const endTime = finish ? startTime + finish / 1000 : startTime + 3600;
-            alert('Calling downloadVod IPC - startTime: ' + startTime + ', endTime: ' + endTime);
-            console.log('Calling downloadVod IPC:', { downloadId: currentDownloadId, vodId, startTime, endTime });
-            const result = await window.pacemanAPI.downloadVod({
-              downloadId: currentDownloadId,
-              vodId,
-              startTime,
-              endTime,
-            });
-            console.log('Download result:', result);
-            alert('Download result: ' + JSON.stringify(result));
-            
-            if (result && result.success) {
-              if (progressFill) progressFill.style.width = "100%";
-              if (progressText) progressText.textContent = "Download complete!";
-              downloadRunBtn.classList.add("downloaded");
-              setTimeout(() => {
-                finishProgress();
-                downloadRunBtn.classList.remove("downloading");
-                downloadRunBtn.classList.remove("downloaded");
-              }, 1500);
-              return;
-            }
-            alert(result && result.error ? result.error : "VOD download failed. The VOD may be unavailable or the download was blocked.");
-          } else {
-            alert("VOD download is not available.");
+          currentDownloadId = Date.now().toString();
+          const runData = currentRunData || await getJSON(`${API}/getWorld?worldId=${encodeURIComponent(currentRunId)}`).then(d => (d && d.data) || d).catch(() => ({}));
+          const finish = runData && runData.finish != null ? runData.finish : null;
+          if (!finish) {
+            if (progressText) progressText.textContent = "No VOD available for unfinished run.";
+            setTimeout(() => finishProgress(), 2000);
+            downloadRunBtn.classList.remove("downloading");
+            return;
           }
-          finishProgress();
+          const startTime = vodOffset || 0;
+          const endTime = startTime + finish / 1000;
+          const result = await window.pacemanAPI.downloadVod({
+            downloadId: currentDownloadId,
+            vodId,
+            startTime,
+            endTime,
+          });
+          
+          if (result && result.success) {
+            if (progressFill) progressFill.style.width = "100%";
+            if (progressText) progressText.textContent = "Download complete!";
+            downloadRunBtn.classList.add("downloaded");
+            setTimeout(() => {
+              finishProgress();
+              downloadRunBtn.classList.remove("downloading");
+              downloadRunBtn.classList.remove("downloaded");
+            }, 1500);
+            return;
+          }
+          if (progressText) progressText.textContent = result && result.error ? result.error : "Download failed.";
+          setTimeout(() => finishProgress(), 3000);
           downloadRunBtn.classList.remove("downloading");
         } catch (e) {
           console.log("Download failed", e);
-          alert("Download failed: " + (e && e.message ? e.message : e));
-          finishProgress();
+          if (progressText) progressText.textContent = "Download failed.";
+          setTimeout(() => finishProgress(), 3000);
           downloadRunBtn.classList.remove("downloading");
         }
       });
