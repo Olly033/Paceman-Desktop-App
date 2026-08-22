@@ -2808,6 +2808,212 @@ body {
   animation: modalIn 0.22s ease;
 }
 
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.settings-overlay.visible {
+  display: flex;
+}
+
+.settings-modal {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  width: min(520px, 96vw);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+  animation: modalIn 0.22s ease;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.settings-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.settings-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.settings-close:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.settings-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settings-section h3 {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  margin: 0 0 10px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settings-row:last-child {
+  border-bottom: none;
+}
+
+.settings-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-row-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-row-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: var(--bg-glass-hover);
+  border: 1px solid var(--border-glass);
+  border-radius: 99px;
+  transition: all 0.2s;
+}
+
+.toggle-slider::before {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  bottom: 2px;
+  background: var(--text-secondary);
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.toggle input:checked + .toggle-slider {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.toggle input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+  background: #fff;
+}
+
+.app-compact .header {
+  padding: 10px 16px;
+}
+
+.app-compact .nav-btn {
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.app-compact .main-content {
+  padding: 16px;
+}
+
+.app-compact .page-header h1 {
+  font-size: 20px;
+}
+
+.app-compact .run-card {
+  padding: 10px 12px;
+}
+
+.app-compact .profile-header {
+  gap: 12px;
+}
+
+.app-compact .profile-grid {
+  gap: 10px;
+}
+
+.app-compact .filter-content {
+  padding: 12px;
+}
+
+.app-compact .run-detail-modal {
+  padding: 16px;
+}
+
+.app-scale-wrapper {
+  transform-origin: top left;
+  transition: transform 0.15s ease;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app {
+  height: 100%;
+  overflow: hidden;
+}
+
 ::selection {
   background: var(--accent);
   color: #fff;

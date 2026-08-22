@@ -71,6 +71,13 @@
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
   };
 
+  const settings = {
+    pbNotifications: JSON.parse(localStorage.getItem("paceman_settings_pb_notifications") || "true"),
+    liveNotifications: JSON.parse(localStorage.getItem("paceman_settings_live_notifications") || "false"),
+    notificationSound: JSON.parse(localStorage.getItem("paceman_settings_notification_sound") || "false"),
+    compactMode: JSON.parse(localStorage.getItem("paceman_settings_compact_mode") || "false"),
+  };
+
   const autoOpenedStreams = new Set();
 
   console.log('APP LOADED - looking for download button:', document.getElementById("downloadRunBtn"));
@@ -1000,11 +1007,13 @@
       if (pbEl) pbEl.textContent = pb != null ? `PB: ${fmt(pb)}` : "PB: --";
 
       if (isFavorite(name) && pbRun && saveFavoritePB(name, pb)) {
-        const notif = new Notification("New PB!", {
-          body: `${name} got a new personal best: ${fmt(pb)}`,
-          icon: "https://mc-heads.net/avatar/" + (state.profile.uuid || name) + "/64",
-        });
-        if (notif) notif.onclick = () => openProfile(name, state.profile.uuid);
+        if (settings.pbNotifications && "Notification" in window && Notification.permission === "granted") {
+          const notif = new Notification("New PB!", {
+            body: `${name} got a new personal best: ${fmt(pb)}`,
+            icon: "https://mc-heads.net/avatar/" + (state.profile.uuid || name) + "/64",
+          });
+          if (notif) notif.onclick = () => openProfile(name, state.profile.uuid);
+        }
       }
       if (generation !== profileRunsGeneration) return;
       const ranked = state.profile.timeframeRuns
@@ -3135,6 +3144,75 @@
     if (devClosePanelBtn) {
       devClosePanelBtn.addEventListener("click", toggleDevMode);
     }
+
+    const settingsOverlay = document.getElementById("settingsOverlay");
+    const settingsBtn = document.getElementById("settingsBtn");
+    const closeSettingsBtn = document.getElementById("closeSettings");
+
+    const openSettings = () => {
+      if (!settingsOverlay) return;
+      const pbToggle = document.getElementById("settingPbNotifications");
+      const liveToggle = document.getElementById("settingLiveNotifications");
+      const soundToggle = document.getElementById("settingNotificationSound");
+      const compactToggle = document.getElementById("settingCompactMode");
+      if (pbToggle) pbToggle.checked = settings.pbNotifications;
+      if (liveToggle) liveToggle.checked = settings.liveNotifications;
+      if (soundToggle) soundToggle.checked = settings.notificationSound;
+      if (compactToggle) compactToggle.checked = settings.compactMode;
+      settingsOverlay.classList.add("visible");
+    };
+
+    const closeSettings = () => {
+      if (!settingsOverlay) return;
+      settingsOverlay.classList.remove("visible");
+      const pbToggle = document.getElementById("settingPbNotifications");
+      const liveToggle = document.getElementById("settingLiveNotifications");
+      const soundToggle = document.getElementById("settingNotificationSound");
+      const compactToggle = document.getElementById("settingCompactMode");
+      if (pbToggle) settings.pbNotifications = pbToggle.checked;
+      if (liveToggle) settings.liveNotifications = liveToggle.checked;
+      if (soundToggle) settings.notificationSound = soundToggle.checked;
+      if (compactToggle) settings.compactMode = compactToggle.checked;
+      localStorage.setItem("paceman_settings_pb_notifications", settings.pbNotifications);
+      localStorage.setItem("paceman_settings_live_notifications", settings.liveNotifications);
+      localStorage.setItem("paceman_settings_notification_sound", settings.notificationSound);
+      localStorage.setItem("paceman_settings_compact_mode", settings.compactMode);
+      applyCompactMode();
+    };
+
+    if (settingsBtn) {
+      settingsBtn.addEventListener("click", openSettings);
+    }
+    if (closeSettingsBtn) {
+      closeSettingsBtn.addEventListener("click", closeSettings);
+    }
+    if (settingsOverlay) {
+      settingsOverlay.addEventListener("click", (e) => {
+        if (e.target === settingsOverlay) closeSettings();
+      });
+    }
+
+    applyCompactMode();
+
+    const appScaleWrapper = document.getElementById("appScaleWrapper");
+    const updateAppScale = () => {
+      if (!appScaleWrapper) return;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const baseW = 1400;
+      const baseH = 900;
+      const scaleX = w / baseW;
+      const scaleY = h / baseH;
+      const scale = Math.min(scaleX, scaleY, 1);
+      const clampedScale = Math.max(scale, 0.65);
+      appScaleWrapper.style.setProperty("--app-scale", clampedScale);
+      appScaleWrapper.style.transform = `scale(${clampedScale})`;
+      appScaleWrapper.style.width = `${100 / clampedScale}%`;
+      appScaleWrapper.style.height = `${100 / clampedScale}vh`;
+    };
+
+    window.addEventListener("resize", updateAppScale);
+    updateAppScale();
     window.addEventListener("keydown", (e) => {
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "d") {
         toggleDevMode();

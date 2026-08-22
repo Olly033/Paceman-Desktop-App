@@ -14,7 +14,8 @@
     <div class="bg-texture"></div>
     <div class="bg-vignette"></div>
   </div>
-  <div class="app">
+  <div class="app-scale-wrapper" id="appScaleWrapper">
+    <div class="app">
     <header class="header">
       <div class="header-left">
         <div class="logo">PACEMAN</div>
@@ -52,6 +53,12 @@
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </button>
+        <button class="update-btn" id="settingsBtn" title="Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H2a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V2a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
         </button>
       </div>
@@ -242,7 +249,8 @@
           </div>
           <div class="chart-container" id="chartContainer"></div>
         </div>
-      </div>      
+    </div>
+  </div>
 
         <div class="page" id="page-leaderboard">
           <div class="page-header">
@@ -419,6 +427,63 @@
       <div class="split-detail-pagination" id="splitDetailPagination"></div>
     </div>
     <div class="split-detail-list" id="splitDetailList"></div>
+  </div>
+
+  <div class="settings-overlay" id="settingsOverlay">
+    <div class="settings-modal">
+      <div class="settings-header">
+        <h2>Settings</h2>
+        <button class="settings-close" id="closeSettings">&times;</button>
+      </div>
+      <div class="settings-body">
+        <div class="settings-section">
+          <h3>Notifications</h3>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-title">Personal Best alerts</div>
+              <div class="settings-row-desc">Show a notification when favorited players get a new PB</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="settingPbNotifications">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-title">Live run alerts</div>
+              <div class="settings-row-desc">Notify when favorited players start a new live run</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="settingLiveNotifications">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-title">Notification sound</div>
+              <div class="settings-row-desc">Play a sound with notifications</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="settingNotificationSound">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Appearance</h3>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-title">Compact mode</div>
+              <div class="settings-row-desc">Reduce spacing and font sizes for smaller screens</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="settingCompactMode">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>
