@@ -2719,9 +2719,11 @@
           if (finish) {
             endTime = startTime + finish / 1000 + 30;
           } else {
-            const furthest = furthestIndex(runData);
-            if (furthest.time > 0) {
-              endTime = startTime + furthest.time / 1000 * 2 + 60;
+            const furthestEv = furthestEvent(runData);
+            const furthestSplit = furthestIndex(runData);
+            const realTimeMs = (furthestEv && furthestEv.rta != null) ? furthestEv.rta : (furthestSplit.time > 0 ? furthestSplit.time * 2 : 0);
+            if (realTimeMs > 0) {
+              endTime = startTime + realTimeMs / 1000 + 30;
             } else {
               if (progressText) progressText.textContent = "No VOD available for this run.";
               setTimeout(() => finishProgress(), 2000);
