@@ -2754,32 +2754,14 @@
               const nextTs = nextBoundary.value;
               if (nextTs > currentRunTs) {
                 const diffSeconds = (nextTs - currentRunTs) / 1000;
-                endTime = startTime + diffSeconds + 30;
-              } else {
-                const furthestEv = furthestEvent(runData);
-                const furthestSplit = furthestIndex(runData);
-                const realTimeMs = (furthestEv && furthestEv.rta != null) ? furthestEv.rta : (furthestSplit.time > 0 ? furthestSplit.time * 2 : 0);
-                if (realTimeMs > 0) {
-                  endTime = startTime + realTimeMs / 1000 + 30;
-                } else {
-                  if (progressText) progressText.textContent = "No VOD available for this run.";
-                  setTimeout(() => finishProgress(), 2000);
-                  downloadRunBtn.classList.remove("downloading");
-                  return;
-                }
+                endTime = startTime + diffSeconds;
               }
-            } else {
-              const furthestEv = furthestEvent(runData);
-              const furthestSplit = furthestIndex(runData);
-              const realTimeMs = (furthestEv && furthestEv.rta != null) ? furthestEv.rta : (furthestSplit.time > 0 ? furthestSplit.time * 2 : 0);
-              if (realTimeMs > 0) {
-                endTime = startTime + realTimeMs / 1000 + 30;
-              } else {
-                if (progressText) progressText.textContent = "No VOD available for this run.";
-                setTimeout(() => finishProgress(), 2000);
-                downloadRunBtn.classList.remove("downloading");
-                return;
-              }
+            }
+            if (endTime === null) {
+              if (progressText) progressText.textContent = "No VOD available for this run.";
+              setTimeout(() => finishProgress(), 2000);
+              downloadRunBtn.classList.remove("downloading");
+              return;
             }
           }
           const result = await window.pacemanAPI.downloadVod({
