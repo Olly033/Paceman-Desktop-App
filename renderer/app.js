@@ -2717,7 +2717,7 @@
           let startTime = vodOffset || 0;
           let endTime = null;
           if (finish) {
-            endTime = startTime + finish / 1000;
+            endTime = startTime + finish / 1000 + 20;
           } else {
             const furthest = furthestIndex(runData);
             if (furthest.time > 0) {
