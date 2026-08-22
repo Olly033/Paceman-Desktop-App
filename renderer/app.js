@@ -2807,8 +2807,7 @@
       
       window.addEventListener('paceman-download-vod-progress', onProgress);
       
-      downloadRunBtn.addEventListener("click", async (e) => {
-        e.stopPropagation();
+      const startVodDownload = async () => {
         if (!currentRunId) return;
         if (!window.pacemanAPI || !window.pacemanAPI.downloadVod) return;
         
@@ -2837,7 +2836,11 @@
           const finish = runData && runData.finish != null ? runData.finish : null;
           let startTime = vodOffset || 0;
           let endTime = null;
-          if (finish) {
+          
+          if (vodTrimEnabled && vodTrimEnabled.checked && vodTrimState.selectionEnd > vodTrimState.selectionStart) {
+            startTime = vodTrimState.selectionStart;
+            endTime = vodTrimState.selectionEnd;
+          } else if (finish) {
             endTime = startTime + finish / 1000 + 30;
           } else {
             let nextBoundary = null;
@@ -2855,16 +2858,15 @@
               }
             }
             if (endTime === null) {
-              if (progressText) progressText.textContent = "No VOD available for this run.";
-              setTimeout(() => finishProgress(), 2000);
+              if (progressText) progressText.textContent = "Enable manual trim to select download range.";
+              setTimeout(() => finishProgress(), 2500);
               downloadRunBtn.classList.remove("downloading");
+              if (trim && trimEnabled) {
+                trimEnabled.checked = true;
+                trim.style.display = "block";
+              }
               return;
             }
-          }
-          
-          if (vodTrimEnabled && vodTrimEnabled.checked && vodTrimState.selectionEnd > vodTrimState.selectionStart) {
-            startTime = vodTrimState.selectionStart;
-            endTime = vodTrimState.selectionEnd;
           }
           
           const result = await window.pacemanAPI.downloadVod({
@@ -2894,7 +2896,20 @@
           setTimeout(() => finishProgress(), 3000);
           downloadRunBtn.classList.remove("downloading");
         }
+      };
+      
+      downloadRunBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        await startVodDownload();
       });
+      
+      const vodTrimDownloadBtn = document.getElementById("vodTrimDownload");
+      if (vodTrimDownloadBtn) {
+        vodTrimDownloadBtn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          await startVodDownload();
+        });
+      }
     }
     document.getElementById("runDetailOverlay").addEventListener("click", (e) => {
       if (e.target === document.getElementById("runDetailOverlay")) closeRunDetail();

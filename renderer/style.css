@@ -2512,6 +2512,18 @@ body {
   color: #f87171;
 }
 
+.vod-trim-download {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #818cf8;
+}
+
+.vod-trim-download:hover {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: #6366f1;
+  color: #a5b4fc;
+}
+
 /* All runs split rows */
 .run-row {
   padding: 14px 16px;
