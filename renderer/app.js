@@ -2760,6 +2760,14 @@
         e.stopPropagation();
         if (!currentRunId) return;
         if (!window.pacemanAPI || !window.pacemanAPI.downloadVod) return;
+        
+        const trim = document.getElementById("vodTrim");
+        const trimEnabled = document.getElementById("vodTrimEnabled");
+        if (trim && trimEnabled && !trimEnabled.checked) {
+          trimEnabled.checked = true;
+          trim.style.display = "block";
+        }
+        
         try {
           let vodId = currentVod.id;
           let vodOffset = currentVod.offset || 0;
