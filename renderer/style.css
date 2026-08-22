@@ -2622,6 +2622,41 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
+.settings-select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.settings-select:focus {
+  border-color: var(--accent);
+}
+
+.settings-action-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.settings-action-btn:hover {
+  background: var(--bg-glass-hover);
+  border-color: var(--accent);
+  color: var(--accent-light);
+}
+
 /* All runs split rows */
 .run-row {
   padding: 14px 16px;
@@ -3053,10 +3088,11 @@ input[type="range"]::-moz-range-thumb {
 
 .app-scale-wrapper {
   transform-origin: top left;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, zoom 0.15s ease;
   width: 100%;
   height: 100vh;
   overflow: hidden;
+  zoom: 1;
 }
 
 .app {

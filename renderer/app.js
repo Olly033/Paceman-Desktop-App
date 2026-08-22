@@ -1999,50 +1999,34 @@
 
   function initThemes() {
     const opts = document.getElementById("themeOptions");
-    opts.innerHTML = "";
-    for (const t of THEMES) {
-      const sw = document.createElement("button");
-      sw.className = "theme-swatch";
-      sw.dataset.theme = t.name;
-      sw.title = t.label;
-      sw.style.background = `var(--swatch-${t.name})`;
-      sw.addEventListener("click", () => applyTheme(t.name));
-      opts.appendChild(sw);
+    if (opts) {
+      opts.innerHTML = "";
+      for (const t of THEMES) {
+        const sw = document.createElement("button");
+        sw.className = "theme-swatch";
+        sw.dataset.theme = t.name;
+        sw.title = t.label;
+        sw.style.background = `var(--swatch-${t.name})`;
+        sw.addEventListener("click", () => applyTheme(t.name));
+        opts.appendChild(sw);
+      }
     }
-    document.getElementById("themeBtn").addEventListener("click", (e) => {
-      e.stopPropagation();
-      opts.classList.toggle("visible");
-    });
-    const updateBtn = document.getElementById("updateBtn");
-    if (updateBtn) {
-      updateBtn.addEventListener("click", async () => {
-        updateBtn.classList.add("checking");
-        try {
-          const result = await window.pacemanAPI.checkForUpdates();
-          if (result && result.success && result.isNewer) {
-            updateBtn.classList.add("has-update");
-            updateBtn.title = `Update available: v${result.latest}`;
-            if (confirm(`A newer version is available: v${result.latest}\nYou are on v${result.current}.\n\nOpen the release page?`)) {
-              window.pacemanAPI.openExternal(result.downloadUrl);
-            }
-          } else if (result && result.success) {
-            updateBtn.title = `You are on the latest version (v${result.current})`;
-            setTimeout(() => { updateBtn.classList.remove("has-update"); }, 2000);
-          } else {
-            updateBtn.title = "Update check failed: " + (result ? result.error : "unknown");
-            setTimeout(() => { updateBtn.classList.remove("checking"); }, 2000);
-          }
-        } catch (e) {
-          updateBtn.title = "Update check failed";
-          setTimeout(() => { updateBtn.classList.remove("checking"); }, 2000);
-        } finally {
-          updateBtn.classList.remove("checking");
-        }
+    
+    const themeSelect = document.getElementById("settingTheme");
+    if (themeSelect) {
+      themeSelect.innerHTML = "";
+      for (const t of THEMES) {
+        const opt = document.createElement("option");
+        opt.value = t.name;
+        opt.textContent = t.label;
+        themeSelect.appendChild(opt);
+      }
+      themeSelect.value = localStorage.getItem("paceman_theme") || THEMES[0].name;
+      themeSelect.addEventListener("change", () => {
+        applyTheme(themeSelect.value);
       });
     }
-    document.addEventListener("click", (e) => {
-      if (!e.target.closest("#themeSwitcher")) opts.classList.remove("visible");
-    });
+    
     applyTheme(localStorage.getItem("paceman_theme") || THEMES[0].name);
   }
 
@@ -3212,6 +3196,46 @@
       });
     }
 
+    const checkUpdateBtn = document.getElementById("settingCheckUpdate");
+    if (checkUpdateBtn) {
+      checkUpdateBtn.addEventListener("click", async () => {
+        checkUpdateBtn.classList.add("checking");
+        checkUpdateBtn.textContent = "Checking...";
+        checkUpdateBtn.disabled = true;
+        try {
+          const result = await window.pacemanAPI.checkForUpdates();
+          if (result && result.success && result.isNewer) {
+            checkUpdateBtn.textContent = `Update available: v${result.latest}`;
+            checkUpdateBtn.classList.add("has-update");
+            if (confirm(`A newer version is available: v${result.latest}\nYou are on v${result.current}.\n\nOpen the release page?`)) {
+              window.pacemanAPI.openExternal(result.downloadUrl);
+            }
+          } else if (result && result.success) {
+            checkUpdateBtn.textContent = `You are on the latest version (v${result.current})`;
+            setTimeout(() => {
+              checkUpdateBtn.textContent = "Check for Updates";
+              checkUpdateBtn.classList.remove("has-update");
+              checkUpdateBtn.disabled = false;
+            }, 2000);
+          } else {
+            checkUpdateBtn.textContent = "Update check failed";
+            checkUpdateBtn.classList.add("has-update");
+            setTimeout(() => {
+              checkUpdateBtn.textContent = "Check for Updates";
+              checkUpdateBtn.classList.remove("has-update");
+              checkUpdateBtn.disabled = false;
+            }, 2000);
+          }
+        } catch (e) {
+          checkUpdateBtn.textContent = "Update check failed";
+          setTimeout(() => {
+            checkUpdateBtn.textContent = "Check for Updates";
+            checkUpdateBtn.disabled = false;
+          }, 2000);
+        }
+      });
+    }
+
     applyCompactMode();
 
     const appScaleWrapper = document.getElementById("appScaleWrapper");
@@ -3227,10 +3251,7 @@
       const userScale = settings.uiScale || 1;
       const finalScale = Math.min(autoScale * userScale, 1);
       const clampedScale = Math.max(finalScale, 0.35);
-      appScaleWrapper.style.setProperty("--app-scale", clampedScale);
-      appScaleWrapper.style.transform = `scale(${clampedScale})`;
-      appScaleWrapper.style.width = `${100 / clampedScale}%`;
-      appScaleWrapper.style.height = `${100 / clampedScale}vh`;
+      appScaleWrapper.style.zoom = clampedScale;
     };
 
     window.addEventListener("resize", updateAppScale);
