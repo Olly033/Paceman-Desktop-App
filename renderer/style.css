@@ -213,6 +213,8 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .app-footer {
@@ -3088,23 +3090,16 @@ input[type="range"]::-moz-range-thumb {
 
 html {
   height: 100%;
-  overflow: hidden;
+  overflow: auto;
 }
 
 body {
   font-family: 'Inter', sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
-  overflow: hidden;
-  height: 100vh;
-  width: 100vw;
-}
-
-.app {
   min-height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
-  transform-origin: top left;
   zoom: 1;
 }
 

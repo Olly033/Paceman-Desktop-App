@@ -3242,10 +3242,7 @@
 
     applyCompactMode();
 
-    const appScaleWrapper = document.getElementById("appScaleWrapper");
     const updateAppScale = () => {
-      const appEl = document.querySelector('.app');
-      if (!appEl) return;
       const w = window.innerWidth;
       const h = window.innerHeight;
       const baseW = 1400;
@@ -3256,7 +3253,7 @@
       const userScale = settings.uiScale || 1;
       const finalScale = Math.min(autoScale * userScale, 1);
       const clampedScale = Math.max(finalScale, 0.35);
-      appEl.style.zoom = clampedScale;
+      document.body.style.zoom = clampedScale;
     };
 
     window.addEventListener("resize", updateAppScale);
