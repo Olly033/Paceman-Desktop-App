@@ -24,6 +24,9 @@
     "stronghold": "stronghold",
     "end": "end",
     "finish": "finish",
+    "nether": "nether",
+    "bastion": "bastion",
+    "fortress": "fortress",
   };
   const LB_CATEGORIES = ["nether", "bastion", "fortress", "first_portal", "stronghold", "end", "finish"];
 
@@ -1291,12 +1294,22 @@
       return;
     }
 
-    function renderSplits(data) {
+    function renderSplits(data, rtaFallback) {
       const eventRta = {};
-      if (Array.isArray(data.eventList)) {
-        for (const ev of data.eventList) {
+      const eventList = Array.isArray(data.eventList) ? data.eventList : Array.isArray(data.events) ? data.events : [];
+      if (eventList.length) {
+        for (const ev of eventList) {
           const splitKey = EVENT_TO_SPLIT[ev.eventId.replace("rsg.", "")];
           if (splitKey && ev.rta != null) {
+            eventRta[splitKey] = ev.rta;
+          }
+        }
+      }
+      if (rtaFallback) {
+        const fallbackList = Array.isArray(rtaFallback.eventList) ? rtaFallback.eventList : Array.isArray(rtaFallback.events) ? rtaFallback.events : [];
+        for (const ev of fallbackList) {
+          const splitKey = EVENT_TO_SPLIT[ev.eventId.replace("rsg.", "")];
+          if (splitKey && ev.rta != null && !(splitKey in eventRta)) {
             eventRta[splitKey] = ev.rta;
           }
         }
@@ -1388,7 +1401,7 @@
         }
         const needsUpdate = SPLIT_ORDER.some(function(s) { return full[s] != null && d[s] !== full[s]; });
         if (needsUpdate) {
-          renderSplits(full);
+          renderSplits(full, d);
           if (full.vodId) {
             attachSplitSeek(full.vodId, full.vodOffset || 0, webview);
           }
