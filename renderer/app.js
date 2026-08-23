@@ -3337,9 +3337,16 @@
   }
 
   function completeSetup() {
-    collectSetupSettings();
-    localStorage.setItem("paceman_setup_complete", "true");
-    if (setupOverlay) setupOverlay.classList.remove("visible");
+    try {
+      console.log("completeSetup called");
+      collectSetupSettings();
+      localStorage.setItem("paceman_setup_complete", "true");
+      if (setupOverlay) setupOverlay.classList.remove("visible");
+      showPage("home");
+      console.log("completeSetup finished");
+    } catch (e) {
+      console.error("Setup completion failed:", e);
+    }
   }
 
   if (setupOverlay && !localStorage.getItem("paceman_setup_complete")) {
@@ -3395,6 +3402,7 @@
 
   if (setupNextBtn) {
     setupNextBtn.addEventListener("click", () => {
+      console.log("Setup next clicked, step:", setupStep, "total:", totalSetupSteps);
       if (setupStep < totalSetupSteps) {
         setupStep++;
         showSetupStep(setupStep);
