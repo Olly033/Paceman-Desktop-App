@@ -1292,10 +1292,19 @@
     }
 
     function renderSplits(data) {
+      const eventRta = {};
+      if (Array.isArray(data.eventList)) {
+        for (const ev of data.eventList) {
+          const splitKey = EVENT_TO_SPLIT[ev.eventId.replace("rsg.", "")];
+          if (splitKey && ev.rta != null) {
+            eventRta[splitKey] = ev.rta;
+          }
+        }
+      }
       let html = "";
       for (const split of SPLIT_ORDER) {
         const igt = data[split];
-        const rta = data[split + "Rta"];
+        const rta = data[split + "Rta"] != null ? data[split + "Rta"] : eventRta[split];
         html += `<div class="detail-split" data-igt="${igt != null ? igt : ''}">
           <div class="detail-split-name">${SPLITS[split]}</div>
           <div class="detail-split-times">
