@@ -75,6 +75,7 @@
     pbNotifications: JSON.parse(localStorage.getItem("paceman_settings_pb_notifications") || "true"),
     liveNotifications: JSON.parse(localStorage.getItem("paceman_settings_live_notifications") || "false"),
     notificationSound: JSON.parse(localStorage.getItem("paceman_settings_notification_sound") || "false"),
+    animationsEnabled: JSON.parse(localStorage.getItem("paceman_settings_animations_enabled") || "true"),
   };
 
   const autoOpenedStreams = new Set();
@@ -799,7 +800,7 @@
     });
     if (!uuid) uuid = await resolveUUID(name);
     state.profile.uuid = uuid;
-    if (uuid && headContainer) renderHead3D(headContainer, uuid);
+    if (uuid && headContainer) renderHeadForProfile(headContainer, uuid);
     addRecent(name);
     await Promise.all([loadProfileStats(), loadProfileRuns(), loadProfileSocials(name)]);
     await loadTwitchFromRuns(name);
@@ -1723,6 +1724,14 @@
     overlayScene.style.transform = "scale(1.05)";
     container.appendChild(overlayScene);
     container.style.perspective = "800px";
+  }
+
+  function renderHeadForProfile(container, id) {
+    if (settings.animationsEnabled) {
+      renderHead3D(container, id);
+    } else {
+      renderHead3DStatic(container, id);
+    }
   }
 
   /* ---------------- Leaderboard ---------------- */
@@ -3102,7 +3111,7 @@
     });
     const debouncedResizeHead = debounce(() => {
       if (state.profile.uuid && document.getElementById("page-profile").classList.contains("active")) {
-        renderHead3D(document.getElementById("head3dContainer"), state.profile.uuid);
+        renderHeadForProfile(document.getElementById("head3dContainer"), state.profile.uuid);
       }
     }, 200);
     window.addEventListener("resize", debouncedResizeHead);
@@ -3128,6 +3137,80 @@
       devClosePanelBtn.addEventListener("click", toggleDevMode);
     }
 
+    const applyAnimationsSetting = () => {
+      if (settings.animationsEnabled) {
+        document.body.classList.remove("no-animations");
+      } else {
+        document.body.classList.add("no-animations");
+      }
+    };
+
+    const exportFavBtn = document.getElementById("settingExportFav");
+    if (exportFavBtn) {
+      exportFavBtn.addEventListener("click", async () => {
+        const data = {
+          favorites: state.favorites,
+          favoritePBs: state.favoritePBs,
+          exportedAt: new Date().toISOString(),
+        };
+        if (window.pacemanAPI && window.pacemanAPI.showSaveDialog) {
+          const result = await window.pacemanAPI.showSaveDialog({
+            title: "Export favorites",
+            defaultPath: "paceman-favorites.json",
+            filters: [{ name: "JSON", extensions: ["json"] }],
+          });
+          if (!result.canceled && result.filePath) {
+            const writeResult = await window.pacemanAPI.writeFile(result.filePath, JSON.stringify(data, null, 2));
+            if (!writeResult || !writeResult.success) {
+              alert("Failed to save file: " + (writeResult ? writeResult.error : "unknown error"));
+            }
+          }
+        }
+      });
+    }
+
+    const importFavBtn = document.getElementById("settingImportFav");
+    if (importFavBtn) {
+      importFavBtn.addEventListener("click", async () => {
+        if (window.pacemanAPI && window.pacemanAPI.showOpenDialog) {
+          const result = await window.pacemanAPI.showOpenDialog({
+            title: "Import favorites",
+            filters: [{ name: "JSON", extensions: ["json"] }],
+            properties: ["openFile"],
+          });
+          if (!result.canceled && result.filePaths && result.filePaths[0]) {
+            const readResult = await window.pacemanAPI.readFile(result.filePaths[0]);
+            if (readResult && readResult.success) {
+              const data = JSON.parse(readResult.data);
+              if (Array.isArray(data.favorites)) {
+                state.favorites = Array.from(new Set([...state.favorites, ...data.favorites]));
+                localStorage.setItem("paceman_favorites", JSON.stringify(state.favorites));
+              }
+              if (data.favoritePBs && typeof data.favoritePBs === "object") {
+                state.favoritePBs = { ...state.favoritePBs, ...data.favoritePBs };
+                localStorage.setItem("paceman_favorite_pbs", JSON.stringify(state.favoritePBs));
+              }
+              alert("Favorites imported.");
+            } else {
+              alert("Failed to read file: " + (readResult ? readResult.error : "unknown error"));
+            }
+          }
+        }
+      });
+    }
+
+    const clearCacheBtn = document.getElementById("settingClearCache");
+    if (clearCacheBtn) {
+      clearCacheBtn.addEventListener("click", async () => {
+        if (!confirm("Clear all local cache and history? This cannot be undone.")) return;
+        localStorage.clear();
+        if (window.pacemanAPI && window.pacemanAPI.clearCache) {
+          await window.pacemanAPI.clearCache();
+        }
+        location.reload();
+      });
+    }
+
     const settingsOverlay = document.getElementById("settingsOverlay");
     const settingsBtn = document.getElementById("settingsBtn");
     const closeSettingsBtn = document.getElementById("closeSettings");
@@ -3137,9 +3220,11 @@
       const pbToggle = document.getElementById("settingPbNotifications");
       const liveToggle = document.getElementById("settingLiveNotifications");
       const soundToggle = document.getElementById("settingNotificationSound");
+      const animationsToggle = document.getElementById("settingAnimations");
       if (pbToggle) pbToggle.checked = settings.pbNotifications;
       if (liveToggle) liveToggle.checked = settings.liveNotifications;
       if (soundToggle) soundToggle.checked = settings.notificationSound;
+      if (animationsToggle) animationsToggle.checked = settings.animationsEnabled;
       settingsOverlay.classList.add("visible");
     };
 
@@ -3149,12 +3234,16 @@
       const pbToggle = document.getElementById("settingPbNotifications");
       const liveToggle = document.getElementById("settingLiveNotifications");
       const soundToggle = document.getElementById("settingNotificationSound");
+      const animationsToggle = document.getElementById("settingAnimations");
       if (pbToggle) settings.pbNotifications = pbToggle.checked;
       if (liveToggle) settings.liveNotifications = liveToggle.checked;
       if (soundToggle) settings.notificationSound = soundToggle.checked;
+      if (animationsToggle) settings.animationsEnabled = animationsToggle.checked;
       localStorage.setItem("paceman_settings_pb_notifications", settings.pbNotifications);
       localStorage.setItem("paceman_settings_live_notifications", settings.liveNotifications);
       localStorage.setItem("paceman_settings_notification_sound", settings.notificationSound);
+      localStorage.setItem("paceman_settings_animations_enabled", settings.animationsEnabled);
+      applyAnimationsSetting();
     };
 
     if (settingsBtn) {
@@ -3213,6 +3302,7 @@
         toggleDevMode();
       }
     });
+    applyAnimationsSetting();
   }
 
   if (document.readyState === "loading") {

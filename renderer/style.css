@@ -2642,6 +2642,26 @@ input[type="range"]::-moz-range-thumb {
   color: var(--accent-light);
 }
 
+.settings-action-danger {
+  border-color: #5c2a2a;
+  color: #f87171;
+}
+
+.settings-action-danger:hover {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: #f87171;
+  color: #fca5a5;
+}
+
+.no-animations *,
+.no-animations *::before,
+.no-animations *::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}
+
 /* All runs split rows */
 .run-row {
   padding: 14px 16px;

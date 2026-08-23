@@ -453,6 +453,30 @@
           </div>
         </div>
         <div class="settings-section">
+          <h3>Data</h3>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-title">Export favorites</div>
+              <div class="settings-row-desc">Save your favorites to a JSON file</div>
+            </div>
+            <button class="settings-action-btn" id="settingExportFav">Export</button>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-title">Import favorites</div>
+              <div class="settings-row-desc">Load favorites from a JSON file</div>
+            </div>
+            <button class="settings-action-btn" id="settingImportFav">Import</button>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-title">Clear cache / history</div>
+              <div class="settings-row-desc">Remove local data and reload the app</div>
+            </div>
+            <button class="settings-action-btn settings-action-danger" id="settingClearCache">Clear</button>
+          </div>
+        </div>
+        <div class="settings-section">
           <h3>Appearance</h3>
           <div class="settings-row">
             <div class="settings-row-text">
@@ -460,6 +484,16 @@
               <div class="settings-row-desc">Choose a color theme</div>
             </div>
             <select id="settingTheme" class="settings-select"></select>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-title">Animations</div>
+              <div class="settings-row-desc">Disable 3D skin rotation and transitions</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="settingAnimations">
+              <span class="toggle-slider"></span>
+            </label>
           </div>
         </div>
         <div class="settings-section">

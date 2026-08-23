@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, Menu, session } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Menu, session, dialog } = require('electron');
 const path = require('path');
 const https = require('https');
 const http = require('http');
@@ -427,4 +427,41 @@ ipcMain.handle('get-protocol-args', async () => {
   const args = pendingProtocolArgs;
   pendingProtocolArgs = null;
   return args ? { ...args, consumed: true } : null;
+});
+
+ipcMain.handle('show-save-dialog', async (event, opts) => {
+  const result = await dialog.showSaveDialog(win, opts || {});
+  return result;
+});
+
+ipcMain.handle('show-open-dialog', async (event, opts) => {
+  const result = await dialog.showOpenDialog(win, opts || {});
+  return result;
+});
+
+ipcMain.handle('read-file', async (event, filePath) => {
+  try {
+    const data = fs.readFileSync(filePath, 'utf8');
+    return { success: true, data };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('write-file', async (event, filePath, data) => {
+  try {
+    fs.writeFileSync(filePath, data, 'utf8');
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('clear-cache', async () => {
+  try {
+    await session.defaultSession.clearCache();
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
 });

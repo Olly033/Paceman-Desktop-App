@@ -6,7 +6,12 @@ contextBridge.exposeInMainWorld('pacemanAPI', {
   cancelDownloadVod: (downloadId) => ipcRenderer.invoke('cancel-download-vod', downloadId),
   fetchJSON: (url) => ipcRenderer.invoke('fetch-json', url),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
-  getProtocolArgs: () => ipcRenderer.invoke('get-protocol-args')
+  getProtocolArgs: () => ipcRenderer.invoke('get-protocol-args'),
+  showSaveDialog: (opts) => ipcRenderer.invoke('show-save-dialog', opts),
+  showOpenDialog: (opts) => ipcRenderer.invoke('show-open-dialog', opts),
+  readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
+  writeFile: (filePath, data) => ipcRenderer.invoke('write-file', filePath, data),
+  clearCache: () => ipcRenderer.invoke('clear-cache')
 });
 
 ipcRenderer.on('protocol-args', (event, args) => {
