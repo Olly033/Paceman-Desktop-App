@@ -3364,6 +3364,43 @@
       });
     }
 
+    const previewNotificationBtn = document.getElementById("settingPreviewNotification");
+    if (previewNotificationBtn) {
+      previewNotificationBtn.addEventListener("click", () => {
+        if (!("Notification" in window)) {
+          alert("Notifications are not supported in this browser.");
+          return;
+        }
+        if (Notification.permission === "granted") {
+          const notif = new Notification("Paceman Preview", {
+            body: "This is how Paceman notifications will look and sound.",
+            icon: "https://mc-heads.net/avatar/Paceman/64",
+          });
+          if (notif) {
+            notif.onclick = () => window.focus();
+            playNotificationSound();
+          }
+        } else if (Notification.permission !== "denied") {
+          Notification.requestPermission().then((perm) => {
+            if (perm === "granted") {
+              const notif = new Notification("Paceman Preview", {
+                body: "This is how Paceman notifications will look and sound.",
+                icon: "https://mc-heads.net/avatar/Paceman/64",
+              });
+              if (notif) {
+                notif.onclick = () => window.focus();
+                playNotificationSound();
+              }
+            } else {
+              alert("Notification permission denied. Please enable notifications in your system settings.");
+            }
+          });
+        } else {
+          alert("Notifications are blocked. Please enable notifications in your system settings.");
+        }
+      });
+    }
+
     const checkUpdateBtn = document.getElementById("settingCheckUpdate");
     if (checkUpdateBtn) {
       checkUpdateBtn.addEventListener("click", async () => {
