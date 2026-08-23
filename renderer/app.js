@@ -2004,6 +2004,51 @@
     });
   }
 
+  function initCustomSelect(id, onChange) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const trigger = el.querySelector(".custom-select-trigger");
+    const options = el.querySelectorAll(".custom-select-option");
+    el._currentValue = null;
+    Object.defineProperty(el, "value", {
+      get() { return el._currentValue; },
+      set(val) {
+        el._currentValue = val;
+        const opt = el.querySelector(`.custom-select-option[data-value="${val}"]`);
+        if (opt) {
+          options.forEach((o) => o.classList.remove("selected"));
+          opt.classList.add("selected");
+          if (trigger) trigger.textContent = opt.textContent;
+        }
+      },
+    });
+    const open = () => {
+      document.querySelectorAll(".custom-select.open").forEach((c) => c.classList.remove("open"));
+      el.classList.add("open");
+    };
+    const close = () => el.classList.remove("open");
+    const select = (opt) => {
+      options.forEach((o) => o.classList.remove("selected"));
+      opt.classList.add("selected");
+      if (trigger) trigger.textContent = opt.textContent;
+      el._currentValue = opt.dataset.value;
+      close();
+      if (onChange) onChange(opt.dataset.value);
+    };
+    if (trigger) trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      el.classList.contains("open") ? close() : open();
+    });
+    options.forEach((opt) => opt.addEventListener("click", (e) => {
+      e.stopPropagation();
+      select(opt);
+    }));
+    document.addEventListener("click", () => close());
+    const initialOpt = el.querySelector(".custom-select-option.selected");
+    if (initialOpt) el._currentValue = initialOpt.dataset.value;
+    return el;
+  }
+
   function initThemes() {
     const opts = document.getElementById("themeOptions");
     if (opts) {
@@ -2021,17 +2066,12 @@
     
     const themeSelect = document.getElementById("settingTheme");
     if (themeSelect) {
-      themeSelect.innerHTML = "";
-      for (const t of THEMES) {
-        const opt = document.createElement("option");
-        opt.value = t.name;
-        opt.textContent = t.label;
-        themeSelect.appendChild(opt);
-      }
-      themeSelect.value = localStorage.getItem("paceman_theme") || THEMES[0].name;
-      themeSelect.addEventListener("change", () => {
-        applyTheme(themeSelect.value);
-      });
+      const currentTheme = localStorage.getItem("paceman_theme") || THEMES[0].name;
+      themeSelect.value = currentTheme;
+      const trigger = themeSelect.querySelector(".custom-select-trigger");
+      const selectedOpt = themeSelect.querySelector(`.custom-select-option[data-value="${currentTheme}"]`);
+      if (selectedOpt && trigger) trigger.textContent = selectedOpt.textContent;
+      initCustomSelect("settingTheme", (val) => applyTheme(val));
     }
     
     applyTheme(localStorage.getItem("paceman_theme") || THEMES[0].name);
@@ -2142,14 +2182,11 @@
       document.getElementById("allRunsModal").classList.add("visible");
       renderAllRunsPage();
     });
-    const allRunsSort = document.getElementById("allRunsSort");
-    if (allRunsSort) {
-      allRunsSort.addEventListener("change", () => {
-        state.profile.allRunsSort = allRunsSort.value;
-        state.profile.page = 1;
-        renderAllRunsPage();
-      });
-    }
+    initCustomSelect("allRunsSort", (val) => {
+      state.profile.allRunsSort = val;
+      state.profile.page = 1;
+      renderAllRunsPage();
+    });
     document.getElementById("closeAllRuns").addEventListener("click", () => {
       document.getElementById("allRunsModal").classList.remove("visible");
     });
@@ -2656,12 +2693,9 @@
         }
       });
     }
-    const chartStatSelect = document.getElementById("chartStatSelect");
-    if (chartStatSelect) {
-      chartStatSelect.addEventListener("change", () => {
-        renderRunHistoryChart();
-      });
-    }
+    initCustomSelect("chartStatSelect", () => {
+      renderRunHistoryChart();
+    });
     const chartToggleBtn = document.getElementById("chartToggleBtn");
     if (chartToggleBtn) {
       chartToggleBtn.addEventListener("click", () => {
@@ -2718,7 +2752,26 @@
           for (const key of SPLIT_ORDER) {
             const s = stats[key] || { count: 0, avg: "0:00" };
             if (s.count > 0) {
-              text += `${SPLITS[key]}: ${s.count}x avg ${s.avg}\n`;
+              let label = SPLITS[key];
+              if (key === "bastion" || key === "fortress") {
+                const runs = state.profile.timeframeRuns || state.profile.allRuns || [];
+                let bastionFirst = 0;
+                let fortressFirst = 0;
+                for (const r of runs) {
+                  if (r.bastion != null && r.fortress != null) {
+                    if (r.bastion < r.fortress) bastionFirst++;
+                    else if (r.fortress < r.bastion) fortressFirst++;
+                  }
+                }
+                if (bastionFirst > 0 || fortressFirst > 0) {
+                  if (key === "bastion") {
+                    label = bastionFirst >= fortressFirst ? "First Structure" : "Second Structure";
+                  } else {
+                    label = fortressFirst >= bastionFirst ? "First Structure" : "Second Structure";
+                  }
+                }
+              }
+              text += `${label}: ${s.count}x avg ${s.avg}\n`;
             }
           }
           if (tf === "session" && nph) {

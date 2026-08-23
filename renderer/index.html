@@ -19,9 +19,9 @@
       <div class="header-left">
         <div class="logo">PACEMAN</div>
         <nav class="nav">
-          <button class="nav-btn active" data-page="home">Live Runs</button>
+          <button class="nav-btn active" data-page="leaderboard">Leaderboard</button>
+          <button class="nav-btn" data-page="home">Live Runs</button>
           <button class="nav-btn" data-page="favorites">Favorites</button>
-          <button class="nav-btn" data-page="leaderboard">Leaderboard</button>
         </nav>
       </div>
       <div class="header-right">
@@ -71,7 +71,23 @@
     </div>
 
     <main class="main-content">
-      <div class="page active" id="page-home">
+      <div class="page active" id="page-leaderboard">
+        <div class="page-header">
+          <h1>Leaderboard</h1>
+          <div class="timeframe-tabs" id="leaderboardTimeframes">
+            <button class="timeframe-btn" data-tf="daily">Daily</button>
+            <button class="timeframe-btn active" data-tf="weekly">Weekly</button>
+            <button class="timeframe-btn" data-tf="monthly">Monthly</button>
+            <button class="timeframe-btn" data-tf="lifetime">Lifetime</button>
+          </div>
+          <div class="lb-sort-toggle" id="lbSortToggle">
+            <button class="lb-sort-btn active" data-sort="enters">Enters</button>
+            <button class="lb-sort-btn" data-sort="avg">Avg Time</button>
+          </div>
+        </div>
+        <div class="lb-grid" id="leaderboardGrid"></div>
+      </div>
+      <div class="page" id="page-home">
         <div class="page-header">
           <h1>Live Runs</h1>
           <div class="page-header-actions">
@@ -174,12 +190,15 @@
             <div class="modal-header">
               <h2>All Runs</h2>
               <div class="modal-header-actions">
-                <select class="all-runs-sort" id="allRunsSort">
-                  <option value="newest">Newest</option>
-                  <option value="oldest">Oldest</option>
-                  <option value="fastest">Fastest</option>
-                  <option value="slowest">Slowest</option>
-                </select>
+                <div class="custom-select" id="allRunsSort">
+                  <div class="custom-select-trigger">Newest</div>
+                  <div class="custom-select-options">
+                    <div class="custom-select-option selected" data-value="newest">Newest</div>
+                    <div class="custom-select-option" data-value="oldest">Oldest</div>
+                    <div class="custom-select-option" data-value="fastest">Fastest</div>
+                    <div class="custom-select-option" data-value="slowest">Slowest</div>
+                  </div>
+                </div>
                 <button class="modal-close" id="closeAllRuns">&times;</button>
               </div>
             </div>
@@ -214,15 +233,18 @@
         <div class="profile-chart" id="profileChart">
           <h3>Run History</h3>
           <div class="chart-controls">
-            <select class="chart-stat-select" id="chartStatSelect">
-              <option value="finish">Completion</option>
-              <option value="nether">Nether</option>
-              <option value="bastion">Bastion</option>
-              <option value="fortress">Fortress</option>
-              <option value="first_portal">Blind Portal</option>
-              <option value="stronghold">Stronghold</option>
-              <option value="end">End</option>
-            </select>
+            <div class="custom-select" id="chartStatSelect">
+              <div class="custom-select-trigger">Completion</div>
+              <div class="custom-select-options">
+                <div class="custom-select-option selected" data-value="finish">Completion</div>
+                <div class="custom-select-option" data-value="nether">Nether</div>
+                <div class="custom-select-option" data-value="bastion">Bastion</div>
+                <div class="custom-select-option" data-value="fortress">Fortress</div>
+                <div class="custom-select-option" data-value="first_portal">Blind Portal</div>
+                <div class="custom-select-option" data-value="stronghold">Stronghold</div>
+                <div class="custom-select-option" data-value="end">End</div>
+              </div>
+            </div>
             <button class="chart-toggle-btn" id="chartToggleBtn" title="Toggle chart visibility">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -230,28 +252,11 @@
               </svg>
             </button>
           </div>
-          <div class="chart-container" id="chartContainer"></div>
-        </div>
-    </div>
-  </div>
-
-        <div class="page" id="page-leaderboard">
-          <div class="page-header">
-            <h1>Leaderboard</h1>
-            <div class="timeframe-tabs" id="leaderboardTimeframes">
-              <button class="timeframe-btn" data-tf="daily">Daily</button>
-              <button class="timeframe-btn active" data-tf="weekly">Weekly</button>
-              <button class="timeframe-btn" data-tf="monthly">Monthly</button>
-              <button class="timeframe-btn" data-tf="lifetime">Lifetime</button>
-            </div>
-            <div class="lb-sort-toggle" id="lbSortToggle">
-              <button class="lb-sort-btn active" data-sort="enters">Enters</button>
-              <button class="lb-sort-btn" data-sort="avg">Avg Time</button>
-            </div>
-          </div>
-          <div class="lb-grid" id="leaderboardGrid"></div>
-        </div>
-    </main>
+           <div class="chart-container" id="chartContainer"></div>
+         </div>
+     </div>
+   </div>
+     </main>
 
     <footer class="app-footer" id="appFooter">
       <span>Powered by <a class="footer-link" href="https://paceman.gg" target="_blank" rel="noopener noreferrer">paceman.gg</a></span>
@@ -483,7 +488,17 @@
               <div class="settings-row-title">Theme</div>
               <div class="settings-row-desc">Choose a color theme</div>
             </div>
-            <select id="settingTheme" class="settings-select"></select>
+            <div class="custom-select" id="settingTheme">
+              <div class="custom-select-trigger">Amethyst</div>
+              <div class="custom-select-options">
+                <div class="custom-select-option selected" data-value="amethyst">Amethyst</div>
+                <div class="custom-select-option" data-value="ocean">Ocean</div>
+                <div class="custom-select-option" data-value="emerald">Emerald</div>
+                <div class="custom-select-option" data-value="sunset">Sunset</div>
+                <div class="custom-select-option" data-value="blackout">Blackout</div>
+                <div class="custom-select-option" data-value="light">Light</div>
+              </div>
+            </div>
           </div>
           <div class="settings-row">
             <div class="settings-row-text">
