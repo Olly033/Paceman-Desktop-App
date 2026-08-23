@@ -3342,12 +3342,22 @@
       collectSetupSettings();
       localStorage.setItem("paceman_setup_complete", "true");
       if (setupOverlay) setupOverlay.classList.remove("visible");
-      showPage("home");
-      console.log("completeSetup finished");
+      setTimeout(() => location.reload(), 100);
     } catch (e) {
       console.error("Setup completion failed:", e);
+      localStorage.setItem("paceman_setup_complete", "true");
+      if (setupOverlay) setupOverlay.classList.remove("visible");
+      setTimeout(() => location.reload(), 100);
     }
   }
+
+  // Fallback: force-show setup if it should be visible but isn't
+  window.addEventListener("load", () => {
+    if (!localStorage.getItem("paceman_setup_complete") && setupOverlay) {
+      console.log("Fallback: showing setup overlay on window load");
+      setTimeout(() => setupOverlay.classList.add("visible"), 300);
+    }
+  });
 
   if (setupOverlay && !localStorage.getItem("paceman_setup_complete")) {
     const THEMES = [
@@ -3376,7 +3386,9 @@
       if (defaultOption) defaultOption.classList.add("selected");
     }
     showSetupStep(1);
-    setupOverlay.classList.add("visible");
+    setTimeout(() => {
+      if (setupOverlay) setupOverlay.classList.add("visible");
+    }, 100);
   }
 
   const setupCloseBtn = document.getElementById("setupCloseBtn");
