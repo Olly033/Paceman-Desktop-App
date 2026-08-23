@@ -2642,6 +2642,23 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
+.settings-sound-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-volume-slider {
+  width: 100px;
+  height: 6px;
+}
+
+.settings-action-small {
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 6px;
+}
+
 .settings-action-btn {
   padding: 6px 14px;
   border-radius: 8px;

@@ -451,10 +451,14 @@
               <div class="settings-row-title">Notification sound</div>
               <div class="settings-row-desc">Play a sound with notifications</div>
             </div>
-            <label class="toggle">
-              <input type="checkbox" id="settingNotificationSound">
-              <span class="toggle-slider"></span>
-            </label>
+            <div class="settings-sound-controls">
+              <label class="toggle">
+                <input type="checkbox" id="settingNotificationSound">
+                <span class="toggle-slider"></span>
+              </label>
+              <input type="range" id="settingNotificationVolume" min="0" max="1" step="0.05" value="0.5" class="settings-volume-slider">
+              <button class="settings-action-btn settings-action-small" id="settingPreviewSound">Preview</button>
+            </div>
           </div>
         </div>
         <div class="settings-section">

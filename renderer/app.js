@@ -75,6 +75,7 @@
     pbNotifications: JSON.parse(localStorage.getItem("paceman_settings_pb_notifications") || "true"),
     liveNotifications: JSON.parse(localStorage.getItem("paceman_settings_live_notifications") || "false"),
     notificationSound: JSON.parse(localStorage.getItem("paceman_settings_notification_sound") || "false"),
+    notificationVolume: parseFloat(localStorage.getItem("paceman_settings_notification_volume") || "0.5"),
     animationsEnabled: JSON.parse(localStorage.getItem("paceman_settings_animations_enabled") || "true"),
   };
 
@@ -88,6 +89,29 @@
   let currentDownloadId = null;
   let splitDetailState = { split: null, runs: [], page: 1, perPage: 10, sortAsc: true };
   let vodTrimState = { active: false, timelineStart: 0, timelineDuration: 0, selectionStart: 0, selectionEnd: 0 };
+
+  function playNotificationSound() {
+    if (!settings.notificationSound) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const volume = Math.max(0, Math.min(1, settings.notificationVolume || 0.5));
+      const now = ctx.currentTime;
+      [523.25, 659.25].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(volume * 0.3, now + i * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.12 + 0.15);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.12);
+        osc.stop(now + i * 0.12 + 0.2);
+      });
+    } catch (e) {
+      console.warn("Notification sound failed", e);
+    }
+  }
 
   const formatTime = (totalSeconds) => {
     const s = Math.max(0, Math.floor(totalSeconds));
@@ -1011,6 +1035,7 @@
             icon: "https://mc-heads.net/avatar/" + (state.profile.uuid || name) + "/64",
           });
           if (notif) notif.onclick = () => openProfile(name, state.profile.uuid);
+          playNotificationSound();
         }
       }
       if (generation !== profileRunsGeneration) return;
@@ -3273,10 +3298,12 @@
       const liveToggle = document.getElementById("settingLiveNotifications");
       const soundToggle = document.getElementById("settingNotificationSound");
       const animationsToggle = document.getElementById("settingAnimations");
+      const volumeSlider = document.getElementById("settingNotificationVolume");
       if (pbToggle) pbToggle.checked = settings.pbNotifications;
       if (liveToggle) liveToggle.checked = settings.liveNotifications;
       if (soundToggle) soundToggle.checked = settings.notificationSound;
       if (animationsToggle) animationsToggle.checked = settings.animationsEnabled;
+      if (volumeSlider) volumeSlider.value = settings.notificationVolume;
       settingsOverlay.classList.add("visible");
     };
 
@@ -3287,13 +3314,16 @@
       const liveToggle = document.getElementById("settingLiveNotifications");
       const soundToggle = document.getElementById("settingNotificationSound");
       const animationsToggle = document.getElementById("settingAnimations");
+      const volumeSlider = document.getElementById("settingNotificationVolume");
       if (pbToggle) settings.pbNotifications = pbToggle.checked;
       if (liveToggle) settings.liveNotifications = liveToggle.checked;
       if (soundToggle) settings.notificationSound = soundToggle.checked;
       if (animationsToggle) settings.animationsEnabled = animationsToggle.checked;
+      if (volumeSlider) settings.notificationVolume = parseFloat(volumeSlider.value);
       localStorage.setItem("paceman_settings_pb_notifications", settings.pbNotifications);
       localStorage.setItem("paceman_settings_live_notifications", settings.liveNotifications);
       localStorage.setItem("paceman_settings_notification_sound", settings.notificationSound);
+      localStorage.setItem("paceman_settings_notification_volume", settings.notificationVolume);
       localStorage.setItem("paceman_settings_animations_enabled", settings.animationsEnabled);
       applyAnimationsSetting();
     };
@@ -3316,6 +3346,21 @@
         settings.animationsEnabled = animationsToggle.checked;
         localStorage.setItem("paceman_settings_animations_enabled", settings.animationsEnabled);
         applyAnimationsSetting();
+      });
+    }
+
+    const volumeSlider = document.getElementById("settingNotificationVolume");
+    if (volumeSlider) {
+      volumeSlider.value = settings.notificationVolume;
+      volumeSlider.addEventListener("input", () => {
+        settings.notificationVolume = parseFloat(volumeSlider.value);
+        localStorage.setItem("paceman_settings_notification_volume", settings.notificationVolume);
+      });
+    }
+    const previewSoundBtn = document.getElementById("settingPreviewSound");
+    if (previewSoundBtn) {
+      previewSoundBtn.addEventListener("click", () => {
+        playNotificationSound();
       });
     }
 
@@ -3522,6 +3567,7 @@
         pbNotifications: settings.pbNotifications,
         liveNotifications: settings.liveNotifications,
         notificationSound: settings.notificationSound,
+        notificationVolume: settings.notificationVolume,
         animationsEnabled: settings.animationsEnabled,
         autoOpenTwitch: state.autoOpenTwitch,
         favorites: state.favorites,
@@ -3573,6 +3619,10 @@
             if (typeof data.notificationSound === "boolean") {
               settings.notificationSound = data.notificationSound;
               localStorage.setItem("paceman_settings_notification_sound", data.notificationSound);
+            }
+            if (typeof data.notificationVolume === "number") {
+              settings.notificationVolume = data.notificationVolume;
+              localStorage.setItem("paceman_settings_notification_volume", data.notificationVolume);
             }
             if (typeof data.animationsEnabled === "boolean") {
               settings.animationsEnabled = data.animationsEnabled;
