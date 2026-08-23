@@ -3372,6 +3372,27 @@
     setupOverlay.classList.add("visible");
   }
 
+  const setupCloseBtn = document.getElementById("setupCloseBtn");
+  if (setupCloseBtn) {
+    setupCloseBtn.addEventListener("click", () => {
+      completeSetup();
+    });
+  }
+
+  if (setupOverlay) {
+    setupOverlay.addEventListener("click", (e) => {
+      if (e.target === setupOverlay) {
+        completeSetup();
+      }
+    });
+  }
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && setupOverlay && setupOverlay.classList.contains("visible")) {
+      completeSetup();
+    }
+  });
+
   if (setupNextBtn) {
     setupNextBtn.addEventListener("click", () => {
       if (setupStep < totalSetupSteps) {
