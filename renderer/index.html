@@ -505,7 +505,96 @@
             </div>
             <button class="settings-action-btn" id="settingCheckUpdate">Check for Updates</button>
           </div>
+        <div class="settings-section">
+          <h3>Preferences</h3>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-title">Export preferences</div>
+              <div class="settings-row-desc">Save all settings to a JSON file</div>
+            </div>
+            <button class="settings-action-btn" id="settingExportPrefs">Export</button>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-title">Import preferences</div>
+              <div class="settings-row-desc">Load settings from a JSON file</div>
+            </div>
+            <button class="settings-action-btn" id="settingImportPrefs">Import</button>
+          </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="setup-overlay" id="setupOverlay">
+    <div class="setup-card">
+      <div class="setup-header">
+        <div class="setup-logo">PACEMAN</div>
+        <h1 class="setup-title">Welcome to Paceman</h1>
+        <p class="setup-subtitle">Let's get you set up in just a few steps</p>
+      </div>
+      <div class="setup-body">
+        <div class="setup-step" data-step="1">
+          <div class="setup-step-title">Choose your theme</div>
+          <div class="setup-theme-grid" id="setupThemeGrid"></div>
+        </div>
+        <div class="setup-step" data-step="2">
+          <div class="setup-step-title">Notification preferences</div>
+          <div class="setup-toggle-row">
+            <div class="setup-toggle-text">
+              <div class="setup-toggle-title">Personal best alerts</div>
+              <div class="setup-toggle-desc">Notify when a favorited player gets a new PB</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="setupPbNotifications" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setup-toggle-row">
+            <div class="setup-toggle-text">
+              <div class="setup-toggle-title">Live run alerts</div>
+              <div class="setup-toggle-desc">Notify when a favorited player starts a run</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="setupLiveNotifications">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setup-toggle-row">
+            <div class="setup-toggle-text">
+              <div class="setup-toggle-title">Notification sound</div>
+              <div class="setup-toggle-desc">Play a sound with notifications</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="setupNotificationSound">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="setup-step" data-step="3">
+          <div class="setup-step-title">Experience</div>
+          <div class="setup-toggle-row">
+            <div class="setup-toggle-text">
+              <div class="setup-toggle-title">Animations</div>
+              <div class="setup-toggle-desc">Enable 3D skin rotation and smooth transitions</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="setupAnimations" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="setup-step" data-step="4">
+          <div class="setup-step-title">Import favorites</div>
+          <p class="setup-import-desc">Already have favorites? Import them from a file, or skip to add them later.</p>
+          <div class="setup-import-actions">
+            <button class="setup-btn setup-btn-secondary" id="setupImportFav">Import favorites</button>
+            <button class="setup-btn setup-btn-primary" id="setupSkip">Skip</button>
+          </div>
+        </div>
+      </div>
+      <div class="setup-footer">
+        <button class="setup-btn setup-btn-primary" id="setupNext">Next</button>
       </div>
     </div>
   </div>

@@ -3305,6 +3305,207 @@
     applyAnimationsSetting();
   }
 
+  const setupOverlay = document.getElementById("setupOverlay");
+  const setupNextBtn = document.getElementById("setupNext");
+  const setupSkipBtn = document.getElementById("setupSkip");
+  const setupImportFavBtn = document.getElementById("setupImportFav");
+  const setupThemeGrid = document.getElementById("setupThemeGrid");
+  let setupStep = 1;
+  const totalSetupSteps = 4;
+
+  function showSetupStep(step) {
+    document.querySelectorAll(".setup-step").forEach((el) => el.classList.remove("active"));
+    const stepEl = document.querySelector(`.setup-step[data-step="${step}"]`);
+    if (stepEl) stepEl.classList.add("active");
+    setupNextBtn.textContent = step === totalSetupSteps ? "Finish" : "Next";
+  }
+
+  function collectSetupSettings() {
+    const themeEl = document.querySelector(".setup-theme-option.selected");
+    const theme = themeEl ? themeEl.dataset.theme : localStorage.getItem("paceman_theme") || "amethyst";
+    settings.pbNotifications = document.getElementById("setupPbNotifications").checked;
+    settings.liveNotifications = document.getElementById("setupLiveNotifications").checked;
+    settings.notificationSound = document.getElementById("setupNotificationSound").checked;
+    settings.animationsEnabled = document.getElementById("setupAnimations").checked;
+    localStorage.setItem("paceman_theme", theme);
+    localStorage.setItem("paceman_settings_pb_notifications", settings.pbNotifications);
+    localStorage.setItem("paceman_settings_live_notifications", settings.liveNotifications);
+    localStorage.setItem("paceman_settings_notification_sound", settings.notificationSound);
+    localStorage.setItem("paceman_settings_animations_enabled", settings.animationsEnabled);
+    applyTheme(theme);
+    applyAnimationsSetting();
+  }
+
+  function completeSetup() {
+    collectSetupSettings();
+    localStorage.setItem("paceman_setup_complete", "true");
+    if (setupOverlay) setupOverlay.classList.remove("visible");
+  }
+
+  if (setupOverlay && !localStorage.getItem("paceman_setup_complete")) {
+    const THEMES = [
+      { name: "amethyst", label: "Amethyst" },
+      { name: "ocean", label: "Ocean" },
+      { name: "emerald", label: "Emerald" },
+      { name: "sunset", label: "Sunset" },
+      { name: "midnight", label: "Midnight" },
+      { name: "light", label: "Light" },
+    ];
+    if (setupThemeGrid) {
+      setupThemeGrid.innerHTML = THEMES.map((t) => `
+        <div class="setup-theme-option" data-theme="${t.name}">
+          <div class="setup-theme-swatch" style="background: var(--swatch-${t.name});"></div>
+          <div class="setup-theme-label">${t.label}</div>
+        </div>
+      `).join("");
+      setupThemeGrid.addEventListener("click", (e) => {
+        const option = e.target.closest(".setup-theme-option");
+        if (!option) return;
+        setupThemeGrid.querySelectorAll(".setup-theme-option").forEach((o) => o.classList.remove("selected"));
+        option.classList.add("selected");
+      });
+      const defaultTheme = localStorage.getItem("paceman_theme") || "amethyst";
+      const defaultOption = setupThemeGrid.querySelector(`[data-theme="${defaultTheme}"]`);
+      if (defaultOption) defaultOption.classList.add("selected");
+    }
+    showSetupStep(1);
+    setupOverlay.classList.add("visible");
+  }
+
+  if (setupNextBtn) {
+    setupNextBtn.addEventListener("click", () => {
+      if (setupStep < totalSetupSteps) {
+        setupStep++;
+        showSetupStep(setupStep);
+      } else {
+        completeSetup();
+      }
+    });
+  }
+
+  if (setupSkipBtn) {
+    setupSkipBtn.addEventListener("click", () => {
+      completeSetup();
+    });
+  }
+
+  if (setupImportFavBtn) {
+    setupImportFavBtn.addEventListener("click", async () => {
+      if (window.pacemanAPI && window.pacemanAPI.showOpenDialog) {
+        const result = await window.pacemanAPI.showOpenDialog({
+          title: "Import favorites",
+          filters: [{ name: "JSON", extensions: ["json"] }],
+          properties: ["openFile"],
+        });
+        if (!result.canceled && result.filePaths && result.filePaths[0]) {
+          const readResult = await window.pacemanAPI.readFile(result.filePaths[0]);
+          if (readResult && readResult.success) {
+            const data = JSON.parse(readResult.data);
+            if (Array.isArray(data.favorites)) {
+              state.favorites = Array.from(new Set([...state.favorites, ...data.favorites]));
+              localStorage.setItem("paceman_favorites", JSON.stringify(state.favorites));
+            }
+            if (data.favoritePBs && typeof data.favoritePBs === "object") {
+              state.favoritePBs = { ...state.favoritePBs, ...data.favoritePBs };
+              localStorage.setItem("paceman_favorite_pbs", JSON.stringify(state.favoritePBs));
+            }
+          }
+        }
+      }
+      completeSetup();
+    });
+  }
+
+  const exportPrefsBtn = document.getElementById("settingExportPrefs");
+  if (exportPrefsBtn) {
+    exportPrefsBtn.addEventListener("click", async () => {
+      const prefs = {
+        theme: localStorage.getItem("paceman_theme"),
+        pbNotifications: settings.pbNotifications,
+        liveNotifications: settings.liveNotifications,
+        notificationSound: settings.notificationSound,
+        animationsEnabled: settings.animationsEnabled,
+        autoOpenTwitch: state.autoOpenTwitch,
+        favorites: state.favorites,
+        favoritePBs: state.favoritePBs,
+        recents: state.recents,
+        exportedAt: new Date().toISOString(),
+      };
+      if (window.pacemanAPI && window.pacemanAPI.showSaveDialog) {
+        const result = await window.pacemanAPI.showSaveDialog({
+          title: "Export preferences",
+          defaultPath: "paceman-preferences.json",
+          filters: [{ name: "JSON", extensions: ["json"] }],
+        });
+        if (!result.canceled && result.filePath) {
+          const writeResult = await window.pacemanAPI.writeFile(result.filePath, JSON.stringify(prefs, null, 2));
+          if (!writeResult || !writeResult.success) {
+            alert("Failed to save file: " + (writeResult ? writeResult.error : "unknown error"));
+          }
+        }
+      }
+    });
+  }
+
+  const importPrefsBtn = document.getElementById("settingImportPrefs");
+  if (importPrefsBtn) {
+    importPrefsBtn.addEventListener("click", async () => {
+      if (window.pacemanAPI && window.pacemanAPI.showOpenDialog) {
+        const result = await window.pacemanAPI.showOpenDialog({
+          title: "Import preferences",
+          filters: [{ name: "JSON", extensions: ["json"] }],
+          properties: ["openFile"],
+        });
+        if (!result.canceled && result.filePaths && result.filePaths[0]) {
+          const readResult = await window.pacemanAPI.readFile(result.filePaths[0]);
+          if (readResult && readResult.success) {
+            const data = JSON.parse(readResult.data);
+            if (data.theme) {
+              localStorage.setItem("paceman_theme", data.theme);
+              applyTheme(data.theme);
+            }
+            if (typeof data.pbNotifications === "boolean") {
+              settings.pbNotifications = data.pbNotifications;
+              localStorage.setItem("paceman_settings_pb_notifications", data.pbNotifications);
+            }
+            if (typeof data.liveNotifications === "boolean") {
+              settings.liveNotifications = data.liveNotifications;
+              localStorage.setItem("paceman_settings_live_notifications", data.liveNotifications);
+            }
+            if (typeof data.notificationSound === "boolean") {
+              settings.notificationSound = data.notificationSound;
+              localStorage.setItem("paceman_settings_notification_sound", data.notificationSound);
+            }
+            if (typeof data.animationsEnabled === "boolean") {
+              settings.animationsEnabled = data.animationsEnabled;
+              localStorage.setItem("paceman_settings_animations_enabled", data.animationsEnabled);
+            }
+            if (typeof data.autoOpenTwitch === "boolean") {
+              state.autoOpenTwitch = data.autoOpenTwitch;
+              localStorage.setItem("paceman_autoOpenTwitch", data.autoOpenTwitch);
+            }
+            if (Array.isArray(data.favorites)) {
+              state.favorites = Array.from(new Set([...state.favorites, ...data.favorites]));
+              localStorage.setItem("paceman_favorites", JSON.stringify(state.favorites));
+            }
+            if (data.favoritePBs && typeof data.favoritePBs === "object") {
+              state.favoritePBs = { ...state.favoritePBs, ...data.favoritePBs };
+              localStorage.setItem("paceman_favorite_pbs", JSON.stringify(state.favoritePBs));
+            }
+            if (Array.isArray(data.recents)) {
+              state.recents = data.recents.slice(0, 5);
+              localStorage.setItem("paceman_recents", JSON.stringify(state.recents));
+            }
+            alert("Preferences imported. Reloading app...");
+            location.reload();
+          } else {
+            alert("Failed to read file: " + (readResult ? readResult.error : "unknown error"));
+          }
+        }
+      }
+    });
+  }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
   } else {
