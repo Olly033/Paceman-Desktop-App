@@ -74,22 +74,6 @@
       <div class="page active" id="page-home">
         <div class="page-header">
           <h1>Live Runs</h1>
-          <div class="timeframe-tabs" id="leaderboardTimeframes">
-            <button class="timeframe-btn" data-tf="daily">Daily</button>
-            <button class="timeframe-btn active" data-tf="weekly">Weekly</button>
-            <button class="timeframe-btn" data-tf="monthly">Monthly</button>
-            <button class="timeframe-btn" data-tf="lifetime">Lifetime</button>
-          </div>
-          <div class="lb-sort-toggle" id="lbSortToggle">
-            <button class="lb-sort-btn active" data-sort="enters">Enters</button>
-            <button class="lb-sort-btn" data-sort="avg">Avg Time</button>
-          </div>
-        </div>
-        <div class="lb-grid" id="leaderboardGrid"></div>
-      </div>
-      <div class="page" id="page-home">
-        <div class="page-header">
-          <h1>Live Runs</h1>
           <div class="page-header-actions">
             <button class="filter-btn" id="filterBtn" title="Filters">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -102,7 +86,7 @@
                 <path d="M4.93 4.93l1.41 1.41"></path>
                 <path d="M17.66 17.66l1.41 1.41"></path>
                 <path d="M4.93 19.07l1.41-1.41"></path>
-                <path d="M17.66 6.34l1.41-1.41"></path>
+                <path d="M17.66 6.34l1.41 1.41"></path>
               </svg>
             </button>
             <div class="sort-controls" id="liveSort">
@@ -253,10 +237,26 @@
             </button>
           </div>
            <div class="chart-container" id="chartContainer"></div>
-         </div>
-     </div>
-   </div>
-     </main>
+          </div>
+        </div>
+        <div class="page" id="page-leaderboard">
+          <div class="page-header">
+            <h1>Leaderboard</h1>
+            <div class="timeframe-tabs" id="leaderboardTimeframes">
+              <button class="timeframe-btn" data-tf="daily">Daily</button>
+              <button class="timeframe-btn active" data-tf="weekly">Weekly</button>
+              <button class="timeframe-btn" data-tf="monthly">Monthly</button>
+              <button class="timeframe-btn" data-tf="lifetime">Lifetime</button>
+            </div>
+            <div class="lb-sort-toggle" id="lbSortToggle">
+              <button class="lb-sort-btn active" data-sort="enters">Enters</button>
+              <button class="lb-sort-btn" data-sort="avg">Avg Time</button>
+            </div>
+          </div>
+          <div class="lb-grid" id="leaderboardGrid"></div>
+        </div>
+      </div>
+    </main>
 
     <footer class="app-footer" id="appFooter">
       <span>Powered by <a class="footer-link" href="https://paceman.gg" target="_blank" rel="noopener noreferrer">paceman.gg</a></span>

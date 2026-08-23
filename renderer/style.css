@@ -2273,13 +2273,7 @@ body {
   color: var(--accent-light);
 }
 
-.detail-rta {
-  font-weight: 700;
-  font-size: 15px;
-}
-
-.detail-igt small,
-.detail-rta small {
+.detail-igt small {
   color: var(--text-muted);
   font-weight: 500;
   font-size: 11px;
