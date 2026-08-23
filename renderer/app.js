@@ -3143,6 +3143,9 @@
       } else {
         document.body.classList.add("no-animations");
       }
+      if (state.profile.uuid && document.getElementById("page-profile").classList.contains("active")) {
+        renderHeadForProfile(document.getElementById("head3dContainer"), state.profile.uuid);
+      }
     };
 
     const exportFavBtn = document.getElementById("settingExportFav");
@@ -3258,6 +3261,15 @@
       });
     }
 
+    const animationsToggle = document.getElementById("settingAnimations");
+    if (animationsToggle) {
+      animationsToggle.addEventListener("change", () => {
+        settings.animationsEnabled = animationsToggle.checked;
+        localStorage.setItem("paceman_settings_animations_enabled", settings.animationsEnabled);
+        applyAnimationsSetting();
+      });
+    }
+
     const checkUpdateBtn = document.getElementById("settingCheckUpdate");
     if (checkUpdateBtn) {
       checkUpdateBtn.addEventListener("click", async () => {
@@ -3360,14 +3372,6 @@
   });
 
   if (setupOverlay && !localStorage.getItem("paceman_setup_complete")) {
-    const THEMES = [
-      { name: "amethyst", label: "Amethyst" },
-      { name: "ocean", label: "Ocean" },
-      { name: "emerald", label: "Emerald" },
-      { name: "sunset", label: "Sunset" },
-      { name: "midnight", label: "Midnight" },
-      { name: "light", label: "Light" },
-    ];
     if (setupThemeGrid) {
       setupThemeGrid.innerHTML = THEMES.map((t) => `
         <div class="setup-theme-option" data-theme="${t.name}">
@@ -3380,8 +3384,12 @@
         if (!option) return;
         setupThemeGrid.querySelectorAll(".setup-theme-option").forEach((o) => o.classList.remove("selected"));
         option.classList.add("selected");
+        const selectedTheme = option.dataset.theme;
+        if (selectedTheme) {
+          applyTheme(selectedTheme);
+        }
       });
-      const defaultTheme = localStorage.getItem("paceman_theme") || "amethyst";
+      const defaultTheme = localStorage.getItem("paceman_theme") || THEMES[0].name;
       const defaultOption = setupThemeGrid.querySelector(`[data-theme="${defaultTheme}"]`);
       if (defaultOption) defaultOption.classList.add("selected");
     }
