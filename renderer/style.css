@@ -1229,24 +1229,24 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.lb-top50-badge {
+.lb-top10-badge {
   background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 165, 0, 0.1));
   border-color: rgba(255, 215, 0, 0.4);
   color: #ffd700;
   font-weight: 700;
   box-shadow: 0 0 12px rgba(255, 215, 0, 0.2);
-  animation: lbTop50Pulse 2s ease-in-out infinite;
+  animation: lbTop10Pulse 2s ease-in-out infinite;
   position: relative;
   cursor: help;
 }
 
-.lb-top50-badge:hover {
+.lb-top10-badge:hover {
   border-color: #ffd700;
   color: #ffd700;
   box-shadow: 0 0 16px rgba(255, 215, 0, 0.35);
 }
 
-.lb-top50-badge::after {
+.lb-top10-badge::after {
   content: attr(data-tooltip);
   position: absolute;
   bottom: calc(100% + 8px);
@@ -1267,12 +1267,12 @@ body {
   z-index: 1000;
 }
 
-.lb-top50-badge:hover::after {
+.lb-top10-badge:hover::after {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
 
-@keyframes lbTop50Pulse {
+@keyframes lbTop10Pulse {
   0%, 100% { box-shadow: 0 0 8px rgba(255, 215, 0, 0.15); }
   50% { box-shadow: 0 0 16px rgba(255, 215, 0, 0.35); }
 }
