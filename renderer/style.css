@@ -1236,12 +1236,40 @@ body {
   font-weight: 700;
   box-shadow: 0 0 12px rgba(255, 215, 0, 0.2);
   animation: lbTop50Pulse 2s ease-in-out infinite;
+  position: relative;
+  cursor: help;
 }
 
 .lb-top50-badge:hover {
   border-color: #ffd700;
   color: #ffd700;
   box-shadow: 0 0 16px rgba(255, 215, 0, 0.35);
+}
+
+.lb-top50-badge::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: rgba(20, 20, 25, 0.95);
+  color: #ffd700;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+.lb-top50-badge:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 @keyframes lbTop50Pulse {

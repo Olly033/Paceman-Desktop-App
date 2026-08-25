@@ -68,8 +68,7 @@
     favoritePBs: JSON.parse(localStorage.getItem("paceman_favorite_pbs") || "{}"),
     profile: { name: null, uuid: null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null, chartVisible: true, allRunsSort: "newest" },
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
-    dailyLeaderboardTop50: new Set(),
-    dailyLeaderboardTop50: new Set(),
+    dailyLeaderboardTop50: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
   };
 
@@ -850,13 +849,15 @@
       };
     }
     await loadDailyTop50();
-    const isTop50 = state.dailyLeaderboardTop50.has(uuid || name);
+    const isTop50 = state.dailyLeaderboardTop50[uuid || name];
     if (isTop50) {
       const existing = document.getElementById("profileTop50Badge");
       if (!existing && profileStatsRow) {
         const badge = document.createElement("span");
         badge.id = "profileTop50Badge";
         badge.className = "stat-badge lb-top50-badge";
+        const cats = isTop50.map((c) => SPLITS[c] || c).join(", ");
+        badge.setAttribute("data-tooltip", `Top 50 Daily: ${cats}`);
         badge.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right:4px"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Top 50 Daily`;
         profileStatsRow.insertBefore(badge, profileStatsRow.firstChild);
       }
@@ -1810,18 +1811,20 @@
   /* ---------------- Leaderboard ---------------- */
 
   async function loadDailyTop50() {
-    if (state.dailyLeaderboardTop50.size > 0) return;
+    if (Object.keys(state.dailyLeaderboardTop50).length > 0) return;
     try {
       const fetched = await Promise.all(
         LB_CATEGORIES.map((c) =>
           getJSON(`${API}/getLeaderboard?category=${c}&type=count&days=1&limit=50`).catch(() => [])
         )
       );
-      LB_CATEGORIES.forEach((_, i) => {
+      LB_CATEGORIES.forEach((cat, i) => {
         const players = fetched[i] || [];
         for (const p of players) {
           const key = p.uuid || p.name;
-          if (key) state.dailyLeaderboardTop50.add(key);
+          if (!key) continue;
+          if (!state.dailyLeaderboardTop50[key]) state.dailyLeaderboardTop50[key] = [];
+          state.dailyLeaderboardTop50[key].push(cat);
         }
       });
     } catch (e) {
@@ -1862,12 +1865,14 @@
       });
       state.leaderboard.rows = byCat;
       if (tf === "daily") {
-        state.dailyLeaderboardTop50.clear();
+        state.dailyLeaderboardTop50 = {};
         for (const cat of LB_CATEGORIES) {
           const players = byCat[cat] || [];
           for (const p of players) {
             const key = p.uuid || p.name;
-            if (key) state.dailyLeaderboardTop50.add(key);
+            if (!key) continue;
+            if (!state.dailyLeaderboardTop50[key]) state.dailyLeaderboardTop50[key] = [];
+            state.dailyLeaderboardTop50[key].push(cat);
           }
         }
       }
