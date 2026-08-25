@@ -1657,28 +1657,30 @@ body {
 }
 
 .lb-card-rank {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--bg-glass-hover);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 12px;
   flex-shrink: 0;
 }
 
-.lb-card-row:nth-child(1) .lb-card-rank {
+.lb-card-row.lb-rank-1 .lb-card-rank {
   background: linear-gradient(135deg, #FFD700, #FFA500);
   color: #000;
 }
 
-.lb-card-row:nth-child(2) .lb-card-rank {
+.lb-card-row.lb-rank-2 .lb-card-rank {
   background: linear-gradient(135deg, #C0C0C0, #A0A0A0);
   color: #000;
 }
 
-.lb-card-row:nth-child(3) .lb-card-rank {
+.lb-card-row.lb-rank-3 .lb-card-rank {
   background: linear-gradient(135deg, #CD7F32, #B87333);
   color: #fff;
 }

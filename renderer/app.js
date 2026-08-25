@@ -67,7 +67,7 @@
     favorites: JSON.parse(localStorage.getItem("paceman_favorites") || "[]"),
     favoritePBs: JSON.parse(localStorage.getItem("paceman_favorite_pbs") || "{}"),
     profile: { name: null, uuid: null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null, chartVisible: true, allRunsSort: "newest" },
-    leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", page: 1 },
+    leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
   };
 
@@ -1845,19 +1845,20 @@
       const card = document.createElement("div");
       card.className = "lb-card";
       const totalPages = Math.max(1, Math.ceil(players.length / perPage));
-      const page = Math.min(state.leaderboard.page || 1, totalPages);
-      const start = (page - 1) * perPage;
+      const catPage = Math.min(state.leaderboard.pages[cat] || 1, totalPages);
+      const start = (catPage - 1) * perPage;
       const pagePlayers = players.slice(start, start + perPage);
       let rowsHtml = "";
       for (let i = 0; i < pagePlayers.length; i++) {
         const p = pagePlayers[i];
         const globalIdx = start + i + 1;
+        const rankClass = globalIdx === 1 ? "lb-rank-1" : globalIdx === 2 ? "lb-rank-2" : globalIdx === 3 ? "lb-rank-3" : "";
         const avatar = avatarUrl(p.uuid || p.name, 32);
         const mainVal = sortBy === "avg" ? fmt(p.avg) : p.count;
         const mainLabel = sortBy === "avg" ? "Avg" : "Enters";
         const otherVal = sortBy === "avg" ? p.count : fmt(p.avg);
         const otherLabel = sortBy === "avg" ? "Enters" : "Avg";
-        rowsHtml += `<div class="lb-card-row" data-name="${escapeHtml(p.name)}" data-uuid="${escapeHtml(p.uuid || "")}">
+        rowsHtml += `<div class="lb-card-row ${rankClass}" data-name="${escapeHtml(p.name)}" data-uuid="${escapeHtml(p.uuid || "")}">
           <div class="lb-card-rank">${globalIdx}</div>
           <div class="lb-card-player">
             <img src="${avatar}" onerror="this.style.visibility='hidden'">
@@ -1877,9 +1878,9 @@
       }
       const paginationHtml = players.length > perPage ? `
         <div class="lb-pagination">
-          <button class="lb-page-btn" data-cat="${cat}" data-dir="prev" ${page <= 1 ? "disabled" : ""}>&lt;</button>
-          <span class="lb-page-info">${page} / ${totalPages}</span>
-          <button class="lb-page-btn" data-cat="${cat}" data-dir="next" ${page >= totalPages ? "disabled" : ""}>&gt;</button>
+          <button class="lb-page-btn" data-cat="${cat}" data-dir="prev" ${catPage <= 1 ? "disabled" : ""}>&lt;</button>
+          <span class="lb-page-info">${catPage} / ${totalPages}</span>
+          <button class="lb-page-btn" data-cat="${cat}" data-dir="next" ${catPage >= totalPages ? "disabled" : ""}>&gt;</button>
         </div>
       ` : "";
       card.innerHTML = `<div class="lb-card-head">${SPLITS[cat]} <span class="lb-card-rank-label">${rankLabel}</span></div><div class="lb-card-list">${rowsHtml || '<div class="loading">No data.</div>'}</div>${paginationHtml}`;
@@ -1890,13 +1891,14 @@
     });
     grid.querySelectorAll(".lb-page-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
+        const cat = btn.dataset.cat;
         const dir = btn.dataset.dir;
-        const currentPage = state.leaderboard.page || 1;
+        const currentPage = state.leaderboard.pages[cat] || 1;
         if (dir === "prev" && currentPage > 1) {
-          state.leaderboard.page = currentPage - 1;
+          state.leaderboard.pages[cat] = currentPage - 1;
           renderLeaderboard(state.leaderboard.rows);
         } else if (dir === "next") {
-          state.leaderboard.page = currentPage + 1;
+          state.leaderboard.pages[cat] = currentPage + 1;
           renderLeaderboard(state.leaderboard.rows);
         }
       });
@@ -2230,7 +2232,7 @@
       b.addEventListener("click", () => {
         state.leaderboard.tf = b.dataset.tf;
         state.leaderboard.rows = null;
-        state.leaderboard.page = 1;
+        state.leaderboard.pages = {};
         document.querySelectorAll("#leaderboardTimeframes .timeframe-btn").forEach((x) => x.classList.remove("active"));
         b.classList.add("active");
         loadLeaderboard(true);
@@ -2240,7 +2242,7 @@
       b.addEventListener("click", () => {
         state.leaderboard.sortBy = b.dataset.sort;
         state.leaderboard.rows = null;
-        state.leaderboard.page = 1;
+        state.leaderboard.pages = {};
         document.querySelectorAll("#lbSortToggle .lb-sort-btn").forEach((x) => x.classList.remove("active"));
         b.classList.add("active");
         loadLeaderboard(true);
