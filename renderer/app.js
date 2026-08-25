@@ -1987,6 +1987,17 @@
         closeSearch();
       }
     });
+    input.addEventListener("paste", (e) => {
+      const text = (e.clipboardData || window.clipboardData).getData("text");
+      const match = text.match(/https?:\/\/(?:www\.)?paceman\.gg\/stats\/run\/([^\/?#]+)/);
+      if (match) {
+        e.preventDefault();
+        const runId = match[1];
+        input.value = "";
+        closeSearch();
+        openRunDetail(runId, null, null);
+      }
+    });
     document.addEventListener("click", (e) => {
       if (!e.target.closest(".search-container")) dropdown.classList.remove("visible");
     });
