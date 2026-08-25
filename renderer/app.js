@@ -1341,9 +1341,11 @@
 
     const d = fallbackRun || {};
     if (!d || Object.keys(d).length === 0) {
-      document.getElementById("runDetailSplits").innerHTML = '<div class="loading">Run details unavailable.</div>';
-      document.getElementById("runDetailVod").style.display = "none";
-      return;
+      if (id == null) {
+        document.getElementById("runDetailSplits").innerHTML = '<div class="loading">Run details unavailable.</div>';
+        document.getElementById("runDetailVod").style.display = "none";
+        return;
+      }
     }
 
     function renderSplits(data) {
@@ -1417,6 +1419,10 @@
       getJSON(API + "/getWorld?worldId=" + encodeURIComponent(id)).then(function(data) {
         currentRunData = (data && data.data) || data || null;
         const full = currentRunData || {};
+        if ((!name || name === "null") && (full.nickname || (full.user && full.user.nickname))) {
+          const fetchedName = full.nickname || (full.user && full.user.nickname);
+          document.getElementById("runDetailTitle").textContent = fetchedName + " - Run #" + (id || "?");
+        }
         if (full.vodId) {
           renderVod(full.vodId, full.vodOffset || 0, full.twitch || null, webview);
           const finish = full.finish != null ? full.finish : 0;
