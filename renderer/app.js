@@ -1307,6 +1307,38 @@
     }
     overlay.classList.add("visible");
 
+    const shareUrl = id ? `https://paceman.gg/stats/run/${id}/` : null;
+    const shareBtn = document.getElementById("shareRunBtn");
+    const copyLinkBtn = document.getElementById("copyRunLinkBtn");
+    if (shareBtn) {
+      shareBtn.style.display = shareUrl ? "" : "none";
+      shareBtn.onclick = () => {
+        if (!shareUrl) return;
+        if (window.pacemanAPI && window.pacemanAPI.openExternal) {
+          window.pacemanAPI.openExternal(shareUrl);
+        } else {
+          window.open(shareUrl, "_blank");
+        }
+      };
+    }
+    if (copyLinkBtn) {
+      copyLinkBtn.style.display = shareUrl ? "" : "none";
+      copyLinkBtn.onclick = async () => {
+        if (!shareUrl) return;
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          copyLinkBtn.classList.add("copied");
+          copyLinkBtn.title = "Copied!";
+          setTimeout(() => {
+            copyLinkBtn.classList.remove("copied");
+            copyLinkBtn.title = "Copy run link";
+          }, 1500);
+        } catch (e) {
+          console.warn("Copy failed", e);
+        }
+      };
+    }
+
     const d = fallbackRun || {};
     if (!d || Object.keys(d).length === 0) {
       document.getElementById("runDetailSplits").innerHTML = '<div class="loading">Run details unavailable.</div>';
