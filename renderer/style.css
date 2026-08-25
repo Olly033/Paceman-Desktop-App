@@ -1229,6 +1229,26 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.lb-top50-badge {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 165, 0, 0.1));
+  border-color: rgba(255, 215, 0, 0.4);
+  color: #ffd700;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.2);
+  animation: lbTop50Pulse 2s ease-in-out infinite;
+}
+
+.lb-top50-badge:hover {
+  border-color: #ffd700;
+  color: #ffd700;
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.35);
+}
+
+@keyframes lbTop50Pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(255, 215, 0, 0.15); }
+  50% { box-shadow: 0 0 16px rgba(255, 215, 0, 0.35); }
+}
+
 .session-stats {
   display: flex;
   gap: 10px;
