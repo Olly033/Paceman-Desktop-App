@@ -1027,7 +1027,7 @@
       const ts = getRunTimestamp(run);
       if (ts <= 0) continue;
       if (!current || ts - current.endTime > gapSec) {
-        current = { id: ts.toString(), startTime: ts, endTime: ts, runs: [], runCount: 0, duration: "0m", pb: null, avg: null };
+        current = { id: ts.toString(), startTime: ts, endTime: ts, runs: [], runCount: 0, duration: "0m", pb: null, avg: null, netherAvg: null };
         sessions.push(current);
       }
       current.runs.push(run);
@@ -1048,6 +1048,10 @@
           s.pb = Math.min(...finishes);
           s.avg = finishes.reduce((a, b) => a + b, 0) / finishes.length;
         }
+        const nethers = s.runs.filter((r) => r.nether != null).map((r) => r.nether);
+        if (nethers.length > 0) {
+          s.netherAvg = nethers.reduce((a, b) => a + b, 0) / nethers.length;
+        }
       }
       s.startTime = times.length > 0 ? Math.min(...times) : s.startTime;
       s.endTime = times.length > 0 ? Math.max(...times) : s.endTime;
@@ -1062,13 +1066,13 @@
       wrap.innerHTML = '<div class="loading">No sessions yet.</div>';
       return;
     }
-    const recent = (sessions || []).slice(0, 3);
+    const recent = (sessions || []).slice(0, 5);
     wrap.innerHTML = recent.map((s) => {
-      const date = new Date(s.startTime);
+      const date = new Date(s.startTime * 1000);
       const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
       const timeStr = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
       const pbStr = s.pb != null ? fmt(s.pb) : "No PB";
-      const avgStr = s.avg != null ? fmt(Math.round(s.avg)) : "—";
+      const avgStr = s.netherAvg != null ? fmt(Math.round(s.netherAvg)) : "—";
       const isActive = activeSessionId === s.id;
       return `<div class="session-card${isActive ? " active" : ""}" data-session-id="${s.id}">
         <div class="session-card-date">${dateStr} ${timeStr}</div>
@@ -1149,11 +1153,11 @@
       return;
     }
     wrap.innerHTML = list.map((s, i) => {
-      const date = new Date(s.startTime);
+      const date = new Date(s.startTime * 1000);
       const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
       const timeStr = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
       const pbStr = s.pb != null ? fmt(s.pb) : "No PB";
-      const avgStr = s.avg != null ? fmt(Math.round(s.avg)) : "—";
+      const avgStr = s.netherAvg != null ? fmt(Math.round(s.netherAvg)) : "—";
       const nph = s.duration && s.duration !== "0m" ? (s.runCount / (parseDuration(s.duration) / 60)).toFixed(2) : "0.00";
       return `<div class="session-list-item" data-session-index="${i}">
         <div class="session-list-main">

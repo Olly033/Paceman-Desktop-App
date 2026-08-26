@@ -145,13 +145,16 @@
           </button>
         </div>
         <div class="timeframe-tabs" id="profileTimeframes">
-          <button class="timeframe-btn" data-tf="session">Session</button>
-          <button class="timeframe-btn" data-tf="sessions">Sessions</button>
-          <button class="timeframe-btn active" data-tf="daily">Daily</button>
-          <button class="timeframe-btn" data-tf="weekly">Weekly</button>
-          <button class="timeframe-btn" data-tf="monthly">Monthly</button>
-          <button class="timeframe-btn" data-tf="lifetime">Lifetime</button>
-          <button class="session-share-btn" id="sessionShareBtn" title="Copy session stats">
+          <div class="timeframe-group">
+            <button class="timeframe-btn" data-tf="session">Session</button>
+            <button class="timeframe-btn active" data-tf="daily">Daily</button>
+            <button class="timeframe-btn" data-tf="weekly">Weekly</button>
+            <button class="timeframe-btn" data-tf="monthly">Monthly</button>
+            <button class="timeframe-btn" data-tf="lifetime">Lifetime</button>
+          </div>
+          <div class="timeframe-group">
+            <button class="timeframe-btn" data-tf="sessions">Sessions</button>
+            <button class="session-share-btn" id="sessionShareBtn" title="Copy session stats">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
               <polyline points="16 6 12 2 8 6"></polyline>

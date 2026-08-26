@@ -1450,6 +1450,14 @@ body {
   margin-bottom: 20px;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
+}
+
+.timeframe-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .timeframe-btn {
