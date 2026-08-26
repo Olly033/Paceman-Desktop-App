@@ -1861,7 +1861,7 @@
           if (sortBy === "avg") return av - bv;
           return sortDir === "asc" ? av - bv : bv - av;
         });
-        byCat[cat] = raw.slice(0, 50);
+        byCat[cat] = raw.slice(0, 100);
       });
       state.leaderboard.rows = byCat;
       if (tf === "daily") {
