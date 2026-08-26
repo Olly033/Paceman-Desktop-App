@@ -27,8 +27,8 @@
   };
   const LB_CATEGORIES = ["nether", "bastion", "fortress", "first_portal", "stronghold", "end", "finish"];
 
-  const TF_HOURS = { session: 24, sessions: 24, daily: 24, weekly: 168, monthly: 730, lifetime: 999999 };
-  const TF_BETWEEN = { session: 1, sessions: 24, daily: 24, weekly: 168, monthly: 730, lifetime: 999999 };
+  const TF_HOURS = { session: 24, daily: 24, weekly: 168, monthly: 730, lifetime: 999999 };
+  const TF_BETWEEN = { session: 1, daily: 24, weekly: 168, monthly: 730, lifetime: 999999 };
   const LB_DAYS = { daily: 1, weekly: 7, monthly: 30, lifetime: 9999 };
 
   const TWITCH_ICON =
@@ -799,7 +799,7 @@
     }
     pushNav({ page: "profile", name, uuid });
     showPage("profile");
-    state.profile = { name, uuid: uuid || null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null, chartVisible: true };
+    state.profile = { name, uuid: uuid || null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null, chartVisible: true, selectedSession: null };
     const profileName = document.getElementById("profileName");
     const profileStatsRow = document.getElementById("profileStatsRow");
     const profileSplits = document.getElementById("profileSplits");
@@ -901,10 +901,6 @@
       between = TF_BETWEEN[tf];
     const wrap = document.getElementById("profileSplits");
     if (wrap) wrap.innerHTML = '<div class="loading">Loading stats...</div>';
-    if (tf === "sessions") {
-      if (wrap) wrap.innerHTML = "";
-      return;
-    }
     try {
       const stats = await getJSON(`${API}/getSessionStats?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`);
       if (wrap) wrap.innerHTML = "";
@@ -1112,84 +1108,64 @@
     });
   }
 
-  function renderLocalSessionStats(runs) {
-    const wrap = document.getElementById("profileSplits");
-    if (wrap) wrap.innerHTML = "";
-    if (!runs || runs.length === 0) {
-      if (wrap) wrap.innerHTML = '<div class="loading">No runs in this session.</div>';
+  function showSessionInMain(session) {
+    const splitsWrap = document.getElementById("profileSplits");
+    const completionEl = document.getElementById("profileCompletion");
+    const avgEl = document.getElementById("profileAvg");
+    const bestRunsTitle = document.getElementById("profileBestRunsTitle");
+    const bestRuns = document.getElementById("profileBestRuns");
+    if (splitsWrap) splitsWrap.innerHTML = "";
+    if (!session || !session.runs || session.runs.length === 0) {
+      if (splitsWrap) splitsWrap.innerHTML = '<div class="loading">No runs in this session.</div>';
       return;
     }
     for (const key of SPLIT_ORDER) {
-      const values = runs.filter((r) => r[key] != null).map((r) => r[key]);
+      const values = session.runs.filter((r) => r[key] != null).map((r) => r[key]);
       const count = values.length;
       const avg = count > 0 ? fmt(Math.round(values.reduce((a, b) => a + b, 0) / count)) : "0:00";
       const card = document.createElement("div");
       card.className = "split-card";
       card.innerHTML = `<div class="split-name">${SPLITS[key]}</div><div class="split-value">${count}</div><div class="split-count">Avg ${avg}</div>`;
       card.addEventListener("click", () => openSplitDetail(key));
-      if (wrap) wrap.appendChild(card);
+      if (splitsWrap) splitsWrap.appendChild(card);
     }
-    const finishes = runs.filter((r) => r.finish != null).map((r) => r.finish);
+    const finishes = session.runs.filter((r) => r.finish != null).map((r) => r.finish);
     const finCount = finishes.length;
     const finAvg = finCount > 0 ? fmt(Math.round(finishes.reduce((a, b) => a + b, 0) / finCount)) : "0:00";
-    const completionEl = document.getElementById("profileCompletion");
-    const avgEl = document.getElementById("profileAvg");
     if (completionEl) completionEl.textContent = `${finCount} completions`;
     if (avgEl) avgEl.textContent = `Avg: ${finAvg}`;
+    if (bestRunsTitle) bestRunsTitle.textContent = "Session Runs";
+    if (bestRuns) {
+      bestRuns.innerHTML = "";
+      const ranked = session.runs
+        .map((r) => ({ r, f: furthestIndex(r) }))
+        .sort((a, b) => {
+          const aFinished = a.r.finish != null;
+          const bFinished = b.r.finish != null;
+          if (aFinished && bFinished) return a.r.finish - b.r.finish;
+          if (aFinished) return -1;
+          if (bFinished) return 1;
+          if (a.f.idx !== b.f.idx) return b.f.idx - a.f.idx;
+          return a.f.time - b.f.time;
+        })
+        .slice(0, 5);
+      for (const item of ranked) {
+        const div = document.createElement("div");
+        div.className = "run-item";
+        const runId = item.r.id || item.r.worldId || item.r.runId || item.r._id || null;
+        div.innerHTML = `<span class="run-split">${SPLITS[item.f.key] || "Run"}</span><span class="run-time">${fmt(item.f.time)}</span>`;
+        div.addEventListener("click", () => {
+          if (runId) openRunDetail(runId, state.profile.name, item.r);
+        });
+        bestRuns.appendChild(div);
+      }
+    }
   }
 
-  function showSessionDetailPanel(session) {
-    const panel = document.getElementById("sessionDetailPanel");
-    const title = document.getElementById("sessionDetailTitle");
-    const body = document.getElementById("sessionDetailBody");
-    if (!panel || !title || !body || !session) return;
-    const date = new Date(session.startTime * 1000);
-    const dateStr = date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-    const timeStr = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-    title.textContent = `${dateStr} ${timeStr}`;
-    let html = '<div class="session-detail-section"><div class="session-detail-stats">';
-    html += `<div class="session-detail-stat"><div class="session-detail-stat-label">Duration</div><div class="session-detail-stat-value">${session.duration || "0m"}</div></div>`;
-    html += `<div class="session-detail-stat"><div class="session-detail-stat-label">Runs</div><div class="session-detail-stat-value">${session.runCount}</div></div>`;
-    if (session.furthestState && session.furthestTime != null) {
-      html += `<div class="session-detail-stat"><div class="session-detail-stat-label">Furthest</div><div class="session-detail-stat-value">${session.furthestState}</div></div>`;
-      html += `<div class="session-detail-stat"><div class="session-detail-stat-label">Furthest Time</div><div class="session-detail-stat-value">${fmt(session.furthestTime)}</div></div>`;
-    }
-    if (session.netherAvg != null) {
-      html += `<div class="session-detail-stat"><div class="session-detail-stat-label">Avg Nether</div><div class="session-detail-stat-value">${fmt(Math.round(session.netherAvg))}</div></div>`;
-    }
-    html += "</div></div>";
-    const sortedRuns = [...session.runs].sort((a, b) => (b.insertTime || 0) - (a.insertTime || 0));
-    html += '<div class="session-detail-section"><h3>Runs</h3><div class="session-detail-runs">';
-    for (const r of sortedRuns) {
-      const runDate = new Date((r.insertTime || r.createdAt || r.timestamp || r.startTime || Date.now() / 1000) * 1000);
-      const runDateStr = runDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-      const fi = furthestIndex(r);
-      const splitName = SPLITS[fi.key] || "Run";
-      const splitTime = fi.time != null ? fmt(fi.time) : "—";
-      const runId = r.id || r.worldId || r.runId || r._id || null;
-      html += `<div class="session-detail-run" data-run-id="${runId || ""}" data-player="${encodeURIComponent(state.profile.name || "")}">
-        <div class="session-detail-run-info">
-          <div class="session-detail-run-split">${splitName}</div>
-          <div class="session-detail-run-time">${splitTime}</div>
-        </div>
-        <div class="session-detail-run-date">${runDateStr}</div>
-      </div>`;
-    }
-    html += "</div></div>";
-    body.innerHTML = html;
-    panel.classList.add("visible");
-    body.querySelectorAll(".session-detail-run").forEach((runEl) => {
-      runEl.addEventListener("click", () => {
-        const runId = runEl.dataset.runId;
-        const player = decodeURIComponent(runEl.dataset.player || "");
-        if (runId && player) openRunDetail(runId, player);
-      });
-    });
-  }
-
-  function closeSessionDetailPanel() {
-    const panel = document.getElementById("sessionDetailPanel");
-    if (panel) panel.classList.remove("visible");
+  function clearSessionSelection() {
+    state.profile.selectedSession = null;
+    const backBtn = document.getElementById("sessionBackBtn");
+    if (backBtn) backBtn.classList.remove("visible");
   }
 
   async function openSession(sessionId) {
@@ -1199,12 +1175,15 @@
     if (!session) return;
     state.profile.tf = "session";
     state.profile.timeframeRuns = session.runs;
+    state.profile.selectedSession = sessionId;
     document.querySelectorAll("#profileTimeframes .timeframe-btn").forEach((b) => {
       b.classList.toggle("active", b.dataset.tf === "session");
     });
     renderRunHistoryChart();
     renderRecentSessions(sessions, sessionId);
-    showSessionDetailPanel(session);
+    showSessionInMain(session);
+    const backBtn = document.getElementById("sessionBackBtn");
+    if (backBtn) backBtn.classList.add("visible");
     const shareBtn = document.getElementById("sessionShareBtn");
     if (shareBtn) shareBtn.title = "Copy session stats";
   }
@@ -1298,17 +1277,17 @@
           return a.f.time - b.f.time;
         })
         .slice(0, 5);
-      if (tf !== "sessions") {
+      if (!state.profile.selectedSession) {
         renderProfileBestRuns();
       }
       renderAllRunsPage();
       await loadTwitchFromRuns(name);
       renderRunHistoryChart();
       const sessions = groupRunsIntoSessions(state.profile.allRuns);
-      const sessionsWrap = document.getElementById("recentSessionsWrap");
-      if (sessionsWrap) sessionsWrap.style.display = tf === "sessions" ? "block" : "none";
-      if (tf === "sessions") {
-        renderRecentSessions(sessions, null);
+      renderRecentSessions(sessions, state.profile.selectedSession || null);
+      if (state.profile.selectedSession) {
+        const selected = sessions.find((s) => s.id === state.profile.selectedSession);
+        if (selected) showSessionInMain(selected);
       }
     } catch (e) {
       if (generation !== profileRunsGeneration) return;
@@ -2485,7 +2464,7 @@
         state.profile.tf = b.dataset.tf;
         document.querySelectorAll("#profileTimeframes .timeframe-btn").forEach((x) => x.classList.remove("active"));
         b.classList.add("active");
-        closeSessionDetailPanel();
+        clearSessionSelection();
         loadProfileStats();
         loadProfileRuns().then(() => renderRunHistoryChart());
         const shareBtn = document.getElementById("sessionShareBtn");
@@ -2493,7 +2472,6 @@
           const tf = b.dataset.tf || "daily";
           const labels = {
             session: "Copy session stats",
-            sessions: "Copy sessions stats",
             daily: "Copy daily stats",
             weekly: "Copy weekly stats",
             monthly: "Copy monthly stats",
@@ -2503,6 +2481,18 @@
         }
       });
     });
+    const backBtn = document.getElementById("sessionBackBtn");
+    if (backBtn) {
+      backBtn.addEventListener("click", () => {
+        clearSessionSelection();
+        state.profile.tf = "daily";
+        document.querySelectorAll("#profileTimeframes .timeframe-btn").forEach((x) => x.classList.remove("active"));
+        const dailyBtn = document.querySelector("#profileTimeframes .timeframe-btn[data-tf=\"daily\"]");
+        if (dailyBtn) dailyBtn.classList.add("active");
+        loadProfileStats();
+        loadProfileRuns().then(() => renderRunHistoryChart());
+      });
+    }
     document.querySelectorAll("#leaderboardTimeframes .timeframe-btn").forEach((b) => {
       b.addEventListener("click", () => {
         state.leaderboard.tf = b.dataset.tf;
@@ -2540,10 +2530,6 @@
     document.getElementById("allRunsModal").addEventListener("click", (e) => {
       if (e.target === document.getElementById("allRunsModal")) e.target.classList.remove("visible");
     });
-    const closeSessionDetail = document.getElementById("closeSessionDetail");
-    if (closeSessionDetail) {
-      closeSessionDetail.addEventListener("click", closeSessionDetailPanel);
-    }
   }
 
   /* ---------------- Comparison ---------------- */

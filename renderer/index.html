@@ -144,34 +144,46 @@
             </svg>
           </button>
         </div>
-        <div class="timeframe-tabs" id="profileTimeframes">
-          <button class="timeframe-btn" data-tf="session">Session</button>
-          <button class="timeframe-btn active" data-tf="daily">Daily</button>
-          <button class="timeframe-btn" data-tf="weekly">Weekly</button>
-          <button class="timeframe-btn" data-tf="monthly">Monthly</button>
-          <button class="timeframe-btn" data-tf="lifetime">Lifetime</button>
-          <button class="timeframe-btn" data-tf="sessions">Sessions</button>
-          <button class="session-share-btn" id="sessionShareBtn" title="Copy session stats">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-              <polyline points="16 6 12 2 8 6"></polyline>
-              <line x1="12" y1="2" x2="12" y2="15"></line>
-            </svg>
-          </button>
-        </div>
-        <div class="session-stats-wrap" id="sessionStatsWrap">
-          <div class="session-stats" id="sessionStats"></div>
-        </div>
-        <div class="recent-sessions-wrap" id="recentSessionsWrap">
-          <h3 class="recent-sessions-title">Recent Sessions</h3>
-          <div class="recent-sessions" id="recentSessions"></div>
-        </div>
-        <div class="profile-grid">
-          <div class="profile-splits" id="profileSplits"></div>
-          <div class="profile-runs">
-            <h3 id="profileBestRunsTitle">Best Daily Runs</h3>
-            <div class="runs-list-small" id="profileBestRuns"></div>
-            <button class="view-all-btn" id="viewAllRunsBtn">View All Runs</button>
+        <div class="profile-layout">
+          <div class="profile-main">
+            <button class="session-back-btn" id="sessionBackBtn" title="Back to profile">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+              Back to profile
+            </button>
+            <div class="timeframe-tabs" id="profileTimeframes">
+              <button class="timeframe-btn" data-tf="session">Session</button>
+              <button class="timeframe-btn active" data-tf="daily">Daily</button>
+              <button class="timeframe-btn" data-tf="weekly">Weekly</button>
+              <button class="timeframe-btn" data-tf="monthly">Monthly</button>
+              <button class="timeframe-btn" data-tf="lifetime">Lifetime</button>
+              <button class="session-share-btn" id="sessionShareBtn" title="Copy session stats">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                  <polyline points="16 6 12 2 8 6"></polyline>
+                  <line x1="12" y1="2" x2="12" y2="15"></line>
+                </svg>
+              </button>
+            </div>
+            <div class="session-stats-wrap" id="sessionStatsWrap">
+              <div class="session-stats" id="sessionStats"></div>
+            </div>
+            <div class="profile-grid">
+              <div class="profile-splits" id="profileSplits"></div>
+              <div class="profile-runs">
+                <h3 id="profileBestRunsTitle">Best Daily Runs</h3>
+                <div class="runs-list-small" id="profileBestRuns"></div>
+                <button class="view-all-btn" id="viewAllRunsBtn">View All Runs</button>
+              </div>
+            </div>
+          </div>
+          <div class="profile-sidebar" id="profileSidebar">
+            <div class="sidebar-header">
+              <h3>Recent Sessions</h3>
+            </div>
+            <div class="recent-sessions" id="recentSessions"></div>
           </div>
         </div>
         <div class="all-runs-modal" id="allRunsModal">
@@ -242,15 +254,6 @@
             </button>
           </div>
            <div class="chart-container" id="chartContainer"></div>
-          </div>
-        </div>
-        <div class="session-detail-panel" id="sessionDetailPanel">
-          <div class="session-detail-content">
-            <div class="modal-header">
-              <h2 id="sessionDetailTitle">Session</h2>
-              <button class="modal-close" id="closeSessionDetail">&times;</button>
-            </div>
-            <div class="session-detail-body" id="sessionDetailBody"></div>
           </div>
         </div>
         <div class="page" id="page-leaderboard">
