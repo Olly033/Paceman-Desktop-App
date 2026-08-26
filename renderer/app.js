@@ -1036,7 +1036,7 @@
       const ts = getRunTimestamp(run);
       if (ts <= 0) continue;
       if (!current || ts - current.endTime > gapSec) {
-        current = { id: ts.toString(), startTime: ts, endTime: ts, runs: [], runCount: 0, duration: "0m", pb: null, avg: null, netherAvg: null };
+        current = { id: ts.toString(), startTime: ts, endTime: ts, runs: [], runCount: 0, duration: "0m", pb: null, avg: null, netherAvg: null, furthestState: null, furthestTime: null };
         sessions.push(current);
       }
       current.runs.push(run);
@@ -1061,6 +1061,21 @@
         if (nethers.length > 0) {
           s.netherAvg = nethers.reduce((a, b) => a + b, 0) / nethers.length;
         }
+        let bestIdx = -1;
+        let bestTime = null;
+        let bestKey = null;
+        for (const r of s.runs) {
+          const fi = furthestIndex(r);
+          if (fi.idx > bestIdx || (fi.idx === bestIdx && fi.time < bestTime)) {
+            bestIdx = fi.idx;
+            bestTime = fi.time;
+            bestKey = fi.key;
+          }
+        }
+        if (bestKey) {
+          s.furthestState = SPLITS[bestKey] || bestKey;
+          s.furthestTime = bestTime;
+        }
       }
       s.startTime = times.length > 0 ? Math.min(...times) : s.startTime;
       s.endTime = times.length > 0 ? Math.max(...times) : s.endTime;
@@ -1080,13 +1095,13 @@
       const date = new Date(s.startTime * 1000);
       const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
       const timeStr = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-      const pbStr = s.pb != null ? fmt(s.pb) : "No PB";
+      const furthestStr = s.furthestState && s.furthestTime != null ? `${s.furthestState}: ${fmt(s.furthestTime)}` : "—";
       const avgStr = s.netherAvg != null ? fmt(Math.round(s.netherAvg)) : "—";
       const isActive = activeSessionId === s.id;
       return `<div class="session-card${isActive ? " active" : ""}" data-session-id="${s.id}">
         <div class="session-card-date">${dateStr} ${timeStr}</div>
         <div class="session-card-meta">${s.duration} · ${s.runCount} runs · Avg ${avgStr}</div>
-        <div class="session-card-pb">PB: ${pbStr}</div>
+        <div class="session-card-pb">${furthestStr}</div>
       </div>`;
     }).join("");
     wrap.querySelectorAll(".session-card").forEach((card) => {
@@ -1133,15 +1148,11 @@
     document.querySelectorAll("#profileTimeframes .timeframe-btn").forEach((b) => {
       b.classList.toggle("active", b.dataset.tf === "session");
     });
-    const sessionsWrap = document.getElementById("recentSessionsWrap");
-    if (sessionsWrap) sessionsWrap.style.display = "none";
     renderLocalSessionStats(session.runs);
     renderRunHistoryChart();
-    renderProfileBestRuns();
+    renderRecentSessions(sessions, sessionId);
     const shareBtn = document.getElementById("sessionShareBtn");
     if (shareBtn) shareBtn.title = "Copy session stats";
-    const title = document.getElementById("profileBestRunsTitle");
-    if (title) title.textContent = "Session Runs";
   }
 
   function renderProfileBestRuns() {
