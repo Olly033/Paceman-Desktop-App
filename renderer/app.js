@@ -1022,11 +1022,11 @@
     const sorted = [...runs].sort((a, b) => getRunTimestamp(a) - getRunTimestamp(b));
     const sessions = [];
     let current = null;
-    const gapMs = gapHours * 60 * 60 * 1000;
+    const gapSec = gapHours * 60 * 60;
     for (const run of sorted) {
       const ts = getRunTimestamp(run);
       if (ts <= 0) continue;
-      if (!current || ts - current.endTime > gapMs) {
+      if (!current || ts - current.endTime > gapSec) {
         current = { id: ts.toString(), startTime: ts, endTime: ts, runs: [], runCount: 0, duration: "0m", pb: null, avg: null };
         sessions.push(current);
       }
@@ -1040,8 +1040,8 @@
         const min = Math.min(...times);
         const max = Math.max(...times);
         const diff = max - min;
-        const hours = Math.floor(diff / 3600000);
-        const minutes = Math.floor((diff % 3600000) / 60000);
+        const hours = Math.floor(diff / 3600);
+        const minutes = Math.floor((diff % 3600) / 60);
         s.duration = hours > 0 && minutes > 0 ? `${hours}h ${minutes}m` : hours > 0 ? `${hours}h` : `${minutes}m`;
         const finishes = s.runs.filter((r) => r.finish != null).map((r) => r.finish);
         if (finishes.length > 0) {
@@ -1059,7 +1059,7 @@
     const wrap = document.getElementById("recentSessions");
     if (!wrap) return;
     if (!sessions || sessions.length === 0) {
-      wrap.innerHTML = "";
+      wrap.innerHTML = '<div class="loading">No sessions yet.</div>';
       return;
     }
     const recent = (sessions || []).slice(0, 3);
