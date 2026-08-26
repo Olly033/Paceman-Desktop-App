@@ -1843,7 +1843,7 @@
     try {
       const fetched = await Promise.all(
         LB_CATEGORIES.map((c) =>
-          getJSON(`${API}/getLeaderboard?category=${c}&type=count&days=${LB_DAYS[tf]}&limit=50`).catch(() => [])
+           getJSON(`${API}/getLeaderboard?category=${c}&type=count&days=${LB_DAYS[tf]}&limit=100`).catch(() => [])
         )
       );
       const byCat = {};
