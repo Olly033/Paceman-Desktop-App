@@ -1316,14 +1316,15 @@ body {
 
 .recent-sessions {
   display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 4px;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 700px;
 }
 
 .session-card {
   flex: 0 0 auto;
-  width: 200px;
+  width: 100%;
+  max-width: 600px;
   padding: 14px;
   background: var(--bg-glass);
   border: 1px solid var(--border-glass);
@@ -1364,6 +1365,7 @@ body {
 
 .session-list-item {
   display: flex;
+  width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
