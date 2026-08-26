@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld('pacemanAPI', {
   cancelDownloadVod: (downloadId) => ipcRenderer.invoke('cancel-download-vod', downloadId),
   fetchJSON: (url) => ipcRenderer.invoke('fetch-json', url),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
+  downloadUpdate: () => ipcRenderer.invoke('download-update'),
   getProtocolArgs: () => ipcRenderer.invoke('get-protocol-args'),
   showSaveDialog: (opts) => ipcRenderer.invoke('show-save-dialog', opts),
   showOpenDialog: (opts) => ipcRenderer.invoke('show-open-dialog', opts),
@@ -20,4 +22,8 @@ ipcRenderer.on('protocol-args', (event, args) => {
 
 ipcRenderer.on('download-vod-progress', (event, data) => {
   window.dispatchEvent(new CustomEvent('paceman-download-vod-progress', { detail: data }));
+});
+
+ipcRenderer.on('paceman-update-event', (event, payload) => {
+  window.dispatchEvent(new CustomEvent('paceman-update-event', { detail: payload }));
 });

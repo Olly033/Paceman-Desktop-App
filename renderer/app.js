@@ -3507,31 +3507,24 @@
         checkUpdateBtn.classList.add("checking");
         checkUpdateBtn.textContent = "Checking...";
         checkUpdateBtn.disabled = true;
-        try {
-          const result = await window.pacemanAPI.checkForUpdates();
-          if (result && result.success && result.isNewer) {
-            checkUpdateBtn.textContent = `Update available: v${result.latest}`;
-            checkUpdateBtn.classList.add("has-update");
-            if (confirm(`A newer version is available: v${result.latest}\nYou are on v${result.current}.\n\nOpen the release page?`)) {
-              window.pacemanAPI.openExternal(result.downloadUrl);
-            }
-          } else if (result && result.success) {
-            checkUpdateBtn.textContent = `You are on the latest version (v${result.current})`;
-            setTimeout(() => {
-              checkUpdateBtn.textContent = "Check for Updates";
-              checkUpdateBtn.classList.remove("has-update");
-              checkUpdateBtn.disabled = false;
-            }, 2000);
-          } else {
-            checkUpdateBtn.textContent = "Update check failed";
-            checkUpdateBtn.classList.add("has-update");
-            setTimeout(() => {
-              checkUpdateBtn.textContent = "Check for Updates";
-              checkUpdateBtn.classList.remove("has-update");
-              checkUpdateBtn.disabled = false;
-            }, 2000);
+        const result = await window.pacemanAPI.checkForUpdates();
+        if (result && result.checking) {
+          return;
+        }
+        if (result && result.success && result.isNewer) {
+          checkUpdateBtn.textContent = `Update available: v${result.latest}`;
+          checkUpdateBtn.classList.add("has-update");
+          if (confirm(`A newer version is available: v${result.latest}\nYou are on v${result.current}.\n\nOpen the release page?`)) {
+            window.pacemanAPI.openExternal(result.downloadUrl);
           }
-        } catch (e) {
+        } else if (result && result.success) {
+          checkUpdateBtn.textContent = `You are on the latest version (v${result.current})`;
+          setTimeout(() => {
+            checkUpdateBtn.textContent = "Check for Updates";
+            checkUpdateBtn.classList.remove("has-update");
+            checkUpdateBtn.disabled = false;
+          }, 2000);
+        } else {
           checkUpdateBtn.textContent = "Update check failed";
           setTimeout(() => {
             checkUpdateBtn.textContent = "Check for Updates";
@@ -3540,6 +3533,52 @@
         }
       });
     }
+
+    window.addEventListener("paceman-update-event", async (e) => {
+      const { channel, data } = e.detail || {};
+      if (channel === "update-available") {
+        if (checkUpdateBtn) {
+          checkUpdateBtn.textContent = `Update available: v${data.version}`;
+          checkUpdateBtn.classList.add("has-update");
+        }
+      } else if (channel === "update-not-available") {
+        if (checkUpdateBtn) {
+          checkUpdateBtn.textContent = "You are on the latest version";
+          checkUpdateBtn.classList.remove("has-update");
+          checkUpdateBtn.disabled = false;
+          setTimeout(() => {
+            checkUpdateBtn.textContent = "Check for Updates";
+          }, 2000);
+        }
+      } else if (channel === "update-downloaded") {
+        if (checkUpdateBtn) {
+          checkUpdateBtn.textContent = `Ready to install v${data.version}`;
+          checkUpdateBtn.classList.add("has-update");
+        }
+        if (confirm(`Update v${data.version} is ready. Restart and install now?`)) {
+          await window.pacemanAPI.installUpdate();
+        }
+      } else if (channel === "download-progress") {
+        if (checkUpdateBtn) {
+          const pct = Math.round(data.percent || 0);
+          checkUpdateBtn.textContent = `Downloading... ${pct}%`;
+        }
+      } else if (channel === "update-error") {
+        if (checkUpdateBtn) {
+          checkUpdateBtn.textContent = "Update failed";
+          checkUpdateBtn.classList.add("has-update");
+          setTimeout(() => {
+            checkUpdateBtn.textContent = "Check for Updates";
+            checkUpdateBtn.classList.remove("has-update");
+            checkUpdateBtn.disabled = false;
+          }, 2000);
+        }
+      }
+    });
+
+    setTimeout(() => {
+      window.pacemanAPI.checkForUpdates();
+    }, 5000);
     window.addEventListener("keydown", (e) => {
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "d") {
         toggleDevMode();

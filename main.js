@@ -6,12 +6,55 @@ const { exec, spawn } = require('child_process');
 const { promisify } = require('util');
 const execAsync = promisify(exec);
 const fs = require('fs');
+const { autoUpdater } = require('electron-updater');
 
 const APP_VERSION = app.getVersion ? app.getVersion() : '2.1.1';
 const REPO_OWNER = 'Olly033';
 const REPO_NAME = 'Paceman-Desktop-App';
 const YTDLP_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe';
 const FFMPEG_URL = 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip';
+
+autoUpdater.autoDownload = true;
+autoUpdater.allowPrerelease = false;
+autoUpdater.setFeedURL({
+  provider: 'github',
+  owner: REPO_OWNER,
+  repo: REPO_NAME,
+});
+
+autoUpdater.on('checking-for-update', () => {
+  sendUpdateEvent('checking-for-update', {});
+});
+
+autoUpdater.on('update-available', (info) => {
+  sendUpdateEvent('update-available', { version: info.version, releaseName: info.releaseName });
+});
+
+autoUpdater.on('update-not-available', (info) => {
+  sendUpdateEvent('update-not-available', { version: info.version });
+});
+
+autoUpdater.on('error', (err) => {
+  sendUpdateEvent('update-error', { error: err && err.message ? err.message : String(err) });
+});
+
+autoUpdater.on('download-progress', (progress) => {
+  sendUpdateEvent('download-progress', { percent: progress.percent, transferred: progress.transferred, total: progress.total });
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  sendUpdateEvent('update-downloaded', { version: info.version, releaseName: info.releaseName });
+});
+
+function sendUpdateEvent(channel, data) {
+  try {
+    if (win && win.webContents && !win.webContents.isDestroyed()) {
+      win.webContents.send('paceman-update-event', { channel, data });
+    }
+  } catch (e) {
+    console.warn('Failed to send update event:', e);
+  }
+}
 
 let activeDownloads = new Map();
 
@@ -141,12 +184,28 @@ function isNewerVersion(latest, current) {
 
 ipcMain.handle('check-for-updates', async () => {
   try {
-    const info = await checkGithubLatest();
-    const current = APP_VERSION;
-    const newer = isNewerVersion(info.latestVersion, current);
-    return { success: true, current, latest: info.latestVersion, isNewer: newer, downloadUrl: info.downloadUrl, releaseName: info.releaseName };
+    autoUpdater.checkForUpdates();
+    return { success: true, checking: true };
   } catch (e) {
     return { success: false, error: e.message || 'Failed to check for updates' };
+  }
+});
+
+ipcMain.handle('install-update', async () => {
+  try {
+    autoUpdater.quitAndInstall();
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message || 'Failed to install update' };
+  }
+});
+
+ipcMain.handle('download-update', async () => {
+  try {
+    autoUpdater.downloadUpdate();
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message || 'Failed to download update' };
   }
 });
 
