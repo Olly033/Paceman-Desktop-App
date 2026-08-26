@@ -1098,10 +1098,11 @@
     document.querySelectorAll("#profileTimeframes .timeframe-btn").forEach((b) => {
       b.classList.toggle("active", b.dataset.tf === "session");
     });
+    const sessionsWrap = document.getElementById("recentSessionsWrap");
+    if (sessionsWrap) sessionsWrap.style.display = "none";
     await loadProfileStats();
     renderRunHistoryChart();
     renderProfileBestRuns();
-    renderRecentSessions(sessions, sessionId);
     const shareBtn = document.getElementById("sessionShareBtn");
     if (shareBtn) shareBtn.title = "Copy session stats";
     const title = document.getElementById("profileBestRunsTitle");
@@ -1244,10 +1245,10 @@
       await loadTwitchFromRuns(name);
       renderRunHistoryChart();
       const sessions = groupRunsIntoSessions(state.profile.allRuns);
+      const sessionsWrap = document.getElementById("recentSessionsWrap");
+      if (sessionsWrap) sessionsWrap.style.display = tf === "sessions" ? "" : "none";
       if (tf === "sessions") {
         renderSessionsList(sessions);
-      } else {
-        renderRecentSessions(sessions, null);
       }
     } catch (e) {
       if (generation !== profileRunsGeneration) return;
