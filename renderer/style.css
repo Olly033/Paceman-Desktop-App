@@ -1302,6 +1302,65 @@ body {
   margin-bottom: 0;
 }
 
+.recent-sessions-wrap {
+  margin-bottom: 20px;
+}
+
+.recent-sessions-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.recent-sessions {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.session-card {
+  flex: 0 0 auto;
+  width: 200px;
+  padding: 14px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.session-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.session-card.active {
+  border-color: var(--accent);
+  background: var(--bg-glass-hover);
+}
+
+.session-card-date {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.session-card-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.session-card-pb {
+  font-size: 11px;
+  color: var(--accent-light);
+  font-weight: 600;
+}
+
 .session-share-btn {
   width: 30px;
   height: 30px;

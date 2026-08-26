@@ -1013,6 +1013,132 @@
       .join("");
   }
 
+  function getRunTimestamp(r) {
+    return r.insertTime || r.createdAt || r.timestamp || r.startTime || r.lastUpdated || r.time || r.updatedTime || r.realUpdated || 0;
+  }
+
+  function groupRunsIntoSessions(runs, gapHours = 2) {
+    if (!runs || runs.length === 0) return [];
+    const sorted = [...runs].sort((a, b) => getRunTimestamp(a) - getRunTimestamp(b));
+    const sessions = [];
+    let current = null;
+    const gapMs = gapHours * 60 * 60 * 1000;
+    for (const run of sorted) {
+      const ts = getRunTimestamp(run);
+      if (ts <= 0) continue;
+      if (!current || ts - current.endTime > gapMs) {
+        current = { id: ts.toString(), startTime: ts, endTime: ts, runs: [], runCount: 0, duration: "0m", pb: null, avg: null };
+        sessions.push(current);
+      }
+      current.runs.push(run);
+      current.runCount++;
+      current.endTime = ts;
+    }
+    for (const s of sessions) {
+      const times = s.runs.map(getRunTimestamp).filter((t) => t > 0);
+      if (times.length > 0) {
+        const min = Math.min(...times);
+        const max = Math.max(...times);
+        const diff = max - min;
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        s.duration = hours > 0 && minutes > 0 ? `${hours}h ${minutes}m` : hours > 0 ? `${hours}h` : `${minutes}m`;
+        const finishes = s.runs.filter((r) => r.finish != null).map((r) => r.finish);
+        if (finishes.length > 0) {
+          s.pb = Math.min(...finishes);
+          s.avg = finishes.reduce((a, b) => a + b, 0) / finishes.length;
+        }
+      }
+      s.startTime = times.length > 0 ? Math.min(...times) : s.startTime;
+      s.endTime = times.length > 0 ? Math.max(...times) : s.endTime;
+    }
+    return sessions.sort((a, b) => b.startTime - a.startTime);
+  }
+
+  function renderRecentSessions(sessions, activeSessionId) {
+    const wrap = document.getElementById("recentSessions");
+    if (!wrap) return;
+    if (!sessions || sessions.length === 0) {
+      wrap.innerHTML = "";
+      return;
+    }
+    wrap.innerHTML = sessions.map((s) => {
+      const date = new Date(s.startTime);
+      const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      const timeStr = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+      const pbStr = s.pb != null ? fmt(s.pb) : "No PB";
+      const avgStr = s.avg != null ? fmt(Math.round(s.avg)) : "—";
+      const isActive = activeSessionId === s.id;
+      return `<div class="session-card${isActive ? " active" : ""}" data-session-id="${s.id}">
+        <div class="session-card-date">${dateStr} ${timeStr}</div>
+        <div class="session-card-meta">${s.duration} · ${s.runCount} runs · Avg ${avgStr}</div>
+        <div class="session-card-pb">PB: ${pbStr}</div>
+      </div>`;
+    }).join("");
+    wrap.querySelectorAll(".session-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        const sessionId = card.dataset.sessionId;
+        openSession(sessionId);
+      });
+    });
+  }
+
+  async function openSession(sessionId) {
+    if (!state.profile.allRuns || state.profile.allRuns.length === 0) return;
+    const sessions = groupRunsIntoSessions(state.profile.allRuns);
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session) return;
+    state.profile.tf = "session";
+    state.profile.timeframeRuns = session.runs;
+    document.querySelectorAll("#profileTimeframes .timeframe-btn").forEach((b) => {
+      b.classList.toggle("active", b.dataset.tf === "session");
+    });
+    await loadProfileStats();
+    renderRunHistoryChart();
+    renderProfileBestRuns();
+    renderRecentSessions(sessions, sessionId);
+    const shareBtn = document.getElementById("sessionShareBtn");
+    if (shareBtn) shareBtn.title = "Copy session stats";
+    const title = document.getElementById("profileBestRunsTitle");
+    if (title) title.textContent = "Session Runs";
+  }
+
+  function renderProfileBestRuns() {
+    const best = document.getElementById("profileBestRuns");
+    const title = document.getElementById("profileBestRunsTitle");
+    const tf = state.profile.tf;
+    if (title) title.textContent = `Best ${tf.charAt(0).toUpperCase() + tf.slice(1)} Runs`;
+    if (!best) return;
+    const runs = state.profile.timeframeRuns || [];
+    const ranked = runs
+      .map((r) => ({ r, f: furthestIndex(r) }))
+      .sort((a, b) => {
+        const aFinished = a.r.finish != null;
+        const bFinished = b.r.finish != null;
+        if (aFinished && bFinished) return a.r.finish - b.r.finish;
+        if (aFinished) return -1;
+        if (bFinished) return 1;
+        if (a.f.idx !== b.f.idx) return b.f.idx - a.f.idx;
+        return a.f.time - b.f.time;
+      })
+      .slice(0, 5);
+    best.innerHTML = "";
+    if (ranked.length === 0) {
+      best.innerHTML = '<div class="loading">No runs yet.</div>';
+    } else {
+      for (const item of ranked) {
+        const div = document.createElement("div");
+        div.className = "run-item";
+        const runId = item.r.id || item.r.worldId || item.r.runId || item.r._id || null;
+        div.innerHTML = `<span class="run-split">${SPLITS[item.f.key] || "Run"}</span><span class="run-time">${fmt(item.f.time)}</span>`;
+        div.addEventListener("click", () => {
+          if (runId) openRunDetail(runId, state.profile.name, item.r);
+        });
+        best.appendChild(div);
+      }
+    }
+  }
+
   async function loadProfileRuns() {
     const { name, tf } = state.profile;
     const generation = ++profileRunsGeneration;
@@ -1066,26 +1192,12 @@
           return a.f.time - b.f.time;
         })
         .slice(0, 5);
-      if (best) {
-        best.innerHTML = "";
-        if (ranked.length === 0) {
-          best.innerHTML = '<div class="loading">No runs yet.</div>';
-        } else {
-          for (const item of ranked) {
-            const div = document.createElement("div");
-            div.className = "run-item";
-            const runId = item.r.id || item.r.worldId || item.r.runId || item.r._id || null;
-            div.innerHTML = `<span class="run-split">${SPLITS[item.f.key] || "Run"}</span><span class="run-time">${fmt(item.f.time)}</span>`;
-            div.addEventListener("click", () => {
-              if (runId) openRunDetail(runId, state.profile.name, item.r);
-            });
-            best.appendChild(div);
-          }
-        }
-      }
+      renderProfileBestRuns();
       renderAllRunsPage();
       await loadTwitchFromRuns(name);
       renderRunHistoryChart();
+      const sessions = groupRunsIntoSessions(state.profile.allRuns);
+      renderRecentSessions(sessions, null);
     } catch (e) {
       if (generation !== profileRunsGeneration) return;
       if (best) best.innerHTML = '<div class="loading">Failed to load runs.</div>';
