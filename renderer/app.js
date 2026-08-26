@@ -1239,7 +1239,7 @@
       renderRunHistoryChart();
       const sessions = groupRunsIntoSessions(state.profile.allRuns);
       const sessionsWrap = document.getElementById("recentSessionsWrap");
-      if (sessionsWrap) sessionsWrap.style.display = tf === "sessions" ? "" : "none";
+      if (sessionsWrap) sessionsWrap.style.display = tf === "sessions" ? "block" : "none";
       if (tf === "sessions") {
         renderRecentSessions(sessions, null);
       }
