@@ -1138,6 +1138,60 @@
     if (avgEl) avgEl.textContent = `Avg: ${finAvg}`;
   }
 
+  function showSessionDetailPanel(session) {
+    const panel = document.getElementById("sessionDetailPanel");
+    const title = document.getElementById("sessionDetailTitle");
+    const body = document.getElementById("sessionDetailBody");
+    if (!panel || !title || !body || !session) return;
+    const date = new Date(session.startTime * 1000);
+    const dateStr = date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    const timeStr = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    title.textContent = `${dateStr} ${timeStr}`;
+    let html = '<div class="session-detail-section"><div class="session-detail-stats">';
+    html += `<div class="session-detail-stat"><div class="session-detail-stat-label">Duration</div><div class="session-detail-stat-value">${session.duration || "0m"}</div></div>`;
+    html += `<div class="session-detail-stat"><div class="session-detail-stat-label">Runs</div><div class="session-detail-stat-value">${session.runCount}</div></div>`;
+    if (session.furthestState && session.furthestTime != null) {
+      html += `<div class="session-detail-stat"><div class="session-detail-stat-label">Furthest</div><div class="session-detail-stat-value">${session.furthestState}</div></div>`;
+      html += `<div class="session-detail-stat"><div class="session-detail-stat-label">Furthest Time</div><div class="session-detail-stat-value">${fmt(session.furthestTime)}</div></div>`;
+    }
+    if (session.netherAvg != null) {
+      html += `<div class="session-detail-stat"><div class="session-detail-stat-label">Avg Nether</div><div class="session-detail-stat-value">${fmt(Math.round(session.netherAvg))}</div></div>`;
+    }
+    html += "</div></div>";
+    const sortedRuns = [...session.runs].sort((a, b) => (b.insertTime || 0) - (a.insertTime || 0));
+    html += '<div class="session-detail-section"><h3>Runs</h3><div class="session-detail-runs">';
+    for (const r of sortedRuns) {
+      const runDate = new Date((r.insertTime || r.createdAt || r.timestamp || r.startTime || Date.now() / 1000) * 1000);
+      const runDateStr = runDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+      const fi = furthestIndex(r);
+      const splitName = SPLITS[fi.key] || "Run";
+      const splitTime = fi.time != null ? fmt(fi.time) : "—";
+      const runId = r.id || r.worldId || r.runId || r._id || null;
+      html += `<div class="session-detail-run" data-run-id="${runId || ""}" data-player="${encodeURIComponent(state.profile.name || "")}">
+        <div class="session-detail-run-info">
+          <div class="session-detail-run-split">${splitName}</div>
+          <div class="session-detail-run-time">${splitTime}</div>
+        </div>
+        <div class="session-detail-run-date">${runDateStr}</div>
+      </div>`;
+    }
+    html += "</div></div>";
+    body.innerHTML = html;
+    panel.classList.add("visible");
+    body.querySelectorAll(".session-detail-run").forEach((runEl) => {
+      runEl.addEventListener("click", () => {
+        const runId = runEl.dataset.runId;
+        const player = decodeURIComponent(runEl.dataset.player || "");
+        if (runId && player) openRunDetail(runId, player);
+      });
+    });
+  }
+
+  function closeSessionDetailPanel() {
+    const panel = document.getElementById("sessionDetailPanel");
+    if (panel) panel.classList.remove("visible");
+  }
+
   async function openSession(sessionId) {
     if (!state.profile.allRuns || state.profile.allRuns.length === 0) return;
     const sessions = groupRunsIntoSessions(state.profile.allRuns);
@@ -1148,13 +1202,9 @@
     document.querySelectorAll("#profileTimeframes .timeframe-btn").forEach((b) => {
       b.classList.toggle("active", b.dataset.tf === "session");
     });
-    renderLocalSessionStats(session.runs);
     renderRunHistoryChart();
     renderRecentSessions(sessions, sessionId);
-    const best = document.getElementById("profileBestRuns");
-    if (best) best.innerHTML = "";
-    const title = document.getElementById("profileBestRunsTitle");
-    if (title) title.textContent = "";
+    showSessionDetailPanel(session);
     const shareBtn = document.getElementById("sessionShareBtn");
     if (shareBtn) shareBtn.title = "Copy session stats";
   }
@@ -2435,6 +2485,7 @@
         state.profile.tf = b.dataset.tf;
         document.querySelectorAll("#profileTimeframes .timeframe-btn").forEach((x) => x.classList.remove("active"));
         b.classList.add("active");
+        closeSessionDetailPanel();
         loadProfileStats();
         loadProfileRuns().then(() => renderRunHistoryChart());
         const shareBtn = document.getElementById("sessionShareBtn");
@@ -2489,6 +2540,10 @@
     document.getElementById("allRunsModal").addEventListener("click", (e) => {
       if (e.target === document.getElementById("allRunsModal")) e.target.classList.remove("visible");
     });
+    const closeSessionDetail = document.getElementById("closeSessionDetail");
+    if (closeSessionDetail) {
+      closeSessionDetail.addEventListener("click", closeSessionDetailPanel);
+    }
   }
 
   /* ---------------- Comparison ---------------- */
