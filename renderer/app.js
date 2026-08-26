@@ -1090,7 +1090,7 @@
       wrap.innerHTML = '<div class="loading">No sessions yet.</div>';
       return;
     }
-    const recent = (sessions || []).slice(0, 5);
+    const recent = (sessions || []).slice(0, 10);
     wrap.innerHTML = recent.map((s) => {
       const date = new Date(s.startTime * 1000);
       const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -1151,6 +1151,10 @@
     renderLocalSessionStats(session.runs);
     renderRunHistoryChart();
     renderRecentSessions(sessions, sessionId);
+    const best = document.getElementById("profileBestRuns");
+    if (best) best.innerHTML = "";
+    const title = document.getElementById("profileBestRunsTitle");
+    if (title) title.textContent = "";
     const shareBtn = document.getElementById("sessionShareBtn");
     if (shareBtn) shareBtn.title = "Copy session stats";
   }
@@ -1244,7 +1248,9 @@
           return a.f.time - b.f.time;
         })
         .slice(0, 5);
-      renderProfileBestRuns();
+      if (tf !== "sessions") {
+        renderProfileBestRuns();
+      }
       renderAllRunsPage();
       await loadTwitchFromRuns(name);
       renderRunHistoryChart();
