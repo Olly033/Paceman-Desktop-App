@@ -1154,7 +1154,8 @@
   function renderSessionsList(sessions) {
     const wrap = document.getElementById("recentSessions");
     if (!wrap) return;
-    const list = (sessions || []).slice(0, 5);
+    const sorted = (sessions || []).slice().sort((a, b) => b.startTime - a.startTime);
+    const list = sorted.slice(0, 5);
     if (list.length === 0) {
       wrap.innerHTML = '<div class="loading">No sessions yet.</div>';
       return;
@@ -1166,7 +1167,7 @@
       const pbStr = s.pb != null ? fmt(s.pb) : "No PB";
       const avgStr = s.netherAvg != null ? fmt(Math.round(s.netherAvg)) : "—";
       const nph = s.duration && s.duration !== "0m" ? (s.runCount / (parseDuration(s.duration) / 60)).toFixed(2) : "0.00";
-      return `<div class="session-list-item" data-session-index="${i}">
+      return `<div class="session-list-item" data-session-index="${i}" data-session-id="${s.id}">
         <div class="session-list-main">
           <div class="session-list-date">${dateStr} ${timeStr}</div>
           <div class="session-list-stats">${s.duration} · ${s.runCount} runs · Avg ${avgStr} · NPH ${nph}</div>
@@ -1176,9 +1177,10 @@
     }).join("");
     wrap.querySelectorAll(".session-list-item").forEach((item) => {
       item.addEventListener("click", () => {
-        const idx = parseInt(item.dataset.sessionIndex, 10);
-        const session = list[idx];
-        if (session) openSession(session.id);
+        const sessionId = item.dataset.sessionId;
+        if (sessionId && typeof openSession === "function") {
+          openSession(sessionId);
+        }
       });
     });
   }
