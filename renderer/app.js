@@ -1062,7 +1062,8 @@
       wrap.innerHTML = "";
       return;
     }
-    wrap.innerHTML = sessions.map((s) => {
+    const recent = (sessions || []).slice(0, 3);
+    wrap.innerHTML = recent.map((s) => {
       const date = new Date(s.startTime);
       const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
       const timeStr = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
