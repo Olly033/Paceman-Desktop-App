@@ -1293,7 +1293,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   min-height: 36px;
 }
 
@@ -1304,31 +1304,31 @@ body {
 
 .recent-sessions-wrap {
   display: none;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .recent-sessions-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .recent-sessions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  max-width: 700px;
+  gap: 6px;
+  max-width: 100%;
 }
 
 .session-card {
   flex: 0 0 auto;
   width: 100%;
-  max-width: 600px;
-  padding: 14px;
+  max-width: 100%;
+  padding: 10px 12px;
   background: var(--bg-glass);
   border: 1px solid var(--border-glass);
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -1368,11 +1368,11 @@ body {
   width: 100%;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 10px;
+  padding: 8px 10px;
   background: var(--bg-glass);
   border: 1px solid var(--border-glass);
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -1381,28 +1381,28 @@ body {
   border-color: var(--accent);
   background: var(--bg-glass-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .session-list-main {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .session-list-date {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .session-list-stats {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
 }
 
 .session-list-pb {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--accent-light);
   white-space: nowrap;
@@ -1453,14 +1453,6 @@ body {
   margin-bottom: 20px;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-}
-
-.timeframe-group {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  flex-wrap: wrap;
 }
 
 .timeframe-btn {

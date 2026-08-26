@@ -866,12 +866,14 @@
 
   async function updateSessionStats() {
     const sessionBox = document.getElementById("sessionStats");
+    const sessionWrap = document.getElementById("sessionStatsWrap");
     if (!sessionBox) return;
     const tf = state.profile.tf;
     const name = state.profile.name;
     if (!name) return;
     if (tf !== "session" && tf !== "sessions") {
       sessionBox.innerHTML = "";
+      if (sessionWrap) sessionWrap.style.display = "none";
       return;
     }
     const hours = TF_HOURS[tf] || 24;
@@ -881,12 +883,15 @@
         const nph = await getJSON(`${API}/getNPH?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`);
         const duration = calcSessionDuration(state.profile.timeframeRuns);
         sessionBox.innerHTML = renderSessionStats(nph, duration);
+        if (sessionWrap) sessionWrap.style.display = "";
       } catch (e) {
         sessionBox.innerHTML = "";
+        if (sessionWrap) sessionWrap.style.display = "none";
       }
     } else {
       const duration = calcSessionDuration(state.profile.timeframeRuns);
       sessionBox.innerHTML = renderSessionStats({ rnph: 0, rpe: 0 }, duration);
+      if (sessionWrap) sessionWrap.style.display = "";
     }
   }
 
@@ -1101,6 +1106,7 @@
     const sessionsWrap = document.getElementById("recentSessionsWrap");
     if (sessionsWrap) sessionsWrap.style.display = "none";
     await loadProfileStats();
+    await updateSessionStats();
     renderRunHistoryChart();
     renderProfileBestRuns();
     const shareBtn = document.getElementById("sessionShareBtn");
