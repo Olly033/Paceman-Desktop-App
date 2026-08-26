@@ -866,27 +866,32 @@
 
   async function updateSessionStats() {
     const sessionBox = document.getElementById("sessionStats");
+    const sessionWrap = document.getElementById("sessionStatsWrap");
     if (!sessionBox) return;
     const tf = state.profile.tf;
     const name = state.profile.name;
     if (!name) return;
-    if (tf !== "session" && tf !== "sessions") {
+    if (tf !== "session") {
       sessionBox.innerHTML = "";
+      if (sessionWrap) sessionWrap.style.display = "none";
       return;
     }
     const hours = TF_HOURS[tf] || 24;
     const between = TF_BETWEEN[tf] || 24;
-    if (tf === "session" || tf === "sessions") {
+    if (tf === "session") {
       try {
         const nph = await getJSON(`${API}/getNPH?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`);
         const duration = calcSessionDuration(state.profile.timeframeRuns);
         sessionBox.innerHTML = renderSessionStats(nph, duration);
+        if (sessionWrap) sessionWrap.style.display = "";
       } catch (e) {
         sessionBox.innerHTML = "";
+        if (sessionWrap) sessionWrap.style.display = "none";
       }
     } else {
       const duration = calcSessionDuration(state.profile.timeframeRuns);
       sessionBox.innerHTML = renderSessionStats({ rnph: 0, rpe: 0 }, duration);
+      if (sessionWrap) sessionWrap.style.display = "";
     }
   }
 
@@ -896,6 +901,10 @@
       between = TF_BETWEEN[tf];
     const wrap = document.getElementById("profileSplits");
     if (wrap) wrap.innerHTML = '<div class="loading">Loading stats...</div>';
+    if (tf === "sessions") {
+      if (wrap) wrap.innerHTML = "";
+      return;
+    }
     try {
       const stats = await getJSON(`${API}/getSessionStats?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`);
       if (wrap) wrap.innerHTML = "";
