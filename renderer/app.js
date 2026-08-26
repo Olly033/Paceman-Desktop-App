@@ -27,8 +27,8 @@
   };
   const LB_CATEGORIES = ["nether", "bastion", "fortress", "first_portal", "stronghold", "end", "finish"];
 
-  const TF_HOURS = { session: 24, sessions: 24, daily: 24, weekly: 168, monthly: 730, lifetime: 999999 };
-  const TF_BETWEEN = { session: 1, sessions: 24, daily: 24, weekly: 168, monthly: 730, lifetime: 999999 };
+  const TF_HOURS = { session: 24, daily: 24, weekly: 168, monthly: 730, lifetime: 999999 };
+  const TF_BETWEEN = { session: 1, daily: 24, weekly: 168, monthly: 730, lifetime: 999999 };
   const LB_DAYS = { daily: 1, weekly: 7, monthly: 30, lifetime: 9999 };
 
   const TWITCH_ICON =
@@ -866,32 +866,27 @@
 
   async function updateSessionStats() {
     const sessionBox = document.getElementById("sessionStats");
-    const sessionWrap = document.getElementById("sessionStatsWrap");
     if (!sessionBox) return;
     const tf = state.profile.tf;
     const name = state.profile.name;
     if (!name) return;
-    if (tf !== "session" && tf !== "sessions") {
+    if (tf !== "session") {
       sessionBox.innerHTML = "";
-      if (sessionWrap) sessionWrap.style.display = "none";
       return;
     }
     const hours = TF_HOURS[tf] || 24;
     const between = TF_BETWEEN[tf] || 24;
-    if (tf === "session" || tf === "sessions") {
+    if (tf === "session") {
       try {
         const nph = await getJSON(`${API}/getNPH?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`);
         const duration = calcSessionDuration(state.profile.timeframeRuns);
         sessionBox.innerHTML = renderSessionStats(nph, duration);
-        if (sessionWrap) sessionWrap.style.display = "";
       } catch (e) {
         sessionBox.innerHTML = "";
-        if (sessionWrap) sessionWrap.style.display = "none";
       }
     } else {
       const duration = calcSessionDuration(state.profile.timeframeRuns);
       sessionBox.innerHTML = renderSessionStats({ rnph: 0, rpe: 0 }, duration);
-      if (sessionWrap) sessionWrap.style.display = "";
     }
   }
 
@@ -1103,12 +1098,10 @@
     document.querySelectorAll("#profileTimeframes .timeframe-btn").forEach((b) => {
       b.classList.toggle("active", b.dataset.tf === "session");
     });
-    const sessionsWrap = document.getElementById("recentSessionsWrap");
-    if (sessionsWrap) sessionsWrap.style.display = "none";
     await loadProfileStats();
-    await updateSessionStats();
     renderRunHistoryChart();
     renderProfileBestRuns();
+    renderRecentSessions(sessions, sessionId);
     const shareBtn = document.getElementById("sessionShareBtn");
     if (shareBtn) shareBtn.title = "Copy session stats";
     const title = document.getElementById("profileBestRunsTitle");
@@ -1149,50 +1142,6 @@
         best.appendChild(div);
       }
     }
-  }
-
-  function renderSessionsList(sessions) {
-    const wrap = document.getElementById("recentSessions");
-    if (!wrap) return;
-    const sorted = (sessions || []).slice().sort((a, b) => b.startTime - a.startTime);
-    const list = sorted.slice(0, 5);
-    if (list.length === 0) {
-      wrap.innerHTML = '<div class="loading">No sessions yet.</div>';
-      return;
-    }
-    wrap.innerHTML = list.map((s, i) => {
-      const date = new Date(s.startTime * 1000);
-      const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-      const timeStr = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-      const pbStr = s.pb != null ? fmt(s.pb) : "No PB";
-      const avgStr = s.netherAvg != null ? fmt(Math.round(s.netherAvg)) : "—";
-      const nph = s.duration && s.duration !== "0m" ? (s.runCount / (parseDuration(s.duration) / 60)).toFixed(2) : "0.00";
-      return `<div class="session-list-item" data-session-index="${i}" data-session-id="${s.id}">
-        <div class="session-list-main">
-          <div class="session-list-date">${dateStr} ${timeStr}</div>
-          <div class="session-list-stats">${s.duration} · ${s.runCount} runs · Avg ${avgStr} · NPH ${nph}</div>
-        </div>
-        <div class="session-list-pb">PB: ${pbStr}</div>
-      </div>`;
-    }).join("");
-    wrap.querySelectorAll(".session-list-item").forEach((item) => {
-      item.addEventListener("click", () => {
-        const sessionId = item.dataset.sessionId;
-        if (sessionId && typeof openSession === "function") {
-          openSession(sessionId);
-        }
-      });
-    });
-  }
-
-  function parseDuration(dur) {
-    if (!dur) return 0;
-    let total = 0;
-    const hMatch = dur.match(/(\d+)h/);
-    const mMatch = dur.match(/(\d+)m/);
-    if (hMatch) total += parseInt(hMatch[1], 10) * 60;
-    if (mMatch) total += parseInt(mMatch[1], 10);
-    return total || 1;
   }
 
   async function loadProfileRuns() {
@@ -1254,10 +1203,8 @@
       renderRunHistoryChart();
       const sessions = groupRunsIntoSessions(state.profile.allRuns);
       const sessionsWrap = document.getElementById("recentSessionsWrap");
-      if (sessionsWrap) sessionsWrap.style.display = tf === "sessions" ? "" : "none";
-      if (tf === "sessions") {
-        renderSessionsList(sessions);
-      }
+      if (sessionsWrap) sessionsWrap.style.display = "";
+      renderRecentSessions(sessions, null);
     } catch (e) {
       if (generation !== profileRunsGeneration) return;
       if (best) best.innerHTML = '<div class="loading">Failed to load runs.</div>';
@@ -2440,7 +2387,6 @@
           const tf = b.dataset.tf || "daily";
           const labels = {
             session: "Copy session stats",
-            sessions: "Copy sessions stats",
             daily: "Copy daily stats",
             weekly: "Copy weekly stats",
             monthly: "Copy monthly stats",
