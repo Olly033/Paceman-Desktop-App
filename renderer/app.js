@@ -27,8 +27,8 @@
   };
   const LB_CATEGORIES = ["nether", "bastion", "fortress", "first_portal", "stronghold", "end", "finish"];
 
-  const TF_HOURS = { session: 24, daily: 24, weekly: 168, monthly: 730, lifetime: 999999 };
-  const TF_BETWEEN = { session: 1, daily: 24, weekly: 168, monthly: 730, lifetime: 999999 };
+  const TF_HOURS = { session: 24, sessions: 24, daily: 24, weekly: 168, monthly: 730, lifetime: 999999 };
+  const TF_BETWEEN = { session: 1, sessions: 24, daily: 24, weekly: 168, monthly: 730, lifetime: 999999 };
   const LB_DAYS = { daily: 1, weekly: 7, monthly: 30, lifetime: 9999 };
 
   const TWITCH_ICON =
@@ -870,13 +870,13 @@
     const tf = state.profile.tf;
     const name = state.profile.name;
     if (!name) return;
-    if (tf !== "session") {
+    if (tf !== "session" && tf !== "sessions") {
       sessionBox.innerHTML = "";
       return;
     }
     const hours = TF_HOURS[tf] || 24;
     const between = TF_BETWEEN[tf] || 24;
-    if (tf === "session") {
+    if (tf === "session" || tf === "sessions") {
       try {
         const nph = await getJSON(`${API}/getNPH?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`);
         const duration = calcSessionDuration(state.profile.timeframeRuns);
@@ -1088,6 +1088,32 @@
     });
   }
 
+  function renderLocalSessionStats(runs) {
+    const wrap = document.getElementById("profileSplits");
+    if (wrap) wrap.innerHTML = "";
+    if (!runs || runs.length === 0) {
+      if (wrap) wrap.innerHTML = '<div class="loading">No runs in this session.</div>';
+      return;
+    }
+    for (const key of SPLIT_ORDER) {
+      const values = runs.filter((r) => r[key] != null).map((r) => r[key]);
+      const count = values.length;
+      const avg = count > 0 ? fmt(Math.round(values.reduce((a, b) => a + b, 0) / count)) : "0:00";
+      const card = document.createElement("div");
+      card.className = "split-card";
+      card.innerHTML = `<div class="split-name">${SPLITS[key]}</div><div class="split-value">${count}</div><div class="split-count">Avg ${avg}</div>`;
+      card.addEventListener("click", () => openSplitDetail(key));
+      if (wrap) wrap.appendChild(card);
+    }
+    const finishes = runs.filter((r) => r.finish != null).map((r) => r.finish);
+    const finCount = finishes.length;
+    const finAvg = finCount > 0 ? fmt(Math.round(finishes.reduce((a, b) => a + b, 0) / finCount)) : "0:00";
+    const completionEl = document.getElementById("profileCompletion");
+    const avgEl = document.getElementById("profileAvg");
+    if (completionEl) completionEl.textContent = `${finCount} completions`;
+    if (avgEl) avgEl.textContent = `Avg: ${finAvg}`;
+  }
+
   async function openSession(sessionId) {
     if (!state.profile.allRuns || state.profile.allRuns.length === 0) return;
     const sessions = groupRunsIntoSessions(state.profile.allRuns);
@@ -1098,10 +1124,11 @@
     document.querySelectorAll("#profileTimeframes .timeframe-btn").forEach((b) => {
       b.classList.toggle("active", b.dataset.tf === "session");
     });
-    await loadProfileStats();
+    const sessionsWrap = document.getElementById("recentSessionsWrap");
+    if (sessionsWrap) sessionsWrap.style.display = "none";
+    renderLocalSessionStats(session.runs);
     renderRunHistoryChart();
     renderProfileBestRuns();
-    renderRecentSessions(sessions, sessionId);
     const shareBtn = document.getElementById("sessionShareBtn");
     if (shareBtn) shareBtn.title = "Copy session stats";
     const title = document.getElementById("profileBestRunsTitle");
@@ -1203,8 +1230,10 @@
       renderRunHistoryChart();
       const sessions = groupRunsIntoSessions(state.profile.allRuns);
       const sessionsWrap = document.getElementById("recentSessionsWrap");
-      if (sessionsWrap) sessionsWrap.style.display = "";
-      renderRecentSessions(sessions, null);
+      if (sessionsWrap) sessionsWrap.style.display = tf === "sessions" ? "" : "none";
+      if (tf === "sessions") {
+        renderRecentSessions(sessions, null);
+      }
     } catch (e) {
       if (generation !== profileRunsGeneration) return;
       if (best) best.innerHTML = '<div class="loading">Failed to load runs.</div>';
@@ -2387,6 +2416,7 @@
           const tf = b.dataset.tf || "daily";
           const labels = {
             session: "Copy session stats",
+            sessions: "Copy sessions stats",
             daily: "Copy daily stats",
             weekly: "Copy weekly stats",
             monthly: "Copy monthly stats",

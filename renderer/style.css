@@ -1303,6 +1303,7 @@ body {
 }
 
 .recent-sessions-wrap {
+  display: none;
   margin-bottom: 16px;
 }
 
