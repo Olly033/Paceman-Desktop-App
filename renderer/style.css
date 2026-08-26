@@ -1361,6 +1361,50 @@ body {
   font-weight: 600;
 }
 
+.session-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.session-list-item:hover {
+  border-color: var(--accent);
+  background: var(--bg-glass-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.session-list-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.session-list-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.session-list-stats {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.session-list-pb {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-light);
+  white-space: nowrap;
+}
+
 .session-share-btn {
   width: 30px;
   height: 30px;
