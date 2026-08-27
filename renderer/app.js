@@ -470,11 +470,9 @@
   async function getCurrentNameForUUID(uuid) {
     try {
       const history = await getJSON(`https://api.mojang.com/user/profiles/${uuid}/names`);
-      console.log("Mojang name history for", uuid, history);
       if (!Array.isArray(history) || history.length === 0) return null;
       return history[history.length - 1].name || null;
     } catch (e) {
-      console.log("Mojang name history failed for", uuid, e.message);
       return null;
     }
   }
@@ -2416,13 +2414,9 @@
   /* ---------------- Router ---------------- */
 
   function showPage(p) {
-    console.log("showPage:", p, "current:", state.page);
     if (state.page === p) return;
     state.page = p;
-    document.querySelectorAll(".page").forEach((el) => {
-      console.log("Removing active from", el.id, "current classes:", el.className);
-      el.classList.remove("active");
-    });
+    document.querySelectorAll(".page").forEach((el) => el.classList.remove("active"));
     document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
     if (state.comparison && state.comparison.active && p !== "profile") {
       state.comparison.active = false;
@@ -2434,38 +2428,25 @@
       if (panel) panel.style.display = "none";
     }
     if (p === "home") {
-      const home = document.getElementById("page-home");
-      console.log("Showing home:", !!home);
-      if (home) home.classList.add("active");
-      const homeNav = document.querySelector('[data-page="home"]');
-      if (homeNav) homeNav.classList.add("active");
+      document.getElementById("page-home").classList.add("active");
+      document.querySelector('[data-page="home"]').classList.add("active");
       document.getElementById("runsList").style.display = "";
       startLiveRunsPolling();
       if (!suppressNavPush) pushNav({ page: "home" });
     } else if (p === "favorites") {
-      const fav = document.getElementById("page-favorites");
-      console.log("Showing favorites:", !!fav);
-      if (fav) fav.classList.add("active");
-      const favNav = document.querySelector('[data-page="favorites"]');
-      if (favNav) favNav.classList.add("active");
+      document.getElementById("page-favorites").classList.add("active");
+      document.querySelector('[data-page="favorites"]').classList.add("active");
       renderFavorites();
       stopLiveRunsPolling();
       if (!suppressNavPush) pushNav({ page: "favorites" });
     } else if (p === "leaderboard") {
-      const lb = document.getElementById("page-leaderboard");
-      console.log("Showing leaderboard:", !!lb, "classes before:", lb ? lb.className : "null");
-      if (lb) lb.classList.add("active");
-      const lbNav = document.querySelector('[data-page="leaderboard"]');
-      console.log("Leaderboard nav:", !!lbNav);
-      if (lbNav) lbNav.classList.add("active");
-      console.log("After adding active, leaderboard classes:", lb ? lb.className : "null");
+      document.getElementById("page-leaderboard").classList.add("active");
+      document.querySelector('[data-page="leaderboard"]').classList.add("active");
       loadLeaderboard(false);
       stopLiveRunsPolling();
       if (!suppressNavPush) pushNav({ page: "leaderboard" });
     } else if (p === "profile") {
-      const profile = document.getElementById("page-profile");
-      console.log("Showing profile:", !!profile);
-      if (profile) profile.classList.add("active");
+      document.getElementById("page-profile").classList.add("active");
     }
     const footer = document.getElementById("appFooter");
     if (footer) footer.style.display = p === "home" || p === "favorites" ? "" : "none";

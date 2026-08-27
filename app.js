@@ -169,11 +169,9 @@
   async function getCurrentNameForUUID(uuid) {
     try {
       const history = await getJSON(`https://api.mojang.com/user/profiles/${uuid}/names`);
-      console.log("Mojang name history for", uuid, history);
       if (!Array.isArray(history) || history.length === 0) return null;
       return history[history.length - 1].name || null;
     } catch (e) {
-      console.log("Mojang name history failed for", uuid, e.message);
       return null;
     }
   }
