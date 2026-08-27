@@ -1869,13 +1869,13 @@
       cancelAnimationFrame(headAnimFrameId);
       headAnimFrameId = null;
     }
-    headTargetRy = 0;
-    headTargetRx = 0;
     let currentRy = 0,
       currentRx = 0;
     let isDragging = false;
     let lastX = 0,
       lastY = 0;
+    headTargetRy = 0;
+    headTargetRx = 0;
 
     function onMouseDown(e) {
       isDragging = true;
@@ -1885,22 +1885,33 @@
     }
 
     headMoveHandler = (e) => {
-      if (!isDragging) return;
       const clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
       const clientY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
-      const dx = clientX - lastX;
-      const dy = clientY - lastY;
-      headTargetRy = Math.max(-60, Math.min(60, headTargetRy + dx * 0.7));
-      headTargetRx = Math.max(-45, Math.min(45, headTargetRx - dy * 0.7));
-      lastX = clientX;
-      lastY = clientY;
+      if (isDragging) {
+        const dx = clientX - lastX;
+        const dy = clientY - lastY;
+        headTargetRy = Math.max(-60, Math.min(60, headTargetRy + dx * 0.7));
+        headTargetRx = Math.max(-45, Math.min(45, headTargetRx - dy * 0.7));
+        lastX = clientX;
+        lastY = clientY;
+      } else {
+        const rect = container.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = clientX - cx;
+        const dy = clientY - cy;
+        const maxDist = Math.sqrt(window.innerWidth * window.innerWidth + window.innerHeight * window.innerHeight) / 2;
+        const influence = Math.min(1, Math.sqrt(dx * dx + dy * dy) / (maxDist * 0.6));
+        const angleX = Math.atan2(dy, window.innerWidth / 2);
+        const angleY = Math.atan2(dx, window.innerHeight / 2);
+        headTargetRy = Math.max(-30, Math.min(30, angleY * (180 / Math.PI) * 0.55)) * influence;
+        headTargetRx = Math.max(-20, Math.min(20, -angleX * (180 / Math.PI) * 0.55)) * influence;
+      }
     };
     headUpHandler = () => {
       if (!isDragging) return;
       isDragging = false;
       container.classList.remove("dragging");
-      headTargetRy = 0;
-      headTargetRx = 0;
     };
 
     container.addEventListener("mousedown", onMouseDown);
