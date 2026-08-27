@@ -2993,6 +2993,13 @@
     if (compareClearBtn) {
       compareClearBtn.addEventListener("click", removeComparisonPlayer2);
     }
+    document.addEventListener("click", (e) => {
+      const panel = document.getElementById("comparePanel");
+      const btn = document.getElementById("compareBtn");
+      if (!panel || panel.style.display === "none") return;
+      if (panel.contains(e.target) || btn.contains(e.target)) return;
+      if (state.comparison && state.comparison.active) toggleComparison();
+    });
     const favoriteBtn = document.getElementById("favoriteBtn");
     if (favoriteBtn) {
       favoriteBtn.addEventListener("click", () => {
@@ -3016,14 +3023,6 @@
         }
       });
     }
-    document.addEventListener("click", (e) => {
-      const sidebar = document.getElementById("profileSidebar");
-      const toggleBtn = document.getElementById("sidebarToggleBtn");
-      if (!sidebar || sidebar.classList.contains("hidden")) return;
-      if (sidebar.contains(e.target) || toggleBtn.contains(e.target)) return;
-      sidebar.classList.add("hidden");
-      if (toggleBtn) toggleBtn.classList.remove("active");
-    });
     const sessionShareBtn = document.getElementById("sessionShareBtn");
     if (sessionShareBtn) {
       const getActiveTimeframe = () => {
@@ -3511,6 +3510,12 @@
     if (devClosePanelBtn) {
       devClosePanelBtn.addEventListener("click", toggleDevMode);
     }
+    document.addEventListener("click", (e) => {
+      const panel = document.getElementById("devPanel");
+      if (!panel || !panel.classList.contains("visible")) return;
+      if (panel.contains(e.target)) return;
+      if (devMode) toggleDevMode();
+    });
 
     const applyAnimationsSetting = () => {
       if (settings.animationsEnabled) {
