@@ -638,6 +638,32 @@
     </div>
   </div>
 
+  <div class="cache-warning-overlay" id="cacheWarningOverlay">
+    <div class="cache-warning-modal">
+      <div class="modal-header">
+        <h2>Clear Cache & History</h2>
+        <button class="modal-close" id="closeCacheWarning">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="cache-warning-text">This will permanently delete all local data, including:</p>
+        <ul class="cache-warning-list">
+          <li><span class="cache-label">Favorites</span> <span class="cache-count" id="cacheFavCount">0 players</span></li>
+          <li><span class="cache-label">Recent searches</span> <span class="cache-count" id="cacheRecentCount">0 entries</span></li>
+          <li><span class="cache-label">Theme</span> <span class="cache-value" id="cacheThemeValue">—</span></li>
+          <li><span class="cache-label">PB notifications</span> <span class="cache-value" id="cachePbNotif">—</span></li>
+          <li><span class="cache-label">Live notifications</span> <span class="cache-value" id="cacheLiveNotif">—</span></li>
+          <li><span class="cache-label">Notification sound</span> <span class="cache-value" id="cacheSoundNotif">—</span></li>
+          <li><span class="cache-label">Animations</span> <span class="cache-value" id="cacheAnimations">—</span></li>
+        </ul>
+        <p class="cache-warning-note">This action cannot be undone. The app will reload after clearing.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-secondary" id="cancelClearCache">Cancel</button>
+        <button class="modal-btn modal-btn-danger" id="confirmClearCache">Clear All Data</button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>

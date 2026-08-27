@@ -3523,13 +3523,62 @@
 
     const clearCacheBtn = document.getElementById("settingClearCache");
     if (clearCacheBtn) {
-      clearCacheBtn.addEventListener("click", async () => {
-        if (!confirm("Clear all local cache and history? This cannot be undone.")) return;
+      clearCacheBtn.addEventListener("click", () => {
+        const favCount = (state.favorites || []).length;
+        const recentCount = (state.recents || []).length;
+        const currentTheme = localStorage.getItem("paceman_theme") || "amethyst";
+        const pbNotif = settings.pbNotifications ? "Enabled" : "Disabled";
+        const liveNotif = settings.liveNotifications ? "Enabled" : "Disabled";
+        const soundNotif = settings.notificationSound ? "Enabled" : "Disabled";
+        const animations = settings.animationsEnabled ? "Enabled" : "Disabled";
+
+        const favEl = document.getElementById("cacheFavCount");
+        if (favEl) favEl.textContent = favCount === 1 ? "1 player" : `${favCount} players`;
+
+        const recentEl = document.getElementById("cacheRecentCount");
+        if (recentEl) recentEl.textContent = recentCount === 1 ? "1 entry" : `${recentCount} entries`;
+
+        const themeEl = document.getElementById("cacheThemeValue");
+        if (themeEl) themeEl.textContent = currentTheme;
+
+        const pbEl = document.getElementById("cachePbNotif");
+        if (pbEl) pbEl.textContent = pbNotif;
+
+        const liveEl = document.getElementById("cacheLiveNotif");
+        if (liveEl) liveEl.textContent = liveNotif;
+
+        const soundEl = document.getElementById("cacheSoundNotif");
+        if (soundEl) soundEl.textContent = soundNotif;
+
+        const animEl = document.getElementById("cacheAnimations");
+        if (animEl) animEl.textContent = animations;
+
+        const overlay = document.getElementById("cacheWarningOverlay");
+        if (overlay) overlay.classList.add("visible");
+      });
+    }
+    const confirmClearCacheBtn = document.getElementById("confirmClearCache");
+    if (confirmClearCacheBtn) {
+      confirmClearCacheBtn.addEventListener("click", async () => {
         localStorage.clear();
         if (window.pacemanAPI && window.pacemanAPI.clearCache) {
           await window.pacemanAPI.clearCache();
         }
         location.reload();
+      });
+    }
+    const cancelClearCacheBtn = document.getElementById("cancelClearCache");
+    if (cancelClearCacheBtn) {
+      cancelClearCacheBtn.addEventListener("click", () => {
+        const overlay = document.getElementById("cacheWarningOverlay");
+        if (overlay) overlay.classList.remove("visible");
+      });
+    }
+    const closeCacheWarningBtn = document.getElementById("closeCacheWarning");
+    if (closeCacheWarningBtn) {
+      closeCacheWarningBtn.addEventListener("click", () => {
+        const overlay = document.getElementById("cacheWarningOverlay");
+        if (overlay) overlay.classList.remove("visible");
       });
     }
 
