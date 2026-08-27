@@ -8,8 +8,8 @@
 
   const SPLITS = {
     nether: "Nether",
-    bastion: "Bastion",
-    fortress: "Fortress",
+    bastion: "First Structure",
+    fortress: "Second Structure",
     first_portal: "Blind Portal",
     stronghold: "Stronghold",
     end: "End",
@@ -892,7 +892,7 @@
       const ts = getRunTimestamp(run);
       if (ts <= 0) continue;
       if (!current || ts - current.endTime > gapSec) {
-        current = { id: ts.toString(), startTime: ts, endTime: ts, runs: [], runCount: 0, duration: "0m", pb: null, avg: null, netherAvg: null, furthestState: null, furthestTime: null };
+        current = { id: ts.toString(), startTime: ts, endTime: ts, runs: [], runCount: 0, duration: "0m", pb: null, avg: null, netherAvg: null, firstCount: 0, firstAvg: "0:00", secondCount: 0, secondAvg: "0:00", furthestState: null, furthestTime: null };
         sessions.push(current);
       }
       current.runs.push(run);
@@ -917,6 +917,11 @@
         if (nethers.length > 0) {
           s.netherAvg = nethers.reduce((a, b) => a + b, 0) / nethers.length;
         }
+        const structures = calcFirstSecondStructure(s.runs);
+        s.firstCount = structures.firstCount;
+        s.firstAvg = structures.firstAvg;
+        s.secondCount = structures.secondCount;
+        s.secondAvg = structures.secondAvg;
         let bestIdx = -1;
         let bestTime = null;
         let bestKey = null;
@@ -951,8 +956,9 @@
       const date = new Date(s.startTime * 1000);
       const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
       const timeStr = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-      const furthestStr = s.furthestState && s.furthestTime != null ? `${s.furthestState}: ${fmt(s.furthestTime)}` : "—";
       const avgStr = s.netherAvg != null ? fmt(Math.round(s.netherAvg)) : "—";
+      const firstStr = s.firstCount > 0 ? `${s.firstAvg}` : "—";
+      const secondStr = s.secondCount > 0 ? `${s.secondAvg}` : "—";
       const isActive = activeSessionId === s.id;
       return `<div class="session-card${isActive ? " active" : ""}" data-session-id="${s.id}">
         <div class="session-card-header">
@@ -965,7 +971,10 @@
           <div class="session-card-stat"><span class="session-card-stat-label">Avg Nether</span><span class="session-card-stat-value">${avgStr}</span></div>
         </div>
         <div class="session-card-footer">
-          <div class="session-card-furthest">${furthestStr}</div>
+          <div class="session-card-structure">
+            <span class="session-card-structure-first">1st: ${firstStr}</span>
+            <span class="session-card-structure-second">2nd: ${secondStr}</span>
+          </div>
         </div>
       </div>`;
     }).join("");

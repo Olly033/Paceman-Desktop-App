@@ -1473,12 +1473,25 @@ body {
 .session-card-footer {
   padding-top: 8px;
   border-top: 1px solid var(--border-glass);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
 }
 
-.session-card-furthest {
+.session-card-structure {
+  display: flex;
+  gap: 10px;
   font-size: 11px;
-  color: var(--accent-light);
   font-weight: 600;
+}
+
+.session-card-structure-first {
+  color: var(--accent-light);
+}
+
+.session-card-structure-second {
+  color: var(--text-secondary);
 }
 
 .session-back-btn {
