@@ -3101,6 +3101,7 @@
         const tf = getActiveTimeframe();
         const hours = TF_HOURS[tf] || 24;
         const between = TF_BETWEEN[tf] || 24;
+        const selectedSessionId = state.profile.selectedSession;
         let header = "";
         if (tf === "session") header = `${name} session stats:`;
         else if (tf === "daily") header = `${name} daily stats:`;
@@ -3110,48 +3111,96 @@
         else header = `${name} ${tf} stats:`;
         let text = header + "\n";
         try {
-          const [stats, nph] = await Promise.all([
-            getJSON(`${API}/getSessionStats?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`),
-            getJSON(`${API}/getNPH?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`).catch(() => null),
-          ]);
-          for (const key of SPLIT_ORDER) {
-            const s = stats[key] || { count: 0, avg: "0:00" };
-            if (s.count > 0 && key !== "bastion" && key !== "fortress") {
-              let label = SPLITS[key];
-              text += `${label}: ${s.count}x avg ${s.avg}\n`;
-            }
-          }
-          const runs = state.profile.timeframeRuns || state.profile.allRuns || [];
-          const firstStructureTimes = [];
-          const secondStructureTimes = [];
-          for (const r of runs) {
-            const bastion = r.bastion;
-            const fortress = r.fortress;
-            if (bastion != null && fortress != null) {
-              if (bastion < fortress) {
-                firstStructureTimes.push(bastion);
-                secondStructureTimes.push(fortress);
-              } else if (fortress < bastion) {
-                firstStructureTimes.push(fortress);
-                secondStructureTimes.push(bastion);
+          if (selectedSessionId && state.profile.allRuns) {
+            const sessions = groupRunsIntoSessions(state.profile.allRuns);
+            const session = sessions.find((s) => s.id === selectedSessionId);
+            const runs = session ? session.runs : (state.profile.timeframeRuns || []);
+            for (const key of SPLIT_ORDER) {
+              if (key === "bastion" || key === "fortress") continue;
+              const values = runs.filter((r) => r[key] != null).map((r) => r[key]);
+              const count = values.length;
+              const avg = count > 0 ? fmt(Math.round(values.reduce((a, b) => a + b, 0) / count)) : "0:00";
+              if (count > 0) {
+                text += `${SPLITS[key]}: ${count}x avg ${avg}\n`;
               }
             }
-          }
-          if (firstStructureTimes.length > 0 || secondStructureTimes.length > 0) {
-            const firstCount = firstStructureTimes.length;
-            const secondCount = secondStructureTimes.length;
-            const firstAvg = firstCount > 0 ? fmt(Math.round(firstStructureTimes.reduce((a, b) => a + b, 0) / firstCount)) : "0:00";
-            const secondAvg = secondCount > 0 ? fmt(Math.round(secondStructureTimes.reduce((a, b) => a + b, 0) / secondCount)) : "0:00";
-            text += `First Structure: ${firstCount}x avg ${firstAvg}\n`;
-            text += `Second Structure: ${secondCount}x avg ${secondAvg}\n`;
-          }
-          if (tf === "session" && nph) {
-            text += `NPH: ${(nph.rnph || 0).toFixed(2)}\n`;
-            text += `RPE: ${(nph.rpe || 0).toFixed(2)}\n`;
-          }
-          if (tf === "session") {
-            const duration = calcSessionDuration(state.profile.timeframeRuns);
-            text += `Session length: ${duration || "--"}\n`;
+            const firstStructureTimes = [];
+            const secondStructureTimes = [];
+            for (const r of runs) {
+              const bastion = r.bastion;
+              const fortress = r.fortress;
+              if (bastion != null && fortress != null) {
+                if (bastion < fortress) {
+                  firstStructureTimes.push(bastion);
+                  secondStructureTimes.push(fortress);
+                } else if (fortress < bastion) {
+                  firstStructureTimes.push(fortress);
+                  secondStructureTimes.push(bastion);
+                }
+              }
+            }
+            if (firstStructureTimes.length > 0 || secondStructureTimes.length > 0) {
+              const firstCount = firstStructureTimes.length;
+              const secondCount = secondStructureTimes.length;
+              const firstAvg = firstCount > 0 ? fmt(Math.round(firstStructureTimes.reduce((a, b) => a + b, 0) / firstCount)) : "0:00";
+              const secondAvg = secondCount > 0 ? fmt(Math.round(secondStructureTimes.reduce((a, b) => a + b, 0) / secondCount)) : "0:00";
+              text += `First Structure: ${firstCount}x avg ${firstAvg}\n`;
+              text += `Second Structure: ${secondCount}x avg ${secondAvg}\n`;
+            }
+            const finishes = runs.filter((r) => r.finish != null).map((r) => r.finish);
+            const finCount = finishes.length;
+            const finAvg = finCount > 0 ? fmt(Math.round(finishes.reduce((a, b) => a + b, 0) / finCount)) : "0:00";
+            if (finCount > 0) {
+              text += `Completion: ${finCount}x avg ${finAvg}\n`;
+            }
+            const duration = calcSessionDuration(runs);
+            if (duration) {
+              text += `Session length: ${duration}\n`;
+            }
+          } else {
+            const [stats, nph] = await Promise.all([
+              getJSON(`${API}/getSessionStats?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`),
+              getJSON(`${API}/getNPH?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`).catch(() => null),
+            ]);
+            for (const key of SPLIT_ORDER) {
+              const s = stats[key] || { count: 0, avg: "0:00" };
+              if (s.count > 0 && key !== "bastion" && key !== "fortress") {
+                let label = SPLITS[key];
+                text += `${label}: ${s.count}x avg ${s.avg}\n`;
+              }
+            }
+            const runs = state.profile.timeframeRuns || state.profile.allRuns || [];
+            const firstStructureTimes = [];
+            const secondStructureTimes = [];
+            for (const r of runs) {
+              const bastion = r.bastion;
+              const fortress = r.fortress;
+              if (bastion != null && fortress != null) {
+                if (bastion < fortress) {
+                  firstStructureTimes.push(bastion);
+                  secondStructureTimes.push(fortress);
+                } else if (fortress < bastion) {
+                  firstStructureTimes.push(fortress);
+                  secondStructureTimes.push(bastion);
+                }
+              }
+            }
+            if (firstStructureTimes.length > 0 || secondStructureTimes.length > 0) {
+              const firstCount = firstStructureTimes.length;
+              const secondCount = secondStructureTimes.length;
+              const firstAvg = firstCount > 0 ? fmt(Math.round(firstStructureTimes.reduce((a, b) => a + b, 0) / firstCount)) : "0:00";
+              const secondAvg = secondCount > 0 ? fmt(Math.round(secondStructureTimes.reduce((a, b) => a + b, 0) / secondCount)) : "0:00";
+              text += `First Structure: ${firstCount}x avg ${firstAvg}\n`;
+              text += `Second Structure: ${secondCount}x avg ${secondAvg}\n`;
+            }
+            if (tf === "session" && nph) {
+              text += `NPH: ${(nph.rnph || 0).toFixed(2)}\n`;
+              text += `RPE: ${(nph.rpe || 0).toFixed(2)}\n`;
+            }
+            if (tf === "session") {
+              const duration = calcSessionDuration(state.profile.timeframeRuns);
+              text += `Session length: ${duration || "--"}\n`;
+            }
           }
         } catch (e) {
           const badges = sessionBox.querySelectorAll(".stat-badge");
