@@ -313,7 +313,7 @@ body {
 
 .nav-btn.active {
   background: var(--gradient-1);
-  color: white;
+  color: var(--text-primary);
 }
 
 .theme-switcher {
