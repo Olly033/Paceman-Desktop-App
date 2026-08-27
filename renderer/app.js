@@ -3116,28 +3116,34 @@
           ]);
           for (const key of SPLIT_ORDER) {
             const s = stats[key] || { count: 0, avg: "0:00" };
-            if (s.count > 0) {
+            if (s.count > 0 && key !== "bastion" && key !== "fortress") {
               let label = SPLITS[key];
-              if (key === "bastion" || key === "fortress") {
-                const runs = state.profile.timeframeRuns || state.profile.allRuns || [];
-                let bastionFirst = 0;
-                let fortressFirst = 0;
-                for (const r of runs) {
-                  if (r.bastion != null && r.fortress != null) {
-                    if (r.bastion < r.fortress) bastionFirst++;
-                    else if (r.fortress < r.bastion) fortressFirst++;
-                  }
-                }
-                if (bastionFirst > 0 || fortressFirst > 0) {
-                  if (key === "bastion") {
-                    label = bastionFirst >= fortressFirst ? "First Structure" : "Second Structure";
-                  } else {
-                    label = fortressFirst >= bastionFirst ? "First Structure" : "Second Structure";
-                  }
-                }
-              }
               text += `${label}: ${s.count}x avg ${s.avg}\n`;
             }
+          }
+          const runs = state.profile.timeframeRuns || state.profile.allRuns || [];
+          const firstStructureTimes = [];
+          const secondStructureTimes = [];
+          for (const r of runs) {
+            const bastion = r.bastion;
+            const fortress = r.fortress;
+            if (bastion != null && fortress != null) {
+              if (bastion < fortress) {
+                firstStructureTimes.push(bastion);
+                secondStructureTimes.push(fortress);
+              } else if (fortress < bastion) {
+                firstStructureTimes.push(fortress);
+                secondStructureTimes.push(bastion);
+              }
+            }
+          }
+          if (firstStructureTimes.length > 0 || secondStructureTimes.length > 0) {
+            const firstCount = firstStructureTimes.length;
+            const secondCount = secondStructureTimes.length;
+            const firstAvg = firstCount > 0 ? fmt(Math.round(firstStructureTimes.reduce((a, b) => a + b, 0) / firstCount)) : "0:00";
+            const secondAvg = secondCount > 0 ? fmt(Math.round(secondStructureTimes.reduce((a, b) => a + b, 0) / secondCount)) : "0:00";
+            text += `First Structure: ${firstCount}x avg ${firstAvg}\n`;
+            text += `Second Structure: ${secondCount}x avg ${secondAvg}\n`;
           }
           if (tf === "session" && nph) {
             text += `NPH: ${(nph.rnph || 0).toFixed(2)}\n`;
