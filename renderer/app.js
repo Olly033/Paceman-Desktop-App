@@ -2997,7 +2997,7 @@
       const panel = document.getElementById("comparePanel");
       const btn = document.getElementById("compareBtn");
       if (!panel || panel.style.display === "none") return;
-      if (panel.contains(e.target) || btn.contains(e.target)) return;
+      if (panel.contains(e.target) || (btn && btn.contains(e.target))) return;
       if (state.comparison && state.comparison.active) toggleComparison();
     });
     const favoriteBtn = document.getElementById("favoriteBtn");
