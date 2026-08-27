@@ -457,7 +457,11 @@
   async function resolveUUID(name) {
     try {
       const data = await getJSON(`${MOJANG}/${encodeURIComponent(name)}`);
-      return data.id || null;
+      const raw = data.id || null;
+      if (!raw) return null;
+      const formatted = raw.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, "$1-$2-$3-$4-$5");
+      cachePlayer(name, formatted);
+      return formatted;
     } catch (e) {
       return null;
     }
@@ -2155,9 +2159,10 @@
     for (const name of state.recents) {
       const item = document.createElement("div");
       item.className = "search-item";
-      item.innerHTML = `<img src="${avatarUrl(name, 32)}" onerror="this.style.visibility='hidden'"><span class="search-item-name">${escapeHtml(name)}</span>`;
+      const uuid = state.playerCache[name.toLowerCase()];
+      item.innerHTML = `<img src="${avatarUrl(uuid || name, 32)}" onerror="this.style.visibility='hidden'"><span class="search-item-name">${escapeHtml(name)}</span>`;
       item.addEventListener("click", () => {
-        openProfile(name, state.playerCache[name.toLowerCase()]);
+        openProfile(name, uuid);
         closeSearch();
       });
       wrap.appendChild(item);
@@ -2890,9 +2895,10 @@
     for (const name of state.recents) {
       const item = document.createElement("div");
       item.className = "search-item";
-      item.innerHTML = `<img src="${avatarUrl(name, 32)}" onerror="this.style.visibility='hidden'"><span class="search-item-name">${escapeHtml(name)}</span>`;
+      const uuid = state.playerCache[name.toLowerCase()];
+      item.innerHTML = `<img src="${avatarUrl(uuid || name, 32)}" onerror="this.style.visibility='hidden'"><span class="search-item-name">${escapeHtml(name)}</span>`;
       item.addEventListener("click", () => {
-        loadComparisonPlayer2(name, state.playerCache[name.toLowerCase()]);
+        loadComparisonPlayer2(name, uuid);
         document.getElementById("compareSearchDropdown").classList.remove("visible");
       });
       wrap.appendChild(item);
