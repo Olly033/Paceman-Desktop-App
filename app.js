@@ -1166,7 +1166,7 @@
   /* ---------------- Router ---------------- */
 
   function showPage(p) {
-    if (state.page === p && p !== "profile" && p !== "home") return;
+    if (state.page === p) return;
     state.page = p;
     document.querySelectorAll(".page").forEach((el) => el.classList.remove("active"));
     document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
