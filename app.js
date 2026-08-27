@@ -168,10 +168,12 @@
 
   async function getCurrentNameForUUID(uuid) {
     try {
-      const history = await getJSON(`${MOJANG}/user/profiles/${uuid}/names`);
+      const history = await getJSON(`https://api.mojang.com/user/profiles/${uuid}/names`);
+      console.log("Mojang name history for", uuid, history);
       if (!Array.isArray(history) || history.length === 0) return null;
       return history[history.length - 1].name || null;
     } catch (e) {
+      console.log("Mojang name history failed for", uuid, e.message);
       return null;
     }
   }
@@ -351,9 +353,11 @@
     const noticeEl = document.getElementById("profileNameNotice");
     const noticeTextEl = document.getElementById("profileNameNoticeText");
     const noticeLinkEl = document.getElementById("profileNameNoticeLink");
+    console.log("Notice elements:", !!noticeEl, !!noticeTextEl, !!noticeLinkEl);
     if (noticeEl) noticeEl.style.display = "none";
     if (uuid) {
       const currentName = await getCurrentNameForUUID(uuid);
+      console.log("Name check:", name, "->", currentName, "changed?", currentName && currentName !== name);
       if (currentName && currentName !== name) {
         if (noticeTextEl) noticeTextEl.textContent = `${name} is now known as ${currentName}`;
         if (noticeLinkEl) {
