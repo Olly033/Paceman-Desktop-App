@@ -66,7 +66,7 @@
     playerCache: {},
     favorites: JSON.parse(localStorage.getItem("paceman_favorites") || "[]"),
     favoritePBs: JSON.parse(localStorage.getItem("paceman_favorite_pbs") || "{}"),
-    profile: { name: null, uuid: null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null, chartVisible: true, allRunsSort: "newest" },
+    profile: { name: null, uuid: null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null, allRunsSort: "newest" },
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
     dailyLeaderboardTop10: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
@@ -308,141 +308,6 @@
   }
 
   let profileRunsGeneration = 0;
-  let chartPoints = [];
-  let chartCanvas = null;
-
-  function renderRunHistoryChart() {
-    const container = document.getElementById("chartContainer");
-    const chartEl = document.getElementById("profileChart");
-    if (!container || !chartEl) return;
-
-    if (!state.profile.chartVisible) {
-      container.innerHTML = "";
-      chartPoints = [];
-      chartCanvas = null;
-      return;
-    }
-
-    const tf = state.profile.tf;
-    if (tf === "session") {
-      container.innerHTML = "";
-      chartPoints = [];
-      chartCanvas = null;
-      return;
-    }
-
-    const select = document.getElementById("chartStatSelect");
-    const statKey = select ? select.value : "finish";
-
-    const runs = state.profile.timeframeRuns || [];
-    const finished = runs.filter((r) => r[statKey] != null).sort((a, b) => (a.insertTime || 0) - (b.insertTime || 0));
-    if (finished.length < 2) {
-      container.innerHTML = finished.length === 1 ? '<div class="loading">Only 1 run with this split in this timeframe. Need at least 2 to show a chart.</div>' : "";
-      chartPoints = [];
-      chartCanvas = null;
-      return;
-    }
-
-    const canvas = document.createElement("canvas");
-    container.innerHTML = "";
-    container.appendChild(canvas);
-    chartCanvas = canvas;
-
-    canvas.addEventListener("click", (e) => {
-      if (!chartPoints.length) return;
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = (container.clientWidth || 600) / rect.width;
-      const scaleY = 180 / rect.height;
-      const mx = (e.clientX - rect.left) * scaleX;
-      const my = (e.clientY - rect.top) * scaleY;
-      let closest = null;
-      let minDist = 14;
-      for (const p of chartPoints) {
-        const dist = Math.hypot(p.x - mx, p.y - my);
-        if (dist < minDist) {
-          minDist = dist;
-          closest = p;
-        }
-      }
-      if (closest && closest.run) {
-        openRunDetail(closest.run.id, state.profile.name, closest.run);
-      }
-    });
-
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = (container.clientWidth || 600) * dpr;
-    canvas.height = 180 * dpr;
-    canvas.style.width = "100%";
-    canvas.style.height = "180px";
-    const ctx = canvas.getContext("2d");
-    ctx.scale(dpr, dpr);
-
-    const width = container.clientWidth || 600;
-    const height = 180;
-    const padding = { top: 24, right: 24, bottom: 32, left: 56 };
-    const chartW = width - padding.left - padding.right;
-    const chartH = height - padding.top - padding.bottom;
-
-    const times = finished.map((r) => r[statKey]);
-    const minTime = Math.min(...times);
-    const maxTime = Math.max(...times);
-    const range = maxTime - minTime || 1;
-
-    chartPoints = finished.map((r, i) => ({
-      x: padding.left + (finished.length > 1 ? (i / (finished.length - 1)) * chartW : chartW / 2),
-      y: padding.top + chartH - ((r[statKey] - minTime) / range) * chartH,
-      run: r,
-    }));
-
-    ctx.clearRect(0, 0, width, height);
-
-    ctx.strokeStyle = "rgba(255,255,255,0.06)";
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      const y = padding.top + (chartH / 4) * i;
-      ctx.beginPath();
-      ctx.moveTo(padding.left, y);
-      ctx.lineTo(width - padding.right, y);
-      ctx.stroke();
-    }
-
-    ctx.beginPath();
-    ctx.moveTo(chartPoints[0].x, chartPoints[0].y);
-    for (let i = 1; i < chartPoints.length; i++) {
-      const prev = chartPoints[i - 1];
-      const curr = chartPoints[i];
-      const cpx = (prev.x + curr.x) / 2;
-      ctx.bezierCurveTo(cpx, prev.y, cpx, curr.y, curr.x, curr.y);
-    }
-    ctx.strokeStyle = "#a78bfa";
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-
-    for (const p of chartPoints) {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(124, 58, 237, 0.15)";
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
-      ctx.fillStyle = "#a78bfa";
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = "#fff";
-      ctx.fill();
-    }
-
-    ctx.fillStyle = "rgba(255,255,255,0.4)";
-    ctx.font = "11px Inter, sans-serif";
-    ctx.textAlign = "right";
-    ctx.fillText(fmt(maxTime), padding.left - 10, padding.top + 4);
-    ctx.fillText(fmt(minTime), padding.left - 10, padding.top + chartH);
-
-    ctx.textAlign = "center";
-    ctx.fillText("Oldest", padding.left, height - 10);
-    ctx.fillText("Newest", width - padding.right, height - 10);
-  }
 
   function renderFavorites() {
     const list = document.getElementById("favoritesList");
@@ -799,7 +664,7 @@
     }
     pushNav({ page: "profile", name, uuid });
     showPage("profile");
-    state.profile = { name, uuid: uuid || null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null, chartVisible: true, selectedSession: null, selectedSessionData: null };
+    state.profile = { name, uuid: uuid || null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null, selectedSession: null, selectedSessionData: null };
     const profileName = document.getElementById("profileName");
     const profileStatsRow = document.getElementById("profileStatsRow");
     const profileSplits = document.getElementById("profileSplits");
@@ -833,15 +698,6 @@
     await loadTwitchFromRuns(name);
     updateFavoriteButton();
     await updateSessionStats();
-    const chartToggleBtn = document.getElementById("chartToggleBtn");
-    const profileChart = document.getElementById("profileChart");
-    if (chartToggleBtn) {
-      chartToggleBtn.classList.remove("hidden");
-    }
-    if (profileChart) {
-      profileChart.classList.remove("hidden");
-    }
-    renderRunHistoryChart();
     const pbBadge = document.getElementById("profilePB");
     if (pbBadge) {
       pbBadge.onclick = () => {
@@ -1236,7 +1092,6 @@
     document.querySelectorAll("#profileTimeframes .timeframe-btn").forEach((b) => {
       b.classList.toggle("active", b.dataset.tf === "session");
     });
-    renderRunHistoryChart();
     renderRecentSessions(sessions, sessionId);
     showSessionInMain(session);
     const backBtn = document.getElementById("sessionBackBtn");
@@ -1339,7 +1194,6 @@
       }
       renderAllRunsPage();
       await loadTwitchFromRuns(name);
-      renderRunHistoryChart();
       const sessions = groupRunsIntoSessions(state.profile.allRuns);
       renderRecentSessions(sessions, state.profile.selectedSession || null);
       if (state.profile.selectedSession) {
@@ -2526,7 +2380,7 @@
         b.classList.add("active");
         clearSessionSelection();
         loadProfileStats();
-        loadProfileRuns().then(() => renderRunHistoryChart());
+        loadProfileRuns();
         const shareBtn = document.getElementById("sessionShareBtn");
         if (shareBtn) {
           const tf = b.dataset.tf || "daily";
@@ -2550,7 +2404,7 @@
         const dailyBtn = document.querySelector("#profileTimeframes .timeframe-btn[data-tf=\"daily\"]");
         if (dailyBtn) dailyBtn.classList.add("active");
         loadProfileStats();
-        loadProfileRuns().then(() => renderRunHistoryChart());
+        loadProfileRuns();
       });
     }
     document.querySelectorAll("#leaderboardTimeframes .timeframe-btn").forEach((b) => {
@@ -3103,21 +2957,6 @@
           sidebar.classList.add("hidden");
           sidebarToggleBtn.classList.remove("active");
         }
-      });
-    }
-    initCustomSelect("chartStatSelect", () => {
-      renderRunHistoryChart();
-    });
-    const chartToggleBtn = document.getElementById("chartToggleBtn");
-    if (chartToggleBtn) {
-      chartToggleBtn.addEventListener("click", () => {
-        state.profile.chartVisible = !state.profile.chartVisible;
-        chartToggleBtn.classList.toggle("hidden", !state.profile.chartVisible);
-        const profileChart = document.getElementById("profileChart");
-        if (profileChart) {
-          profileChart.classList.toggle("hidden", !state.profile.chartVisible);
-        }
-        renderRunHistoryChart();
       });
     }
     const sessionShareBtn = document.getElementById("sessionShareBtn");
