@@ -1147,10 +1147,12 @@ body {
   flex-shrink: 0;
   cursor: grab;
   touch-action: none;
+  user-select: none;
 }
 
 .profile-head-container.dragging {
   cursor: grabbing;
+  user-select: none;
 }
 
 .profile-info h1 {

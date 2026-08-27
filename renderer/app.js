@@ -1878,6 +1878,7 @@
     headTargetRx = 0;
 
     function onMouseDown(e) {
+      e.preventDefault();
       isDragging = true;
       lastX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
       lastY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
@@ -1894,6 +1895,7 @@
         headTargetRx = Math.max(-45, Math.min(45, headTargetRx - dy * 0.7));
         lastX = clientX;
         lastY = clientY;
+        if (e.cancelable) e.preventDefault();
       } else {
         const rect = container.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
