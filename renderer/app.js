@@ -1302,7 +1302,10 @@
       renderRecentSessions(sessions, state.profile.selectedSession || null);
       if (state.profile.selectedSession) {
         const selected = sessions.find((s) => s.id === state.profile.selectedSession);
-        if (selected) showSessionInMain(selected);
+        if (selected) {
+          state.profile.selectedSessionData = selected;
+          showSessionInMain(selected);
+        }
       }
     } catch (e) {
       if (generation !== profileRunsGeneration) return;
