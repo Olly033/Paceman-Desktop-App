@@ -1324,6 +1324,36 @@ body {
   overflow-y: auto;
   position: sticky;
   top: 20px;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.profile-sidebar.hidden {
+  display: none;
+}
+
+.sidebar-toggle-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.sidebar-toggle-btn:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.sidebar-toggle-btn.active {
+  background: var(--bg-glass-hover);
+  color: var(--accent-light);
+  border-color: var(--accent);
 }
 
 .sidebar-header {
@@ -1344,13 +1374,111 @@ body {
 .profile-sidebar .recent-sessions {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .profile-sidebar .session-card {
   width: 100%;
   max-width: 100%;
-  padding: 10px 12px;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--bg-glass) 0%, var(--bg-glass-hover) 100%);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-sidebar .session-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.profile-sidebar .session-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.profile-sidebar .session-card:hover::before {
+  opacity: 1;
+}
+
+.profile-sidebar .session-card.active {
+  border-color: var(--accent);
+  background: var(--bg-glass-hover);
+  box-shadow: 0 2px 12px rgba(124, 58, 237, 0.2);
+}
+
+.profile-sidebar .session-card.active::before {
+  opacity: 1;
+}
+
+.session-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.session-card-date {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.session-card-time {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.session-card-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.session-card-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.session-card-stat-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.session-card-stat-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.session-card-footer {
+  padding-top: 8px;
+  border-top: 1px solid var(--border-glass);
+}
+
+.session-card-furthest {
+  font-size: 11px;
+  color: var(--accent-light);
+  font-weight: 600;
 }
 
 .session-back-btn {

@@ -806,6 +806,10 @@
     const profileBestRuns = document.getElementById("profileBestRuns");
     const headContainer = document.getElementById("head3dContainer");
     const socialLinks = document.getElementById("socialLinks");
+    const sidebar = document.getElementById("profileSidebar");
+    const toggleBtn = document.getElementById("sidebarToggleBtn");
+    if (sidebar) sidebar.classList.add("hidden");
+    if (toggleBtn) toggleBtn.classList.remove("active");
     if (profileName) profileName.textContent = name;
     if (profileStatsRow) {
       profileStatsRow.innerHTML =
@@ -1095,9 +1099,18 @@
       const avgStr = s.netherAvg != null ? fmt(Math.round(s.netherAvg)) : "—";
       const isActive = activeSessionId === s.id;
       return `<div class="session-card${isActive ? " active" : ""}" data-session-id="${s.id}">
-        <div class="session-card-date">${dateStr} ${timeStr}</div>
-        <div class="session-card-meta">${s.duration} · ${s.runCount} runs · Avg ${avgStr}</div>
-        <div class="session-card-pb">${furthestStr}</div>
+        <div class="session-card-header">
+          <div class="session-card-date">${dateStr}</div>
+          <div class="session-card-time">${timeStr}</div>
+        </div>
+        <div class="session-card-body">
+          <div class="session-card-stat"><span class="session-card-stat-label">Duration</span><span class="session-card-stat-value">${s.duration}</span></div>
+          <div class="session-card-stat"><span class="session-card-stat-label">Runs</span><span class="session-card-stat-value">${s.runCount}</span></div>
+          <div class="session-card-stat"><span class="session-card-stat-label">Avg Nether</span><span class="session-card-stat-value">${avgStr}</span></div>
+        </div>
+        <div class="session-card-footer">
+          <div class="session-card-furthest">${furthestStr}</div>
+        </div>
       </div>`;
     }).join("");
     wrap.querySelectorAll(".session-card").forEach((card) => {
@@ -3027,6 +3040,21 @@
       favoriteBtn.addEventListener("click", () => {
         if (state.profile.name) {
           toggleFavorite(state.profile.name);
+        }
+      });
+    }
+    const sidebarToggleBtn = document.getElementById("sidebarToggleBtn");
+    if (sidebarToggleBtn) {
+      sidebarToggleBtn.addEventListener("click", () => {
+        const sidebar = document.getElementById("profileSidebar");
+        if (!sidebar) return;
+        const isHidden = sidebar.classList.contains("hidden");
+        if (isHidden) {
+          sidebar.classList.remove("hidden");
+          sidebarToggleBtn.classList.add("active");
+        } else {
+          sidebar.classList.add("hidden");
+          sidebarToggleBtn.classList.remove("active");
         }
       });
     }
