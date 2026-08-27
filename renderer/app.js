@@ -1132,17 +1132,29 @@
       if (splitsWrap) splitsWrap.innerHTML = '<div class="loading">No runs in this session.</div>';
       return;
     }
-    for (const key of SPLIT_ORDER) {
-      const values = session.runs.filter((r) => r[key] != null).map((r) => r[key]);
-      const count = values.length;
-      const avg = count > 0 ? fmt(Math.round(values.reduce((a, b) => a + b, 0) / count)) : "0:00";
+    const runs = session.runs;
+    const orderedKeys = ["nether", "bastion", "fortress", "first_portal", "stronghold", "end"];
+    const structureStats = calcFirstSecondStructure(runs);
+    for (const key of orderedKeys) {
+      let count, avg;
+      if (key === "bastion") {
+        count = structureStats.firstCount;
+        avg = structureStats.firstAvg;
+      } else if (key === "fortress") {
+        count = structureStats.secondCount;
+        avg = structureStats.secondAvg;
+      } else {
+        const stats = calcSplitStats(runs, key);
+        count = stats.count;
+        avg = stats.avg;
+      }
       const card = document.createElement("div");
       card.className = "split-card";
       card.innerHTML = `<div class="split-name">${SPLITS[key]}</div><div class="split-value">${count}</div><div class="split-count">Avg ${avg}</div>`;
       card.addEventListener("click", () => openSplitDetail(key));
       if (splitsWrap) splitsWrap.appendChild(card);
     }
-    const finishes = session.runs.filter((r) => r.finish != null).map((r) => r.finish);
+    const finishes = runs.filter((r) => r.finish != null).map((r) => r.finish);
     const finCount = finishes.length;
     const finAvg = finCount > 0 ? fmt(Math.round(finishes.reduce((a, b) => a + b, 0) / finCount)) : "0:00";
     if (completionEl) completionEl.textContent = `${finCount} completions`;
@@ -1150,7 +1162,7 @@
     if (bestRunsTitle) bestRunsTitle.textContent = "Session Runs";
     if (bestRuns) {
       bestRuns.innerHTML = "";
-      const ranked = session.runs
+      const ranked = runs
         .map((r) => ({ r, f: furthestIndex(r) }))
         .sort((a, b) => {
           const aFinished = a.r.finish != null;
@@ -1173,6 +1185,36 @@
         bestRuns.appendChild(div);
       }
     }
+  }
+
+  function calcSplitStats(runs, key) {
+    const values = runs.filter((r) => r[key] != null).map((r) => r[key]);
+    const count = values.length;
+    const avg = count > 0 ? fmt(Math.round(values.reduce((a, b) => a + b, 0) / count)) : "0:00";
+    return { count, avg };
+  }
+
+  function calcFirstSecondStructure(runs) {
+    const first = [];
+    const second = [];
+    for (const r of runs) {
+      const bastion = r.bastion;
+      const fortress = r.fortress;
+      if (bastion != null && fortress != null) {
+        if (bastion < fortress) {
+          first.push(bastion);
+          second.push(fortress);
+        } else if (fortress < bastion) {
+          first.push(fortress);
+          second.push(bastion);
+        }
+      }
+    }
+    const firstCount = first.length;
+    const secondCount = second.length;
+    const firstAvg = firstCount > 0 ? fmt(Math.round(first.reduce((a, b) => a + b, 0) / firstCount)) : "0:00";
+    const secondAvg = secondCount > 0 ? fmt(Math.round(second.reduce((a, b) => a + b, 0) / secondCount)) : "0:00";
+    return { firstCount, firstAvg, secondCount, secondAvg };
   }
 
   function clearSessionSelection() {
@@ -3118,37 +3160,28 @@
         let text = header + "\n";
         try {
           const runs = selectedSessionData ? selectedSessionData.runs : (state.profile.timeframeRuns || []);
-          for (const key of SPLIT_ORDER) {
-            if (key === "bastion" || key === "fortress") continue;
-            const values = runs.filter((r) => r[key] != null).map((r) => r[key]);
-            const count = values.length;
-            const avg = count > 0 ? fmt(Math.round(values.reduce((a, b) => a + b, 0) / count)) : "0:00";
-            if (count > 0) {
-              text += `${SPLITS[key]}: ${count}x avg ${avg}\n`;
-            }
+          const nether = calcSplitStats(runs, "nether");
+          if (nether.count > 0) {
+            text += `Nether: ${nether.count}x avg ${nether.avg}\n`;
           }
-          const firstStructureTimes = [];
-          const secondStructureTimes = [];
-          for (const r of runs) {
-            const bastion = r.bastion;
-            const fortress = r.fortress;
-            if (bastion != null && fortress != null) {
-              if (bastion < fortress) {
-                firstStructureTimes.push(bastion);
-                secondStructureTimes.push(fortress);
-              } else if (fortress < bastion) {
-                firstStructureTimes.push(fortress);
-                secondStructureTimes.push(bastion);
-              }
-            }
+          const structures = calcFirstSecondStructure(runs);
+          if (structures.firstCount > 0) {
+            text += `First Structure: ${structures.firstCount}x avg ${structures.firstAvg}\n`;
           }
-          if (firstStructureTimes.length > 0 || secondStructureTimes.length > 0) {
-            const firstCount = firstStructureTimes.length;
-            const secondCount = secondStructureTimes.length;
-            const firstAvg = firstCount > 0 ? fmt(Math.round(firstStructureTimes.reduce((a, b) => a + b, 0) / firstCount)) : "0:00";
-            const secondAvg = secondCount > 0 ? fmt(Math.round(secondStructureTimes.reduce((a, b) => a + b, 0) / secondCount)) : "0:00";
-            text += `First Structure: ${firstCount}x avg ${firstAvg}\n`;
-            text += `Second Structure: ${secondCount}x avg ${secondAvg}\n`;
+          if (structures.secondCount > 0) {
+            text += `Second Structure: ${structures.secondCount}x avg ${structures.secondAvg}\n`;
+          }
+          const firstPortal = calcSplitStats(runs, "first_portal");
+          if (firstPortal.count > 0) {
+            text += `First Portal: ${firstPortal.count}x avg ${firstPortal.avg}\n`;
+          }
+          const stronghold = calcSplitStats(runs, "stronghold");
+          if (stronghold.count > 0) {
+            text += `Stronghold: ${stronghold.count}x avg ${stronghold.avg}\n`;
+          }
+          const end = calcSplitStats(runs, "end");
+          if (end.count > 0) {
+            text += `End: ${end.count}x avg ${end.avg}\n`;
           }
           const finishes = runs.filter((r) => r.finish != null).map((r) => r.finish);
           const finCount = finishes.length;
