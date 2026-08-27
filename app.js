@@ -166,6 +166,16 @@
     }
   }
 
+  async function getCurrentNameForUUID(uuid) {
+    try {
+      const history = await getJSON(`${MOJANG}/user/profiles/${uuid}/names`);
+      if (!Array.isArray(history) || history.length === 0) return null;
+      return history[history.length - 1].name || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   function cachePlayer(name, uuid) {
     if (name) state.playerCache[name.toLowerCase()] = uuid || null;
   }
@@ -337,6 +347,26 @@
     if (!uuid) uuid = await resolveUUID(name);
     state.profile.uuid = uuid;
     if (uuid) renderHead3D(document.getElementById("head3dContainer"), uuid);
+
+    const noticeEl = document.getElementById("profileNameNotice");
+    const noticeTextEl = document.getElementById("profileNameNoticeText");
+    const noticeLinkEl = document.getElementById("profileNameNoticeLink");
+    if (noticeEl) noticeEl.style.display = "none";
+    if (uuid) {
+      const currentName = await getCurrentNameForUUID(uuid);
+      if (currentName && currentName !== name) {
+        if (noticeTextEl) noticeTextEl.textContent = `${name} is now known as ${currentName}`;
+        if (noticeLinkEl) {
+          noticeLinkEl.href = `#/player/${encodeURIComponent(currentName)}`;
+          noticeLinkEl.onclick = (e) => {
+            e.preventDefault();
+            openProfile(currentName, uuid);
+          };
+        }
+        if (noticeEl) noticeEl.style.display = "flex";
+      }
+    }
+
     addRecent(name);
     await Promise.all([loadProfileStats(), loadProfileRuns()]);
   }

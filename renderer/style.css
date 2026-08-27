@@ -1162,6 +1162,34 @@ body {
   letter-spacing: -0.3px;
 }
 
+.profile-name-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  border-radius: 10px;
+  font-size: 13px;
+  color: #facc15;
+}
+
+.profile-name-notice-text {
+  color: var(--text-secondary);
+}
+
+.profile-name-notice-link {
+  color: #facc15;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.profile-name-notice-link:hover {
+  color: #fde047;
+}
+
 .profile-stats-row {
   display: flex;
   gap: 10px;
