@@ -911,11 +911,13 @@
           avg: p.avg || 0,
         }));
         raw.sort((a, b) => {
-          const av = sortBy === "avg" ? a.avg : a.count;
-          const bv = sortBy === "avg" ? b.avg : b.count;
-          if (av === bv) return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
-          if (sortBy === "avg") return av - bv;
-          return sortDir === "asc" ? av - bv : bv - av;
+          if (sortBy === "avg") {
+            if (b.avg !== a.avg) return a.avg - b.avg;
+            return b.count - a.count;
+          }
+          if (sortDir === "asc") return a.count - b.count;
+          if (b.count !== a.count) return b.count - a.count;
+          return a.avg - b.avg;
         });
         byCat[cat] = raw.slice(0, 3);
       });
