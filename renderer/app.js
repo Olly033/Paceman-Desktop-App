@@ -3016,6 +3016,14 @@
         }
       });
     }
+    document.addEventListener("click", (e) => {
+      const sidebar = document.getElementById("profileSidebar");
+      const toggleBtn = document.getElementById("sidebarToggleBtn");
+      if (!sidebar || sidebar.classList.contains("hidden")) return;
+      if (sidebar.contains(e.target) || toggleBtn.contains(e.target)) return;
+      sidebar.classList.add("hidden");
+      if (toggleBtn) toggleBtn.classList.remove("active");
+    });
     const sessionShareBtn = document.getElementById("sessionShareBtn");
     if (sessionShareBtn) {
       const getActiveTimeframe = () => {
