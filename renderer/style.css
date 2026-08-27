@@ -1503,6 +1503,45 @@ body {
   display: block;
 }
 
+.session-share-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  position: relative;
+  margin-left: 4px;
+}
+
+.session-share-btn:hover {
+  background: var(--bg-glass-hover);
+  color: var(--accent-light);
+  transform: translateY(-1px);
+}
+
+.session-share-btn:active {
+  transform: translateY(0);
+}
+
+.session-share-btn.copied {
+  background: var(--gradient-1);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.session-share-btn svg {
+  width: 15px;
+  height: 15px;
+  pointer-events: none;
+}
+
 .timeframe-tabs {
   display: flex;
   gap: 6px;
