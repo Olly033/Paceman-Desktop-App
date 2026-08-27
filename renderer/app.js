@@ -2442,7 +2442,9 @@
     } else if (p === "leaderboard") {
       document.getElementById("page-leaderboard").classList.add("active");
       document.querySelector('[data-page="leaderboard"]').classList.add("active");
-      loadLeaderboard(false);
+      state.leaderboard.rows = null;
+      state.leaderboard.pages = {};
+      loadLeaderboard(true);
       stopLiveRunsPolling();
       if (!suppressNavPush) pushNav({ page: "leaderboard" });
     } else if (p === "profile") {

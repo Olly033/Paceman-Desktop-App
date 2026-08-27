@@ -1176,7 +1176,9 @@
     } else if (p === "leaderboard") {
       document.getElementById("page-leaderboard").classList.add("active");
       document.querySelector('[data-page="leaderboard"]').classList.add("active");
-      loadLeaderboard(false);
+      state.leaderboard.rows = null;
+      state.leaderboard.pages = {};
+      loadLeaderboard(true);
       if (!suppressNavPush) pushNav({ page: "leaderboard" });
     } else if (p === "profile") {
       document.getElementById("page-profile").classList.add("active");
