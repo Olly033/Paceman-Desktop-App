@@ -1145,6 +1145,12 @@ body {
   width: 72px;
   height: 72px;
   flex-shrink: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.profile-head-container.dragging {
+  cursor: grabbing;
 }
 
 .profile-info h1 {
