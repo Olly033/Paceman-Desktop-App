@@ -1891,8 +1891,8 @@
       if (isDragging) {
         const dx = clientX - lastX;
         const dy = clientY - lastY;
-        headTargetRy = Math.max(-60, Math.min(60, headTargetRy + dx * 0.7));
-        headTargetRx = Math.max(-45, Math.min(45, headTargetRx - dy * 0.7));
+        headTargetRy += dx * 0.7;
+        headTargetRx -= dy * 0.7;
         lastX = clientX;
         lastY = clientY;
         if (e.cancelable) e.preventDefault();
