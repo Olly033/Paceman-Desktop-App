@@ -41,6 +41,7 @@
   --gradient-2: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
   --gradient-3: linear-gradient(135deg, #0ea5e9 0%, #22d3ee 100%);
   --bg-primary: #08111f;
+  --bg-secondary: rgba(10, 25, 47, 0.75);
   --blob-1: #2563eb;
   --blob-2: #06b6d4;
   --blob-3: #22d3ee;
@@ -53,6 +54,7 @@
   --gradient-2: linear-gradient(135deg, #84cc16 0%, #22c55e 100%);
   --gradient-3: linear-gradient(135deg, #059669 0%, #10b981 100%);
   --bg-primary: #0a1a14;
+  --bg-secondary: rgba(6, 30, 20, 0.75);
   --blob-1: #10b981;
   --blob-2: #84cc16;
   --blob-3: #22c55e;
@@ -65,6 +67,7 @@
   --gradient-2: linear-gradient(135deg, #f97316 0%, #eab308 100%);
   --gradient-3: linear-gradient(135deg, #dc2626 0%, #f59e0b 100%);
   --bg-primary: #1f0f0f;
+  --bg-secondary: rgba(50, 18, 12, 0.75);
   --blob-1: #ef4444;
   --blob-2: #f97316;
   --blob-3: #eab308;
