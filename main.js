@@ -452,6 +452,8 @@ ipcMain.handle('write-file', async (event, filePath, data) => {
   try {
     if (Buffer.isBuffer(data)) {
       fs.writeFileSync(filePath, data);
+    } else if (ArrayBuffer.isView(data) || data instanceof ArrayBuffer) {
+      fs.writeFileSync(filePath, Buffer.from(data));
     } else {
       fs.writeFileSync(filePath, String(data), 'utf8');
     }

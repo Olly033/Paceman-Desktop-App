@@ -4577,16 +4577,29 @@
     if (!canvas) return;
     const dataUrl = canvas.toDataURL("image/png");
     const base64 = dataUrl.replace(/^data:image\/png;base64,/, "");
-    const buffer = Buffer.from(base64, "base64");
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
     window.pacemanAPI.getUserDataPath().then((result) => {
-      if (!result || !result.success) return;
+      if (!result || !result.success) {
+        console.log("getUserDataPath failed", result);
+        return;
+      }
       const filePath = result.path + "\\overlay.png";
-      window.pacemanAPI.writeFile(filePath, buffer).then((writeResult) => {
+      window.pacemanAPI.writeFile(filePath, bytes.buffer).then((writeResult) => {
         if (writeResult && writeResult.success) {
           const pathEl = document.getElementById("overlayPath");
           if (pathEl) pathEl.textContent = filePath;
+        } else {
+          console.log("writeFile failed", writeResult);
         }
+      }).catch((err) => {
+        console.log("writeFile threw", err);
       });
+    }).catch((err) => {
+      console.log("getUserDataPath threw", err);
     });
   }
 
