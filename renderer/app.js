@@ -4413,23 +4413,24 @@
     const W = canvas.width;
     const H = canvas.height;
 
+    const textPrimary = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
+    const textSecondary = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
+
     ctx.clearRect(0, 0, W, H);
 
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fillRect(0, 0, W, H);
 
-    ctx.fillStyle = "rgba(255,255,255,0.04)";
-    ctx.fillRect(0, 0, W, H);
-
-    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.strokeStyle = "rgba(255,255,255,0.1)";
     ctx.lineWidth = 1;
-    ctx.strokeRect(10, 10, W - 20, H - 20);
+    ctx.strokeRect(4, 4, W - 8, H - 8);
 
     if (!state.overlay.playerName) {
-      ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
-      ctx.font = "24px Inter, sans-serif";
+      ctx.fillStyle = textSecondary;
+      ctx.font = "16px Inter, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("Select a player to start tracking", W / 2, H / 2);
+      ctx.textAlign = "left";
       exportOverlayPNG(canvas);
       return;
     }
@@ -4440,9 +4441,9 @@
 
     ctx.textAlign = "left";
 
-    const avatarSize = 90;
-    const avatarX = 40;
-    const avatarY = 40;
+    const avatarSize = 64;
+    const avatarX = 16;
+    const avatarY = 16;
 
     const cached = overlayAvatarCache.get(name);
     if (cached === "__FAILED__") {
@@ -4467,7 +4468,7 @@
     });
   }
 
-  function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
+function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
@@ -4511,10 +4512,10 @@
     const splitLabel = currentKey ? SPLITS[currentKey] : "Unknown";
 
     const displayName = name.length > 22 ? name.substring(0, 20) + "..." : name;
-    const nameY = avatarY + 18;
+    const nameY = avatarY + 14;
     ctx.fillStyle = textPrimary;
-    ctx.font = "bold 20px Inter, sans-serif";
-    ctx.fillText(displayName, avatarX + avatarSize + 12, nameY);
+    ctx.font = "bold 16px Inter, sans-serif";
+    ctx.fillText(displayName, avatarX + avatarSize + 8, nameY);
 
     const sessionRuns = (state.profile.timeframeRuns || []).filter((r) => {
       const rName = r.nickname || (r.user && r.user.nickname);
@@ -4528,47 +4529,46 @@
     const deltaColor = delta != null ? (delta <= 0 ? "#4ade80" : "#f87171") : textSecondary;
     const bestText = best != null ? fmt(best) : "—";
 
-    const infoX = avatarX + avatarSize + 12;
-    let infoY = nameY + 28;
+    const infoX = avatarX + avatarSize + 8;
+    let infoY = nameY + 20;
 
     ctx.fillStyle = textPrimary;
-    ctx.font = "bold 28px Inter, sans-serif";
+    ctx.font = "bold 22px Inter, sans-serif";
     ctx.fillText(splitLabel, infoX, infoY);
-    infoY += 26;
-
-    ctx.fillStyle = textSecondary;
-    ctx.font = "14px Inter, sans-serif";
-    ctx.fillText("Current Split", infoX, infoY);
-    infoY += 20;
-
-    if (currentTime != null) {
-      ctx.fillStyle = textPrimary;
-      ctx.font = "bold 36px Inter, sans-serif";
-      ctx.fillText(fmt(currentTime), infoX, infoY);
-      infoY += 30;
-    }
-
-    ctx.fillStyle = "rgba(255,255,255,0.06)";
-    ctx.fillRect(infoX - 8, infoY - 14, 260, 44);
-    ctx.strokeStyle = "rgba(255,255,255,0.12)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(infoX - 8, infoY - 14, 260, 44);
+    infoY += 18;
 
     ctx.fillStyle = textSecondary;
     ctx.font = "12px Inter, sans-serif";
-    ctx.fillText("Session Best", infoX, infoY + 2);
-    infoY += 18;
+    ctx.fillText("Current Split", infoX, infoY);
+    infoY += 16;
+
+    if (currentTime != null) {
+      ctx.fillStyle = textPrimary;
+      ctx.font = "bold 28px Inter, sans-serif";
+      ctx.fillText(fmt(currentTime), infoX, infoY);
+      infoY += 22;
+    }
+
+    ctx.fillStyle = "rgba(255,255,255,0.06)";
+    ctx.fillRect(infoX - 6, infoY - 10, 220, 34);
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(infoX - 6, infoY - 10, 220, 34);
+
+    ctx.fillStyle = textSecondary;
+    ctx.font = "11px Inter, sans-serif";
+    ctx.fillText("Session Best", infoX, infoY + 1);
+    infoY += 14;
 
     ctx.fillStyle = textPrimary;
-    ctx.font = "bold 15px Inter, sans-serif";
+    ctx.font = "bold 13px Inter, sans-serif";
     ctx.fillText(bestText, infoX, infoY);
 
     ctx.fillStyle = deltaColor;
-    ctx.font = "bold 18px Inter, sans-serif";
+    ctx.font = "bold 15px Inter, sans-serif";
     ctx.textAlign = "right";
-    ctx.fillText(deltaText, infoX + 252, infoY);
+    ctx.fillText(deltaText, infoX + 212, infoY);
     ctx.textAlign = "left";
-
     exportOverlayPNG(canvas);
   }
 
