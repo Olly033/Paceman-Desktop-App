@@ -422,7 +422,10 @@ body {
 
 #page-leaderboard {
   animation: none;
-  margin-top: -24px;
+}
+
+.main-content:has(#page-leaderboard.active) {
+  padding-top: 0;
 }
 
 @keyframes fadeIn {
