@@ -4313,7 +4313,17 @@
 
   function getOverlayPlayerRun() {
     if (!state.overlay.playerName) return null;
-    return state.liveRuns.find((r) => r.nickname === state.overlay.playerName) || null;
+    const name = state.overlay.playerName;
+    const uuid = state.overlay.playerUuid;
+    const nameLower = name.toLowerCase();
+    return state.liveRuns.find((r) => {
+      const rNick = (r.nickname || "").toLowerCase();
+      const rUserNick = (r.user && r.user.nickname || "").toLowerCase();
+      const rUuid = r.user && r.user.uuid || null;
+      if (uuid && rUuid && uuid === rUuid) return true;
+      if (nameLower === rNick || nameLower === rUserNick) return true;
+      return false;
+    }) || null;
   }
 
   function computeSessionBests(runs) {
