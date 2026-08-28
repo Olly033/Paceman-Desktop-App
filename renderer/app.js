@@ -4418,7 +4418,7 @@
 
     ctx.clearRect(0, 0, W, H);
 
-    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
     ctx.fillRect(0, 0, W, H);
 
     ctx.strokeStyle = "rgba(255,255,255,0.15)";
@@ -4427,7 +4427,7 @@
 
     if (!state.overlay.playerName) {
       ctx.fillStyle = textSecondary;
-      ctx.font = "12px Inter, sans-serif";
+      ctx.font = "11px Inter, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("Select player", W / 2, H / 2);
       ctx.textAlign = "left";
@@ -4441,9 +4441,9 @@
 
     ctx.textAlign = "left";
 
-    const avatarSize = 48;
-    const avatarX = 8;
-    const avatarY = 8;
+    const avatarSize = 32;
+    const avatarX = 6;
+    const avatarY = 6;
 
     const cached = overlayAvatarCache.get(name);
     if (cached === "__FAILED__") {
@@ -4511,24 +4511,24 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     const currentTime = liveTime != null ? liveTime : furthestIndex(run).time;
     const splitLabel = currentKey ? SPLITS[currentKey] : "Unknown";
 
-    const x = avatarX + avatarSize + 10;
-    let y = avatarY + 4;
+    const x = avatarX + avatarSize + 6;
+    let y = avatarY + 8;
 
     ctx.fillStyle = textPrimary;
-    ctx.font = "bold 13px Inter, sans-serif";
+    ctx.font = "bold 11px Inter, sans-serif";
     ctx.fillText(name, x, y);
-    y += 14;
+    y += 12;
 
     ctx.fillStyle = textSecondary;
-    ctx.font = "10px Inter, sans-serif";
+    ctx.font = "8px Inter, sans-serif";
     ctx.fillText(splitLabel, x, y);
-    y += 12;
+    y += 10;
 
     if (currentTime != null) {
       ctx.fillStyle = textPrimary;
-      ctx.font = "bold 18px Inter, sans-serif";
+      ctx.font = "bold 14px Inter, sans-serif";
       ctx.fillText(fmt(currentTime), x, y);
-      y += 14;
+      y += 4;
     }
 
     const sessionRuns = (state.profile.timeframeRuns || []).filter((r) => {
@@ -4544,27 +4544,27 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
 
     if (currentTime != null && best != null) {
       const diff = currentTime - best;
-      const sign = diff > 0 ? "+" : "";
-      const deltaText = sign + fmt(diff);
+      const deltaText = (diff > 0 ? "+" : "") + fmt(diff);
       const deltaColor = diff <= 0 ? "#4ade80" : "#f87171";
 
       ctx.fillStyle = "rgba(255,255,255,0.08)";
-      ctx.fillRect(x - 4, y - 10, 180, 18);
+      ctx.fillRect(x - 2, y, 140, 14);
       ctx.strokeStyle = "rgba(255,255,255,0.15)";
       ctx.lineWidth = 1;
-      ctx.strokeRect(x - 4, y - 10, 180, 18);
+      ctx.strokeRect(x - 2, y, 140, 14);
 
       ctx.fillStyle = textSecondary;
-      ctx.font = "9px Inter, sans-serif";
-      ctx.fillText("PB", x, y);
+      ctx.font = "7px Inter, sans-serif";
+      ctx.fillText("PB", x, y + 10);
+
       ctx.fillStyle = textPrimary;
-      ctx.font = "bold 10px Inter, sans-serif";
-      ctx.fillText(fmt(best), x + 20, y);
+      ctx.font = "bold 8px Inter, sans-serif";
+      ctx.fillText(fmt(best), x + 22, y + 10);
 
       ctx.fillStyle = deltaColor;
-      ctx.font = "bold 10px Inter, sans-serif";
+      ctx.font = "bold 8px Inter, sans-serif";
       ctx.textAlign = "right";
-      ctx.fillText(deltaText, x + 176, y);
+      ctx.fillText(deltaText, x + 138, y + 10);
       ctx.textAlign = "left";
     }
 
