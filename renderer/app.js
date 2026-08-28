@@ -2577,10 +2577,17 @@
     }
     const appEl = document.querySelector(".app");
     const mainContent = document.querySelector(".main-content");
-    if (appEl) appEl.scrollTop = 0;
-    if (mainContent) mainContent.scrollTop = 0;
     const lbPage = document.getElementById("page-leaderboard");
-    if (lbPage) lbPage.scrollIntoView({ behavior: "auto", block: "start" });
+    if (p === "leaderboard" && lbPage) {
+      setTimeout(() => {
+        lbPage.scrollIntoView({ behavior: "auto", block: "start" });
+        if (appEl) appEl.scrollTop = 0;
+        if (mainContent) mainContent.scrollTop = 0;
+      }, 0);
+    } else {
+      if (appEl) appEl.scrollTop = 0;
+      if (mainContent) mainContent.scrollTop = 0;
+    }
   }
 
   function initRouter() {
