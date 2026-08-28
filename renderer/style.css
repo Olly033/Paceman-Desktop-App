@@ -524,6 +524,7 @@ body {
 
 #page-leaderboard {
   animation: none;
+  margin-top: -24px;
 }
 
 @keyframes fadeIn {
