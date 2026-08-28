@@ -4510,44 +4510,11 @@
     const currentTime = liveTime != null ? liveTime : furthestIndex(run).time;
     const splitLabel = currentKey ? SPLITS[currentKey] : "Unknown";
 
-    const displayName = name.length > 18 ? name.substring(0, 16) + "..." : name;
-    const nameY = avatarY + avatarSize + 28;
+    const displayName = name.length > 22 ? name.substring(0, 20) + "..." : name;
+    const nameY = avatarY + 18;
     ctx.fillStyle = textPrimary;
-    ctx.font = "bold 24px Inter, sans-serif";
-    ctx.fillText(displayName, avatarX, nameY);
-
-    if (!run) {
-      ctx.fillStyle = textSecondary;
-      ctx.font = "16px Inter, sans-serif";
-      ctx.fillText("Waiting for run data...", avatarX, nameY + 24);
-      exportOverlayPNG(canvas);
-      return;
-    }
-
-    const panelX = avatarX + avatarSize + 20;
-    const panelY = avatarY;
-    const panelW = W - panelX - 30;
-    const panelH = H - panelY - 30;
-
-    ctx.fillStyle = "rgba(255,255,255,0.06)";
-    ctx.fillRect(panelX, panelY, panelW, panelH);
-    ctx.strokeStyle = "rgba(255,255,255,0.12)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(panelX, panelY, panelW, panelH);
-
-    ctx.fillStyle = textPrimary;
-    ctx.font = "bold 26px Inter, sans-serif";
-    ctx.fillText(splitLabel, panelX + 16, panelY + 34);
-
-    ctx.fillStyle = textSecondary;
-    ctx.font = "14px Inter, sans-serif";
-    ctx.fillText("Current Split", panelX + 16, panelY + 54);
-
-    if (currentTime != null) {
-      ctx.fillStyle = textPrimary;
-      ctx.font = "bold 40px Inter, sans-serif";
-      ctx.fillText(fmt(currentTime), panelX + 16, panelY + 102);
-    }
+    ctx.font = "bold 20px Inter, sans-serif";
+    ctx.fillText(displayName, avatarX + avatarSize + 12, nameY);
 
     const sessionRuns = (state.profile.timeframeRuns || []).filter((r) => {
       const rName = r.nickname || (r.user && r.user.nickname);
@@ -4556,28 +4523,50 @@
 
     const values = sessionRuns.filter((r) => r[currentKey] != null).map((r) => r[currentKey]);
     const best = values.length > 0 ? Math.min(...values) : null;
-    const deltaText = currentTime != null && best != null
-      ? (currentTime > best ? "+" : "") + fmt(currentTime - best)
-      : "—";
-    const deltaColor = currentTime != null && best != null
-      ? (currentTime <= best ? "#4ade80" : "#f87171")
-      : textSecondary;
+    const delta = currentTime != null && best != null ? currentTime - best : null;
+    const deltaText = delta != null ? (delta > 0 ? "+" : "") + fmt(delta) : "—";
+    const deltaColor = delta != null ? (delta <= 0 ? "#4ade80" : "#f87171") : textSecondary;
+    const bestText = best != null ? fmt(best) : "—";
 
-    let compY = panelY + 130;
-    ctx.font = "bold 14px Inter, sans-serif";
-    ctx.fillStyle = textSecondary;
-    ctx.fillText("Session Best", panelX + 16, compY);
-    compY += 22;
+    const infoX = avatarX + avatarSize + 12;
+    let infoY = nameY + 28;
 
-    ctx.font = "bold 13px Inter, sans-serif";
     ctx.fillStyle = textPrimary;
-    ctx.fillText(SPLITS[currentKey] || splitLabel, panelX + 16, compY);
-    compY += 18;
+    ctx.font = "bold 28px Inter, sans-serif";
+    ctx.fillText(splitLabel, infoX, infoY);
+    infoY += 26;
 
-    ctx.font = "24px Inter, sans-serif";
+    ctx.fillStyle = textSecondary;
+    ctx.font = "14px Inter, sans-serif";
+    ctx.fillText("Current Split", infoX, infoY);
+    infoY += 20;
+
+    if (currentTime != null) {
+      ctx.fillStyle = textPrimary;
+      ctx.font = "bold 36px Inter, sans-serif";
+      ctx.fillText(fmt(currentTime), infoX, infoY);
+      infoY += 30;
+    }
+
+    ctx.fillStyle = "rgba(255,255,255,0.06)";
+    ctx.fillRect(infoX - 8, infoY - 14, 260, 44);
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(infoX - 8, infoY - 14, 260, 44);
+
+    ctx.fillStyle = textSecondary;
+    ctx.font = "12px Inter, sans-serif";
+    ctx.fillText("Session Best", infoX, infoY + 2);
+    infoY += 18;
+
+    ctx.fillStyle = textPrimary;
+    ctx.font = "bold 15px Inter, sans-serif";
+    ctx.fillText(bestText, infoX, infoY);
+
     ctx.fillStyle = deltaColor;
+    ctx.font = "bold 18px Inter, sans-serif";
     ctx.textAlign = "right";
-    ctx.fillText(deltaText, panelX + panelW - 16, compY);
+    ctx.fillText(deltaText, infoX + 252, infoY);
     ctx.textAlign = "left";
 
     exportOverlayPNG(canvas);
