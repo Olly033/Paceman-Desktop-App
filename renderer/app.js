@@ -4418,18 +4418,18 @@
 
     ctx.clearRect(0, 0, W, H);
 
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
     ctx.fillRect(0, 0, W, H);
 
-    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+    ctx.strokeStyle = "rgba(255,255,255,0.15)";
     ctx.lineWidth = 1;
-    ctx.strokeRect(4, 4, W - 8, H - 8);
+    ctx.strokeRect(0, 0, W, H);
 
     if (!state.overlay.playerName) {
       ctx.fillStyle = textSecondary;
-      ctx.font = "16px Inter, sans-serif";
+      ctx.font = "12px Inter, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("Select a player to start tracking", W / 2, H / 2);
+      ctx.fillText("Select player", W / 2, H / 2);
       ctx.textAlign = "left";
       exportOverlayPNG(canvas);
       return;
@@ -4441,9 +4441,9 @@
 
     ctx.textAlign = "left";
 
-    const avatarSize = 64;
-    const avatarX = 16;
-    const avatarY = 16;
+    const avatarSize = 48;
+    const avatarX = 8;
+    const avatarY = 8;
 
     const cached = overlayAvatarCache.get(name);
     if (cached === "__FAILED__") {
@@ -4511,68 +4511,67 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     const currentTime = liveTime != null ? liveTime : furthestIndex(run).time;
     const splitLabel = currentKey ? SPLITS[currentKey] : "Unknown";
 
-    const displayName = name.length > 22 ? name.substring(0, 20) + "..." : name;
-    const nameY = avatarY + 14;
+    const x = avatarX + avatarSize + 10;
+    let y = avatarY + 4;
+
     ctx.fillStyle = textPrimary;
-    ctx.font = "bold 16px Inter, sans-serif";
-    ctx.fillText(displayName, avatarX + avatarSize + 8, nameY);
+    ctx.font = "bold 13px Inter, sans-serif";
+    ctx.fillText(name, x, y);
+    y += 14;
+
+    ctx.fillStyle = textSecondary;
+    ctx.font = "10px Inter, sans-serif";
+    ctx.fillText(splitLabel, x, y);
+    y += 12;
+
+    if (currentTime != null) {
+      ctx.fillStyle = textPrimary;
+      ctx.font = "bold 18px Inter, sans-serif";
+      ctx.fillText(fmt(currentTime), x, y);
+      y += 14;
+    }
 
     const sessionRuns = (state.profile.timeframeRuns || []).filter((r) => {
       const rName = r.nickname || (r.user && r.user.nickname);
       return rName === name;
     });
 
-    const values = sessionRuns.filter((r) => r[currentKey] != null).map((r) => r[currentKey]);
-    const best = values.length > 0 ? Math.min(...values) : null;
-    const delta = currentTime != null && best != null ? currentTime - best : null;
-    const deltaText = delta != null ? (delta > 0 ? "+" : "") + fmt(delta) : "—";
-    const deltaColor = delta != null ? (delta <= 0 ? "#4ade80" : "#f87171") : textSecondary;
-    const bestText = best != null ? fmt(best) : "—";
-
-    const infoX = avatarX + avatarSize + 8;
-    let infoY = nameY + 20;
-
-    ctx.fillStyle = textPrimary;
-    ctx.font = "bold 22px Inter, sans-serif";
-    ctx.fillText(splitLabel, infoX, infoY);
-    infoY += 18;
-
-    ctx.fillStyle = textSecondary;
-    ctx.font = "12px Inter, sans-serif";
-    ctx.fillText("Current Split", infoX, infoY);
-    infoY += 16;
-
-    if (currentTime != null) {
-      ctx.fillStyle = textPrimary;
-      ctx.font = "bold 28px Inter, sans-serif";
-      ctx.fillText(fmt(currentTime), infoX, infoY);
-      infoY += 22;
+    let best = null;
+    if (currentKey && sessionRuns.length > 0) {
+      const vals = sessionRuns.filter((r) => r[currentKey] != null).map((r) => r[currentKey]);
+      if (vals.length > 0) best = Math.min(...vals);
     }
 
-    ctx.fillStyle = "rgba(255,255,255,0.06)";
-    ctx.fillRect(infoX - 6, infoY - 10, 220, 34);
-    ctx.strokeStyle = "rgba(255,255,255,0.12)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(infoX - 6, infoY - 10, 220, 34);
+    if (currentTime != null && best != null) {
+      const diff = currentTime - best;
+      const sign = diff > 0 ? "+" : "";
+      const deltaText = sign + fmt(diff);
+      const deltaColor = diff <= 0 ? "#4ade80" : "#f87171";
 
-    ctx.fillStyle = textSecondary;
-    ctx.font = "11px Inter, sans-serif";
-    ctx.fillText("Session Best", infoX, infoY + 1);
-    infoY += 14;
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.fillRect(x - 4, y - 10, 180, 18);
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x - 4, y - 10, 180, 18);
 
-    ctx.fillStyle = textPrimary;
-    ctx.font = "bold 13px Inter, sans-serif";
-    ctx.fillText(bestText, infoX, infoY);
+      ctx.fillStyle = textSecondary;
+      ctx.font = "9px Inter, sans-serif";
+      ctx.fillText("PB", x, y);
+      ctx.fillStyle = textPrimary;
+      ctx.font = "bold 10px Inter, sans-serif";
+      ctx.fillText(fmt(best), x + 20, y);
 
-    ctx.fillStyle = deltaColor;
-    ctx.font = "bold 15px Inter, sans-serif";
-    ctx.textAlign = "right";
-    ctx.fillText(deltaText, infoX + 212, infoY);
-    ctx.textAlign = "left";
+      ctx.fillStyle = deltaColor;
+      ctx.font = "bold 10px Inter, sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText(deltaText, x + 176, y);
+      ctx.textAlign = "left";
+    }
+
     exportOverlayPNG(canvas);
   }
 
-  function exportOverlayPNG(canvas) {
+function exportOverlayPNG(canvas) {
     if (!canvas) return;
     const dataUrl = canvas.toDataURL("image/png");
     const base64 = dataUrl.replace(/^data:image\/png;base64,/, "");
