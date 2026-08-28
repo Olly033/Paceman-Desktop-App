@@ -1079,9 +1079,35 @@ body {
   gap: 8px;
 }
 
+.time-arrow {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.time-arrow:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
 .filter-split .time-input input {
   padding: 8px 10px;
   font-size: 13px;
+  width: 80px;
+  text-align: center;
 }
 
 .filter-actions {

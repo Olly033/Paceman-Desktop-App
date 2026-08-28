@@ -2284,7 +2284,9 @@
       field.innerHTML = `
         <label>${SPLITS[split]}</label>
         <div class="time-input">
-          <input type="text" id="filterSplit_${split}" placeholder="e.g. 2:30" min="0">
+          <button class="time-arrow time-arrow-down" data-split="${split}" type="button">&#9660;</button>
+          <input type="text" id="filterSplit_${split}" placeholder="0:00" min="0">
+          <button class="time-arrow time-arrow-up" data-split="${split}" type="button">&#9650;</button>
           <span>m:s</span>
         </div>`;
       wrap.appendChild(field);
@@ -2299,14 +2301,32 @@
       document.getElementById("filterStreamingOnly").checked = state.filters.streamingOnly;
       if (favCheckbox) favCheckbox.checked = state.filters.favoritesOnly;
       for (const split of SPLIT_ORDER) {
-        document.getElementById(`filterSplit_${split}`).value =
-          state.filters.maxTime && state.filters.maxTime[split] != null ? state.filters.maxTime[split] : "";
+        const input = document.getElementById(`filterSplit_${split}`);
+        const raw = state.filters.maxTime && state.filters.maxTime[split] != null ? state.filters.maxTime[split] : "";
+        input.value = raw !== "" ? formatTime(raw) : "";
       }
       overlay.classList.add("visible");
     });
     document.getElementById("closeFilter").addEventListener("click", () => overlay.classList.remove("visible"));
     overlay.addEventListener("click", (e) => {
       if (e.target === overlay) overlay.classList.remove("visible");
+    });
+    document.querySelectorAll(".time-arrow-up").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const split = btn.dataset.split;
+        const input = document.getElementById(`filterSplit_${split}`);
+        const current = parseTimeToSec(input.value) || 0;
+        input.value = formatTime(current + 30);
+      });
+    });
+    document.querySelectorAll(".time-arrow-down").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const split = btn.dataset.split;
+        const input = document.getElementById(`filterSplit_${split}`);
+        const current = parseTimeToSec(input.value) || 0;
+        const next = Math.max(0, current - 30);
+        input.value = next === 0 ? "" : formatTime(next);
+      });
     });
     document.getElementById("applyFilters").addEventListener("click", () => {
       state.filters.streamingOnly = document.getElementById("filterStreamingOnly").checked;
