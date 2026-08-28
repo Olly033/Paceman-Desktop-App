@@ -612,6 +612,14 @@ body {
   font-family: monospace;
 }
 
+.overlay-path-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .theme-btn.copied {
   background: var(--gradient-1);
   color: white;
