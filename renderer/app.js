@@ -4510,10 +4510,11 @@
     const currentTime = liveTime != null ? liveTime : furthestIndex(run).time;
     const splitLabel = currentKey ? SPLITS[currentKey] : "Unknown";
 
+    const displayName = name.length > 18 ? name.substring(0, 16) + "..." : name;
     const nameY = avatarY + avatarSize + 28;
     ctx.fillStyle = textPrimary;
     ctx.font = "bold 24px Inter, sans-serif";
-    ctx.fillText(name, avatarX, nameY);
+    ctx.fillText(displayName, avatarX, nameY);
 
     if (!run) {
       ctx.fillStyle = textSecondary;
@@ -4528,9 +4529,9 @@
     const panelW = W - panelX - 30;
     const panelH = H - panelY - 30;
 
-    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.fillStyle = "rgba(255,255,255,0.06)";
     ctx.fillRect(panelX, panelY, panelW, panelH);
-    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
     ctx.lineWidth = 1;
     ctx.strokeRect(panelX, panelY, panelW, panelH);
 
@@ -4552,41 +4553,32 @@
       const rName = r.nickname || (r.user && r.user.nickname);
       return rName === name;
     });
-    const bests = computeSessionBests(sessionRuns);
 
-    let deltaY = panelY + 130;
+    const values = sessionRuns.filter((r) => r[currentKey] != null).map((r) => r[currentKey]);
+    const best = values.length > 0 ? Math.min(...values) : null;
+    const deltaText = currentTime != null && best != null
+      ? (currentTime > best ? "+" : "") + fmt(currentTime - best)
+      : "—";
+    const deltaColor = currentTime != null && best != null
+      ? (currentTime <= best ? "#4ade80" : "#f87171")
+      : textSecondary;
+
+    let compY = panelY + 130;
     ctx.font = "bold 14px Inter, sans-serif";
     ctx.fillStyle = textSecondary;
-    ctx.fillText("Session Bests", panelX + 16, deltaY);
-    deltaY += 20;
+    ctx.fillText("Session Best", panelX + 16, compY);
+    compY += 22;
 
-    ctx.font = "13px Inter, sans-serif";
-    const rows = SPLIT_ORDER.filter((k) => k !== "finish");
-    const rowHeight = Math.max(18, Math.min(24, (panelH - 150) / rows.length));
-    for (let i = 0; i < rows.length; i++) {
-      const key = rows[i];
-      const best = bests[key];
-      const label = SPLITS[key];
-      let deltaText = "—";
-      let deltaColor = textSecondary;
+    ctx.font = "bold 13px Inter, sans-serif";
+    ctx.fillStyle = textPrimary;
+    ctx.fillText(SPLITS[currentKey] || splitLabel, panelX + 16, compY);
+    compY += 18;
 
-      if (currentKey === key && currentTime != null && best != null) {
-        const diff = currentTime - best;
-        const sign = diff > 0 ? "+" : "";
-        deltaText = sign + fmt(diff);
-        deltaColor = diff <= 0 ? "#4ade80" : "#f87171";
-      } else if (best != null) {
-        deltaText = fmt(best);
-      }
-
-      ctx.fillStyle = textPrimary;
-      ctx.fillText(label + ":", panelX + 16, deltaY);
-      ctx.fillStyle = deltaColor;
-      ctx.textAlign = "right";
-      ctx.fillText(deltaText, panelX + panelW - 16, deltaY);
-      ctx.textAlign = "left";
-      deltaY += rowHeight;
-    }
+    ctx.font = "24px Inter, sans-serif";
+    ctx.fillStyle = deltaColor;
+    ctx.textAlign = "right";
+    ctx.fillText(deltaText, panelX + panelW - 16, compY);
+    ctx.textAlign = "left";
 
     exportOverlayPNG(canvas);
   }
