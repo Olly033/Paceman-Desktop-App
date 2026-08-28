@@ -4377,6 +4377,20 @@
 
   const overlayAvatarCache = new Map();
 
+  function fetchOverlayAvatarDataUrl(name, uuid) {
+    const url = avatarUrl(uuid || name, 140);
+    return fetch(url)
+      .then((res) => res.blob())
+      .then((blob) => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+      })
+      .catch(() => null);
+  }
+
   function drawOverlayCanvas() {
     const canvas = document.getElementById("overlayCanvas");
     if (!canvas) return;
@@ -4417,33 +4431,37 @@
     const avatarY = 60;
 
     const cached = overlayAvatarCache.get(name);
-    if (cached && cached.complete) {
-      drawOverlayAvatar(ctx, cached, avatarX, avatarY, avatarSize);
-    } else {
-      const avatarImg = new Image();
-      avatarImg.crossOrigin = "anonymous";
-      avatarImg.src = avatarUrl(uuid || name, avatarSize);
-      overlayAvatarCache.set(name, avatarImg);
-      avatarImg.onload = () => {
-        drawOverlayAvatar(ctx, avatarImg, avatarX, avatarY, avatarSize);
+    if (cached) {
+      drawOverlayAvatarFromDataUrl(ctx, cached, avatarX, avatarY, avatarSize).then(() => {
         drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize);
-      };
-      avatarImg.onerror = () => {
-        drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, name);
-        drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize);
-      };
+      });
       return;
     }
 
-    drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize);
+    fetchOverlayAvatarDataUrl(name, uuid).then((dataUrl) => {
+      if (dataUrl) {
+        overlayAvatarCache.set(name, dataUrl);
+      }
+      drawOverlayCanvas();
+    });
   }
 
-  function drawOverlayAvatar(ctx, img, x, y, size) {
-    ctx.drawImage(img, x, y, size, size);
-
-    ctx.strokeStyle = "rgba(255,255,255,0.2)";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(x, y, size, size);
+  function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, x, y, size, size);
+        ctx.strokeStyle = "rgba(255,255,255,0.2)";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, size, size);
+        resolve();
+      };
+      img.onerror = () => {
+        drawOverlayAvatarFallback(ctx, x, y, size, state.overlay.playerName);
+        resolve();
+      };
+      img.src = dataUrl;
+    });
   }
 
   function drawOverlayAvatarFallback(ctx, x, y, size, name) {
