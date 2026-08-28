@@ -970,9 +970,10 @@
     grid.innerHTML = '<div class="loading">Loading leaderboard...</div>';
     try {
       const days = LB_DAYS[tf] || 30;
+      const lbType = sortBy === "avg" ? "average" : "count";
       const fetched = await Promise.all(
         LB_CATEGORIES.map((c) =>
-          getJSON(`${API}/getLeaderboard?category=${c}&type=count&days=${days}&limit=50`).catch(() => [])
+          getJSON(`${API}/getLeaderboard?category=${c}&type=${lbType}&days=${days}&limit=50`).catch(() => [])
         )
       );
       const byCat = {};
@@ -980,7 +981,7 @@
         const threshold = getLeaderboardThreshold(cat, days);
         const raw = (fetched[i] || [])
           .map((p) => {
-            const count = p.value || 0;
+            const count = p.qty || p.value || 0;
             const avg = p.avg || 0;
             let quality = "ok";
             if (threshold) {
