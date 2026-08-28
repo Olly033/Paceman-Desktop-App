@@ -1314,6 +1314,8 @@
     } else if (p === "profile") {
       document.getElementById("page-profile").classList.add("active");
     }
+    const mainContent = document.querySelector(".main-content");
+    if (mainContent) mainContent.scrollTop = 0;
   }
 
   function initRouter() {
