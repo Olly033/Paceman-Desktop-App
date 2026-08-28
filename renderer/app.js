@@ -405,8 +405,16 @@
       for (const p of parts) sec = sec * 60 + p;
       return sec > 0 ? sec : null;
     }
-    const n = parseFloat(v);
-    return isNaN(n) || n <= 0 ? null : n;
+    const digits = v.replace(/[^\d]/g, "");
+    if (digits.length === 0) return null;
+    if (digits.length <= 2) {
+      const minutes = parseInt(digits, 10);
+      return minutes > 0 ? minutes * 60 : null;
+    }
+    const minutes = parseInt(digits.slice(0, -2), 10) || 0;
+    const seconds = parseInt(digits.slice(-2), 10) || 0;
+    const total = minutes * 60 + seconds;
+    return total > 0 ? total : null;
   }
 
   function fmt(ms) {
