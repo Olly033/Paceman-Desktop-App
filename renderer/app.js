@@ -3302,6 +3302,21 @@
         if (canvas) exportOverlayPNG(canvas);
       });
     }
+    const overlayCopyPathBtn = document.getElementById("overlayCopyPathBtn");
+    if (overlayCopyPathBtn) {
+      overlayCopyPathBtn.addEventListener("click", async () => {
+        const pathEl = document.getElementById("overlayPath");
+        const text = pathEl ? pathEl.textContent.trim() : "";
+        if (!text) return;
+        try {
+          await navigator.clipboard.writeText(text);
+          overlayCopyPathBtn.classList.add("copied");
+          setTimeout(() => overlayCopyPathBtn.classList.remove("copied"), 1500);
+        } catch (e) {
+          console.log("Copy overlay path failed", e);
+        }
+      });
+    }
     initSplitDetail();
     const autoOpenBtn = document.getElementById("autoOpenTwitchBtn");
     if (autoOpenBtn) {
@@ -4424,32 +4439,24 @@
   }
 
   function drawOverlayAvatar(ctx, img, x, y, size) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.clip();
     ctx.drawImage(img, x, y, size, size);
-    ctx.restore();
 
     ctx.strokeStyle = "rgba(255,255,255,0.2)";
     ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.strokeRect(x, y, size, size);
   }
 
   function drawOverlayAvatarFallback(ctx, x, y, size, name) {
     const initial = (name && name[0]) ? name[0].toUpperCase() : "?";
     ctx.fillStyle = "rgba(255,255,255,0.15)";
-    ctx.beginPath();
-    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillRect(x, y, size, size);
     ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
     ctx.font = `bold ${size / 2}px Inter, sans-serif`;
     ctx.textAlign = "center";
-    ctx.fillText(initial, x + size / 2, y + size / 2 + size / 6);
+    ctx.textBaseline = "middle";
+    ctx.fillText(initial, x + size / 2, y + size / 2);
     ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
   }
 
   function drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize) {

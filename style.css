@@ -510,6 +510,12 @@ body {
   font-family: monospace;
 }
 
+.theme-btn.copied {
+  background: var(--gradient-1);
+  color: white;
+  transform: translateY(-1px);
+}
+
 .sort-controls {
   display: flex;
   gap: 4px;
