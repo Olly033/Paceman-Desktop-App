@@ -16,6 +16,65 @@
     finish: "Completion",
   };
   const SPLIT_ORDER = ["nether", "bastion", "fortress", "first_portal", "stronghold", "end", "finish"];
+
+  const LB_MIN_QTYS = {
+    1: {
+      nether: { min: 5, good: 30 },
+      bastion: { min: 3, good: 10 },
+      fortress: { min: 1, good: 5 },
+      first_portal: { min: 1, good: 5 },
+      stronghold: { min: 1, good: 3 },
+      end: { min: 1, good: 2 },
+      finish: { min: 1, good: 2 },
+    },
+    7: {
+      nether: { min: 30, good: 80 },
+      bastion: { min: 5, good: 20 },
+      fortress: { min: 3, good: 10 },
+      first_portal: { min: 1, good: 5 },
+      stronghold: { min: 2, good: 4 },
+      end: { min: 1, good: 2 },
+      finish: { min: 1, good: 2 },
+    },
+    30: {
+      nether: { min: 200, good: 700 },
+      bastion: { min: 50, good: 80 },
+      fortress: { min: 5, good: 20 },
+      first_portal: { min: 5, good: 15 },
+      stronghold: { min: 3, good: 5 },
+      end: { min: 1, good: 2 },
+      finish: { min: 1, good: 2 },
+    },
+    9999: {
+      nether: { min: 500, good: 2000 },
+      bastion: { min: 50, good: 600 },
+      fortress: { min: 30, good: 100 },
+      first_portal: { min: 10, good: 60 },
+      stronghold: { min: 5, good: 30 },
+      end: { min: 4, good: 8 },
+      finish: { min: 3, good: 5 },
+    },
+  };
+
+  function getLeaderboardThreshold(category, days) {
+    const thresholds = LB_MIN_QTYS[days];
+    if (!thresholds) return null;
+    return thresholds[category] || null;
+  }
+
+  function getFirstStructure(bastion, fortress) {
+    if (bastion !== null && fortress == null) return bastion;
+    if (bastion == null && fortress !== null) return fortress;
+    if (bastion !== null && fortress !== null) {
+      return bastion < fortress ? bastion : fortress;
+    }
+    return null;
+  }
+
+  function getSecondStructure(bastion, fortress) {
+    if (bastion == null || fortress == null) return null;
+    return bastion < fortress ? fortress : bastion;
+  }
   const EVENT_TO_SPLIT = {
     "enter_nether": "nether",
     "enter_bastion": "bastion",
@@ -910,19 +969,38 @@
     }
     grid.innerHTML = '<div class="loading">Loading leaderboard...</div>';
     try {
+      const days = LB_DAYS[tf] || 30;
       const fetched = await Promise.all(
         LB_CATEGORIES.map((c) =>
-          getJSON(`${API}/getLeaderboard?category=${c}&type=count&days=${LB_DAYS[tf]}&limit=50`).catch(() => [])
+          getJSON(`${API}/getLeaderboard?category=${c}&type=count&days=${days}&limit=50`).catch(() => [])
         )
       );
       const byCat = {};
       LB_CATEGORIES.forEach((cat, i) => {
-        const raw = (fetched[i] || []).map((p) => ({
-          uuid: p.uuid,
-          name: p.name,
-          count: p.value || 0,
-          avg: p.avg || 0,
-        }));
+        const threshold = getLeaderboardThreshold(cat, days);
+        const raw = (fetched[i] || [])
+          .map((p) => {
+            const count = p.value || 0;
+            const avg = p.avg || 0;
+            let quality = "ok";
+            if (threshold) {
+              if (count < threshold.min) {
+                quality = "below";
+              } else if (count >= threshold.good) {
+                quality = "good";
+              } else {
+                quality = "min";
+              }
+            }
+            return {
+              uuid: p.uuid,
+              name: p.name,
+              count,
+              avg,
+              quality,
+            };
+          })
+          .filter((p) => p.quality !== "below");
         raw.sort((a, b) => {
           if (sortBy === "avg") {
             if (b.avg !== a.avg) return a.avg - b.avg;

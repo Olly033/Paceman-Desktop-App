@@ -2059,6 +2059,14 @@ body {
   color: #fff;
 }
 
+.lb-card-row.lb-quality-good {
+  border-left: 3px solid #22c55e;
+}
+
+.lb-card-row.lb-quality-min {
+  border-left: 3px solid #facc15;
+}
+
 .lb-card-player {
   display: flex;
   align-items: center;
