@@ -2329,26 +2329,6 @@
       });
     });
     document.querySelectorAll(".filter-split .time-input input").forEach((input) => {
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Backspace" || e.key === "Delete") {
-          const val = input.value;
-          const selStart = input.selectionStart;
-          const selEnd = input.selectionEnd;
-          const colonIdx = val.indexOf(":");
-          if (colonIdx >= 0 && selStart <= colonIdx && selEnd >= colonIdx) {
-            e.preventDefault();
-          }
-        }
-      });
-      input.addEventListener("input", () => {
-        const raw = input.value.replace(/[^\d]/g, "");
-        if (raw.length === 0) {
-          input.value = "";
-          return;
-        }
-        const totalSec = parseInt(raw, 10) || 0;
-        input.value = formatTime(totalSec);
-      });
       input.addEventListener("blur", () => {
         const sec = parseTimeToSec(input.value);
         input.value = sec != null ? formatTime(sec) : "";
