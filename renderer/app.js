@@ -694,10 +694,6 @@
     const profileBestRuns = document.getElementById("profileBestRuns");
     const headContainer = document.getElementById("head3dContainer");
     const socialLinks = document.getElementById("socialLinks");
-    const sidebar = document.getElementById("profileSidebar");
-    const toggleBtn = document.getElementById("sidebarToggleBtn");
-    if (sidebar) sidebar.classList.add("hidden");
-    if (toggleBtn) toggleBtn.classList.remove("active");
     if (profileName) profileName.textContent = name;
     if (profileStatsRow) {
       profileStatsRow.innerHTML =
@@ -3081,21 +3077,6 @@
       favoriteBtn.addEventListener("click", () => {
         if (state.profile.name) {
           toggleFavorite(state.profile.name);
-        }
-      });
-    }
-    const sidebarToggleBtn = document.getElementById("sidebarToggleBtn");
-    if (sidebarToggleBtn) {
-      sidebarToggleBtn.addEventListener("click", () => {
-        const sidebar = document.getElementById("profileSidebar");
-        if (!sidebar) return;
-        const isHidden = sidebar.classList.contains("hidden");
-        if (isHidden) {
-          sidebar.classList.remove("hidden");
-          sidebarToggleBtn.classList.add("active");
-        } else {
-          sidebar.classList.add("hidden");
-          sidebarToggleBtn.classList.remove("active");
         }
       });
     }
