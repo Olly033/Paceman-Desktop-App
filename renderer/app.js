@@ -2586,7 +2586,7 @@
         window.scrollTo(0, 0);
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
-      }, 50);
+      }, 200);
     } else {
       if (appEl) appEl.scrollTop = 0;
       if (mainContent) mainContent.scrollTop = 0;
