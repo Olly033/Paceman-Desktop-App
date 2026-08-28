@@ -1001,14 +1001,25 @@
             };
           })
           .filter((p) => p.quality !== "below");
+        const qualityRank = { good: 0, min: 1, below: 2 };
         raw.sort((a, b) => {
           if (sortBy === "avg") {
-            if (b.avg !== a.avg) return a.avg - b.avg;
+            const aAvg = a.avg || Infinity;
+            const bAvg = b.avg || Infinity;
+            if (aAvg !== bAvg) return aAvg - bAvg;
+            const aQ = qualityRank[a.quality] ?? 2;
+            const bQ = qualityRank[b.quality] ?? 2;
+            if (aQ !== bQ) return aQ - bQ;
             return b.count - a.count;
           }
           if (sortDir === "asc") return a.count - b.count;
           if (b.count !== a.count) return b.count - a.count;
-          return a.avg - b.avg;
+          const aAvg = a.avg || Infinity;
+          const bAvg = b.avg || Infinity;
+          if (aAvg !== bAvg) return aAvg - bAvg;
+          const aQ = qualityRank[a.quality] ?? 2;
+          const bQ = qualityRank[b.quality] ?? 2;
+          return aQ - bQ;
         });
         byCat[cat] = raw.slice(0, 3);
       });
