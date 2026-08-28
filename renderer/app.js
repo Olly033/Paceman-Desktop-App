@@ -992,7 +992,7 @@
       wrap.innerHTML = '<div class="loading">No sessions yet.</div>';
       return;
     }
-    const recent = (sessions || []).slice(0, 10);
+    const recent = (sessions || []).slice(0, 12);
     wrap.innerHTML = recent.map((s) => {
       const date = new Date(s.startTime * 1000);
       const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
