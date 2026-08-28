@@ -4367,10 +4367,15 @@
     const splitName = f.key ? SPLITS[f.key] : "Unknown";
     statusEl.textContent = `Tracking ${state.overlay.playerName} — Current: ${splitName}`;
     if (pathEl) {
+      pathEl.textContent = "Resolving local path...";
       window.pacemanAPI.getUserDataPath().then((result) => {
         if (result && result.success) {
           pathEl.textContent = result.path + "\\overlay.png";
+        } else {
+          pathEl.textContent = "Could not resolve local app data path";
         }
+      }).catch(() => {
+        pathEl.textContent = "Could not resolve local app data path";
       });
     }
   }
@@ -4431,6 +4436,11 @@
     const avatarY = 60;
 
     const cached = overlayAvatarCache.get(name);
+    if (cached === "__FAILED__") {
+      drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, name);
+      drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize);
+      return;
+    }
     if (cached) {
       drawOverlayAvatarFromDataUrl(ctx, cached, avatarX, avatarY, avatarSize).then(() => {
         drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize);
@@ -4441,6 +4451,8 @@
     fetchOverlayAvatarDataUrl(name, uuid).then((dataUrl) => {
       if (dataUrl) {
         overlayAvatarCache.set(name, dataUrl);
+      } else {
+        overlayAvatarCache.set(name, "__FAILED__");
       }
       drawOverlayCanvas();
     });
