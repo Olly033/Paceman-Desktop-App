@@ -11,7 +11,8 @@ contextBridge.exposeInMainWorld('pacemanAPI', {
   showOpenDialog: (opts) => ipcRenderer.invoke('show-open-dialog', opts),
   readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
   writeFile: (filePath, data) => ipcRenderer.invoke('write-file', filePath, data),
-  clearCache: () => ipcRenderer.invoke('clear-cache')
+  clearCache: () => ipcRenderer.invoke('clear-cache'),
+  getUserDataPath: () => ipcRenderer.invoke('get-user-data-path')
 });
 
 ipcRenderer.on('protocol-args', (event, args) => {

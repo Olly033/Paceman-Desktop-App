@@ -450,7 +450,11 @@ ipcMain.handle('read-file', async (event, filePath) => {
 
 ipcMain.handle('write-file', async (event, filePath, data) => {
   try {
-    fs.writeFileSync(filePath, data, 'utf8');
+    if (Buffer.isBuffer(data)) {
+      fs.writeFileSync(filePath, data);
+    } else {
+      fs.writeFileSync(filePath, String(data), 'utf8');
+    }
     return { success: true };
   } catch (e) {
     return { success: false, error: e.message };
@@ -461,6 +465,14 @@ ipcMain.handle('clear-cache', async () => {
   try {
     await session.defaultSession.clearCache();
     return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('get-user-data-path', async () => {
+  try {
+    return { success: true, path: app.getPath('userData') };
   } catch (e) {
     return { success: false, error: e.message };
   }

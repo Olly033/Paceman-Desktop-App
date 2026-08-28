@@ -128,6 +128,7 @@
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
     dailyLeaderboardTop10: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
+    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, intervalId: null },
   };
 
   const settings = {
@@ -2568,6 +2569,10 @@
       if (!suppressNavPush) pushNav({ page: "leaderboard" });
     } else if (p === "profile") {
       document.getElementById("page-profile").classList.add("active");
+    } else if (p === "overlay") {
+      document.getElementById("page-overlay").classList.add("active");
+      document.querySelector('[data-page="overlay"]').classList.add("active");
+      startOverlayUpdates();
     }
     const footer = document.getElementById("appFooter");
     if (footer) footer.style.display = p === "home" || p === "favorites" ? "" : "none";
@@ -3289,6 +3294,14 @@
     }
     initComparisonSearch();
     initFavoritesSearch();
+    initOverlaySearch();
+    const overlaySaveBtn = document.getElementById("overlaySaveBtn");
+    if (overlaySaveBtn) {
+      overlaySaveBtn.addEventListener("click", () => {
+        const canvas = document.getElementById("overlayCanvas");
+        if (canvas) exportOverlayPNG(canvas);
+      });
+    }
     initSplitDetail();
     const autoOpenBtn = document.getElementById("autoOpenTwitchBtn");
     if (autoOpenBtn) {
@@ -4212,6 +4225,331 @@
           }
         }
       }
+    });
+  }
+
+  function initOverlaySearch() {
+    const input = document.getElementById("overlaySearchInput");
+    const dropdown = document.getElementById("overlaySearchDropdown");
+    const resultsList = document.getElementById("overlayResultsList");
+    if (!input) return;
+
+    input.addEventListener("focus", () => {
+      dropdown.classList.add("visible");
+      resultsList.innerHTML = '<div class="loading">Type a name to track.</div>';
+    });
+
+    input.addEventListener("input", () => {
+      dropdown.classList.add("visible");
+      updateOverlaySearchResults(input.value);
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && input.value.trim() !== "") {
+        selectOverlayPlayer(input.value.trim());
+        input.value = "";
+        dropdown.classList.remove("visible");
+      }
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".search-container") || !e.target.closest("#page-overlay")) {
+        dropdown.classList.remove("visible");
+      }
+    });
+  }
+
+  function updateOverlaySearchResults(q) {
+    const wrap = document.getElementById("overlayResultsList");
+    const query = q.trim().toLowerCase();
+    if (query === "") {
+      wrap.innerHTML = '<div class="loading">Type a name to track.</div>';
+      return;
+    }
+    const matches = Object.keys(state.playerCache)
+      .filter((n) => n.includes(query))
+      .slice(0, 10);
+    if (matches.length === 0) {
+      wrap.innerHTML = `<div class="loading">No matches. Press Enter to track "${escapeHtml(q.trim())}".</div>`;
+      return;
+    }
+    wrap.innerHTML = "";
+    for (const name of matches) {
+      const uuid = state.playerCache[name];
+      const item = document.createElement("div");
+      item.className = "search-item";
+      item.innerHTML = `<img src="${avatarUrl(uuid || name, 32)}" onerror="this.style.visibility='hidden'"><span class="search-item-name">${escapeHtml(name)}</span>`;
+      item.addEventListener("click", () => {
+        selectOverlayPlayer(name, uuid);
+        document.getElementById("overlaySearchDropdown").classList.remove("visible");
+        document.getElementById("overlaySearchInput").value = "";
+      });
+      wrap.appendChild(item);
+    }
+  }
+
+  function selectOverlayPlayer(name, uuid) {
+    state.overlay.playerName = name;
+    state.overlay.playerUuid = uuid || null;
+    state.overlay.run = getOverlayPlayerRun();
+    updateOverlayStatus();
+    drawOverlayCanvas();
+  }
+
+  function getOverlayPlayerRun() {
+    if (!state.overlay.playerName) return null;
+    return state.liveRuns.find((r) => r.nickname === state.overlay.playerName) || null;
+  }
+
+  function computeSessionBests(runs) {
+    const bests = {};
+    for (const key of SPLIT_ORDER) {
+      if (key === "finish") continue;
+      const values = runs.filter((r) => r[key] != null).map((r) => r[key]);
+      if (values.length > 0) {
+        bests[key] = Math.min(...values);
+      }
+    }
+    return bests;
+  }
+
+  function startOverlayUpdates() {
+    stopOverlayUpdates();
+    state.overlay.intervalId = setInterval(() => {
+      if (state.page !== "overlay") {
+        stopOverlayUpdates();
+        return;
+      }
+      state.overlay.run = getOverlayPlayerRun();
+      drawOverlayCanvas();
+      updateOverlayStatus();
+    }, 1000);
+  }
+
+  function stopOverlayUpdates() {
+    if (state.overlay.intervalId) {
+      clearInterval(state.overlay.intervalId);
+      state.overlay.intervalId = null;
+    }
+  }
+
+  function updateOverlayStatus() {
+    const statusEl = document.getElementById("overlayStatus");
+    const pathEl = document.getElementById("overlayPath");
+    if (!statusEl) return;
+    if (!state.overlay.playerName) {
+      statusEl.textContent = "Select a player to start";
+      if (pathEl) pathEl.textContent = "";
+      return;
+    }
+    const run = state.overlay.run;
+    if (!run) {
+      statusEl.textContent = `${state.overlay.playerName} is not currently running`;
+      if (pathEl) pathEl.textContent = "";
+      return;
+    }
+    const f = furthestIndex(run);
+    const splitName = f.key ? SPLITS[f.key] : "Unknown";
+    statusEl.textContent = `Tracking ${state.overlay.playerName} — Current: ${splitName}`;
+    if (pathEl) {
+      window.pacemanAPI.getUserDataPath().then((result) => {
+        if (result && result.success) {
+          pathEl.textContent = result.path + "\\overlay.png";
+        }
+      });
+    }
+  }
+
+  const overlayAvatarCache = new Map();
+
+  function drawOverlayCanvas() {
+    const canvas = document.getElementById("overlayCanvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width;
+    const H = canvas.height;
+
+    ctx.clearRect(0, 0, W, H);
+
+    const bg = getComputedStyle(document.body).getPropertyValue("--bg-secondary").trim() || "rgba(15,15,35,0.85)";
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = "rgba(255,255,255,0.04)";
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(20, 20, W - 40, H - 40);
+
+    if (!state.overlay.playerName) {
+      ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
+      ctx.font = "24px Inter, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Select a player to start tracking", W / 2, H / 2);
+      exportOverlayPNG(canvas);
+      return;
+    }
+
+    const run = state.overlay.run;
+    const name = state.overlay.playerName;
+    const uuid = state.overlay.playerUuid;
+
+    ctx.textAlign = "left";
+
+    const avatarSize = 140;
+    const avatarX = 60;
+    const avatarY = 60;
+
+    const cached = overlayAvatarCache.get(name);
+    if (cached && cached.complete) {
+      drawOverlayAvatar(ctx, cached, avatarX, avatarY, avatarSize);
+    } else {
+      const avatarImg = new Image();
+      avatarImg.crossOrigin = "anonymous";
+      avatarImg.src = avatarUrl(uuid || name, avatarSize);
+      overlayAvatarCache.set(name, avatarImg);
+      avatarImg.onload = () => {
+        drawOverlayAvatar(ctx, avatarImg, avatarX, avatarY, avatarSize);
+        drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize);
+      };
+      avatarImg.onerror = () => {
+        drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, name);
+        drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize);
+      };
+      return;
+    }
+
+    drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize);
+  }
+
+  function drawOverlayAvatar(ctx, img, x, y, size) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(img, x, y, size, size);
+    ctx.restore();
+
+    ctx.strokeStyle = "rgba(255,255,255,0.2)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  function drawOverlayAvatarFallback(ctx, x, y, size, name) {
+    const initial = (name && name[0]) ? name[0].toUpperCase() : "?";
+    ctx.fillStyle = "rgba(255,255,255,0.15)";
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
+    ctx.font = `bold ${size / 2}px Inter, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText(initial, x + size / 2, y + size / 2 + size / 6);
+    ctx.textAlign = "left";
+  }
+
+  function drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize) {
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
+    ctx.font = "bold 36px Inter, sans-serif";
+    ctx.fillText(name, avatarX, avatarY + avatarSize + 50);
+
+    if (!run) {
+      ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
+      ctx.font = "22px Inter, sans-serif";
+      ctx.fillText("Waiting for run data...", avatarX, avatarY + avatarSize + 90);
+      exportOverlayPNG(canvas);
+      return;
+    }
+
+    const f = furthestIndex(run);
+    const currentKey = f.key;
+    const currentTime = f.time;
+    const splitLabel = currentKey ? SPLITS[currentKey] : "Unknown";
+
+    const panelX = 260;
+    const panelY = 60;
+    const panelW = W - panelX - 60;
+    const panelH = H - 120;
+
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.fillRect(panelX, panelY, panelW, panelH);
+    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(panelX, panelY, panelW, panelH);
+
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
+    ctx.font = "bold 48px Inter, sans-serif";
+    ctx.fillText(splitLabel, panelX + 30, panelY + 70);
+
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
+    ctx.font = "20px Inter, sans-serif";
+    ctx.fillText("Current Split", panelX + 30, panelY + 100);
+
+    if (currentTime != null) {
+      ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
+      ctx.font = "bold 64px Inter, sans-serif";
+      ctx.fillText(fmt(currentTime), panelX + 30, panelY + 190);
+    }
+
+    const sessionRuns = (state.profile.timeframeRuns || []).filter((r) => {
+      const rName = r.nickname || (r.user && r.user.nickname);
+      return rName === name;
+    });
+    const bests = computeSessionBests(sessionRuns);
+
+    let deltaY = panelY + 240;
+    ctx.font = "bold 22px Inter, sans-serif";
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
+    ctx.fillText("Session Bests", panelX + 30, deltaY);
+    deltaY += 40;
+
+    ctx.font = "18px Inter, sans-serif";
+    for (const key of SPLIT_ORDER) {
+      if (key === "finish") continue;
+      const best = bests[key];
+      const label = SPLITS[key];
+      let deltaText = "—";
+      let deltaColor = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.5)";
+
+      if (currentKey === key && currentTime != null && best != null) {
+        const diff = currentTime - best;
+        const sign = diff > 0 ? "+" : "";
+        deltaText = `${sign}${fmt(diff)}`;
+        deltaColor = diff <= 0 ? "#4ade80" : "#f87171";
+      } else if (best != null) {
+        deltaText = fmt(best);
+      }
+
+      ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
+      ctx.fillText(`${label}:`, panelX + 30, deltaY);
+      ctx.fillStyle = deltaColor;
+      ctx.textAlign = "right";
+      ctx.fillText(deltaText, panelX + panelW - 30, deltaY);
+      ctx.textAlign = "left";
+      deltaY += 36;
+    }
+
+    exportOverlayPNG(canvas);
+  }
+
+  function exportOverlayPNG(canvas) {
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL("image/png");
+    const base64 = dataUrl.replace(/^data:image\/png;base64,/, "");
+    const buffer = Buffer.from(base64, "base64");
+    window.pacemanAPI.getUserDataPath().then((result) => {
+      if (!result || !result.success) return;
+      const filePath = result.path + "\\overlay.png";
+      window.pacemanAPI.writeFile(filePath, buffer).then((writeResult) => {
+        if (writeResult && writeResult.success) {
+          const pathEl = document.getElementById("overlayPath");
+          if (pathEl) pathEl.textContent = filePath;
+        }
+      });
     });
   }
 

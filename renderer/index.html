@@ -22,6 +22,7 @@
           <button class="nav-btn active" data-page="home">Live Runs</button>
           <button class="nav-btn" data-page="favorites">Favorites</button>
           <button class="nav-btn" data-page="leaderboard">Leaderboard</button>
+          <button class="nav-btn" data-page="overlay">Overlay</button>
         </nav>
       </div>
       <div class="header-right">
@@ -235,6 +236,38 @@
           </div>
         </div>
         <div class="lb-grid" id="leaderboardGrid"></div>
+      </div>
+      <div class="page" id="page-overlay">
+        <div class="page-header">
+          <h1>Live Overlay</h1>
+          <div class="page-header-actions">
+            <div class="search-container">
+              <input type="text" class="search-input" placeholder="Search player..." id="overlaySearchInput">
+              <div class="search-dropdown" id="overlaySearchDropdown">
+                <div class="search-section" id="overlaySearchResults">
+                  <div class="search-section-title">Players</div>
+                  <div class="search-list" id="overlayResultsList"></div>
+                </div>
+              </div>
+            </div>
+            <button class="theme-btn" id="overlaySaveBtn" title="Save overlay PNG">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="overlay-controls">
+          <div class="overlay-preview">
+            <canvas id="overlayCanvas" width="1280" height="720"></canvas>
+          </div>
+          <div class="overlay-info">
+            <div class="overlay-status" id="overlayStatus">Select a player to start</div>
+            <div class="overlay-path" id="overlayPath"></div>
+          </div>
+        </div>
       </div>
     </main>
 
