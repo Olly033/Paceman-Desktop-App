@@ -4383,7 +4383,7 @@
   const overlayAvatarCache = new Map();
 
   function fetchOverlayAvatarDataUrl(name, uuid) {
-    const url = avatarUrl(uuid || name, 140);
+    const url = avatarUrl(uuid || name, 90);
     return fetch(url)
       .then((res) => res.blob())
       .then((blob) => {
@@ -4405,16 +4405,15 @@
 
     ctx.clearRect(0, 0, W, H);
 
-    const bg = getComputedStyle(document.body).getPropertyValue("--bg-secondary").trim() || "rgba(15,15,35,0.85)";
-    ctx.fillStyle = bg;
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fillRect(0, 0, W, H);
 
     ctx.fillStyle = "rgba(255,255,255,0.04)";
     ctx.fillRect(0, 0, W, H);
 
     ctx.strokeStyle = "rgba(255,255,255,0.08)";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(20, 20, W - 40, H - 40);
+    ctx.lineWidth = 1;
+    ctx.strokeRect(10, 10, W - 20, H - 20);
 
     if (!state.overlay.playerName) {
       ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
@@ -4431,9 +4430,9 @@
 
     ctx.textAlign = "left";
 
-    const avatarSize = 140;
-    const avatarX = 60;
-    const avatarY = 60;
+    const avatarSize = 90;
+    const avatarX = 40;
+    const avatarY = 40;
 
     const cached = overlayAvatarCache.get(name);
     if (cached === "__FAILED__") {
@@ -4490,46 +4489,53 @@
   }
 
   function drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize) {
-    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
-    ctx.font = "bold 36px Inter, sans-serif";
-    ctx.fillText(name, avatarX, avatarY + avatarSize + 50);
+    const textPrimary = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
+    const textSecondary = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
+
+    const liveEvent = furthestEvent(run);
+    const liveKey = liveEvent ? liveEvent.key : null;
+    const liveTime = liveEvent ? liveEvent.igt : null;
+    const sessionEventKey = furthestIndex(run).key;
+    const currentKey = liveKey || sessionEventKey;
+    const currentTime = liveTime != null ? liveTime : furthestIndex(run).time;
+    const splitLabel = currentKey ? SPLITS[currentKey] : "Unknown";
+
+    const nameY = avatarY + avatarSize + 28;
+    ctx.fillStyle = textPrimary;
+    ctx.font = "bold 24px Inter, sans-serif";
+    ctx.fillText(name, avatarX, nameY);
 
     if (!run) {
-      ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
-      ctx.font = "22px Inter, sans-serif";
-      ctx.fillText("Waiting for run data...", avatarX, avatarY + avatarSize + 90);
+      ctx.fillStyle = textSecondary;
+      ctx.font = "16px Inter, sans-serif";
+      ctx.fillText("Waiting for run data...", avatarX, nameY + 24);
       exportOverlayPNG(canvas);
       return;
     }
 
-    const f = furthestIndex(run);
-    const currentKey = f.key;
-    const currentTime = f.time;
-    const splitLabel = currentKey ? SPLITS[currentKey] : "Unknown";
-
-    const panelX = 260;
-    const panelY = 60;
-    const panelW = W - panelX - 60;
-    const panelH = H - 120;
+    const panelX = avatarX + avatarSize + 20;
+    const panelY = avatarY;
+    const panelW = W - panelX - 30;
+    const panelH = H - panelY - 30;
 
     ctx.fillStyle = "rgba(255,255,255,0.05)";
     ctx.fillRect(panelX, panelY, panelW, panelH);
-    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
     ctx.lineWidth = 1;
     ctx.strokeRect(panelX, panelY, panelW, panelH);
 
-    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
-    ctx.font = "bold 48px Inter, sans-serif";
-    ctx.fillText(splitLabel, panelX + 30, panelY + 70);
+    ctx.fillStyle = textPrimary;
+    ctx.font = "bold 26px Inter, sans-serif";
+    ctx.fillText(splitLabel, panelX + 16, panelY + 34);
 
-    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
-    ctx.font = "20px Inter, sans-serif";
-    ctx.fillText("Current Split", panelX + 30, panelY + 100);
+    ctx.fillStyle = textSecondary;
+    ctx.font = "14px Inter, sans-serif";
+    ctx.fillText("Current Split", panelX + 16, panelY + 54);
 
     if (currentTime != null) {
-      ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
-      ctx.font = "bold 64px Inter, sans-serif";
-      ctx.fillText(fmt(currentTime), panelX + 30, panelY + 190);
+      ctx.fillStyle = textPrimary;
+      ctx.font = "bold 40px Inter, sans-serif";
+      ctx.fillText(fmt(currentTime), panelX + 16, panelY + 102);
     }
 
     const sessionRuns = (state.profile.timeframeRuns || []).filter((r) => {
@@ -4538,36 +4544,38 @@
     });
     const bests = computeSessionBests(sessionRuns);
 
-    let deltaY = panelY + 240;
-    ctx.font = "bold 22px Inter, sans-serif";
-    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
-    ctx.fillText("Session Bests", panelX + 30, deltaY);
-    deltaY += 40;
+    let deltaY = panelY + 130;
+    ctx.font = "bold 14px Inter, sans-serif";
+    ctx.fillStyle = textSecondary;
+    ctx.fillText("Session Bests", panelX + 16, deltaY);
+    deltaY += 20;
 
-    ctx.font = "18px Inter, sans-serif";
-    for (const key of SPLIT_ORDER) {
-      if (key === "finish") continue;
+    ctx.font = "13px Inter, sans-serif";
+    const rows = SPLIT_ORDER.filter((k) => k !== "finish");
+    const rowHeight = Math.max(18, Math.min(24, (panelH - 150) / rows.length));
+    for (let i = 0; i < rows.length; i++) {
+      const key = rows[i];
       const best = bests[key];
       const label = SPLITS[key];
       let deltaText = "—";
-      let deltaColor = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.5)";
+      let deltaColor = textSecondary;
 
       if (currentKey === key && currentTime != null && best != null) {
         const diff = currentTime - best;
         const sign = diff > 0 ? "+" : "";
-        deltaText = `${sign}${fmt(diff)}`;
+        deltaText = sign + fmt(diff);
         deltaColor = diff <= 0 ? "#4ade80" : "#f87171";
       } else if (best != null) {
         deltaText = fmt(best);
       }
 
-      ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
-      ctx.fillText(`${label}:`, panelX + 30, deltaY);
+      ctx.fillStyle = textPrimary;
+      ctx.fillText(label + ":", panelX + 16, deltaY);
       ctx.fillStyle = deltaColor;
       ctx.textAlign = "right";
-      ctx.fillText(deltaText, panelX + panelW - 30, deltaY);
+      ctx.fillText(deltaText, panelX + panelW - 16, deltaY);
       ctx.textAlign = "left";
-      deltaY += 36;
+      deltaY += rowHeight;
     }
 
     exportOverlayPNG(canvas);
