@@ -4521,7 +4521,7 @@
     const paddingRight = settings.paddingRight || 20;
     const paddingBottom = settings.paddingBottom || 20;
 
-    const avatarSize = 48;
+    const avatarSize = 40;
     const avatarX = W - avatarSize - paddingRight;
     const avatarY = H - avatarSize - paddingBottom;
 
@@ -4545,7 +4545,7 @@
 
     const contentLeft = paddingLeft;
     const contentRight = avatarX - 16;
-    const lineHeight = 52;
+    const lineHeight = 44;
     const totalLines = 3;
     const contentHeight = totalLines * lineHeight;
     const blockTop = (H - contentHeight) / 2;
@@ -4553,24 +4553,24 @@
 
     ctx.textAlign = "left";
     ctx.fillStyle = textPrimary;
-    ctx.font = "bold 40px Inter, sans-serif";
-    ctx.fillText(name, contentLeft, y + 28);
+    ctx.font = "bold 36px Inter, sans-serif";
+    ctx.fillText(name, contentLeft, y + 24);
     y += lineHeight;
 
     ctx.fillStyle = textSecondary;
-    ctx.font = "32px Inter, sans-serif";
-    ctx.fillText(splitLabel, contentLeft, y + 24);
+    ctx.font = "28px Inter, sans-serif";
+    ctx.fillText(splitLabel, contentLeft, y + 20);
     y += lineHeight;
 
     ctx.fillStyle = textPrimary;
-    ctx.font = "bold 40px Inter, sans-serif";
-    ctx.fillText(timerText, contentLeft, y + 28);
+    ctx.font = "bold 36px Inter, sans-serif";
+    ctx.fillText(timerText, contentLeft, y + 24);
 
     if (deltaText) {
       ctx.textAlign = "right";
       ctx.fillStyle = deltaColor;
-      ctx.font = "bold 36px Inter, sans-serif";
-      ctx.fillText(deltaText, contentRight, y + 28);
+      ctx.font = "bold 32px Inter, sans-serif";
+      ctx.fillText(deltaText, contentRight, y + 24);
       ctx.textAlign = "left";
     }
 
