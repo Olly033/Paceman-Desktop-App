@@ -1849,223 +1849,6 @@
     });
   }
 
-  let editorMode = false;
-  let editorDragging = null;
-  let editorResizing = null;
-  let editorOffset = { x: 0, y: 0 };
-
-  function getDefaultEditorLayout() {
-    return {
-      avatar: { x: 12, y: 100, scale: 1 },
-      name: { x: 100, y: 100, scale: 1 },
-      split: { x: 100, y: 180, scale: 1 },
-      time: { x: 100, y: 260, scale: 1 },
-      pace: { x: 84, y: 360, scale: 1 },
-    };
-  }
-
-  function loadEditorLayout() {
-    const saved = JSON.parse(localStorage.getItem("paceman_overlay_editor_layout") || "null");
-    return saved || getDefaultEditorLayout();
-  }
-
-  function saveEditorLayout(layout) {
-    localStorage.setItem("paceman_overlay_editor_layout", JSON.stringify(layout));
-    if (state.overlay) state.overlay.editorLayout = layout;
-  }
-
-  function initOverlayEditor() {
-    const editBtn = document.getElementById("overlayEditBtn");
-    const editorOverlay = document.getElementById("editorOverlay");
-    const editorControls = document.getElementById("editorControls");
-    const resetBtn = document.getElementById("editorResetBtn");
-    const saveBtn = document.getElementById("editorSaveBtn");
-    const canvasWrapper = document.getElementById("canvasWrapper");
-
-    if (!editBtn || !editorOverlay) return;
-
-    let layout = loadEditorLayout();
-    if (state.overlay) state.overlay.editorLayout = layout;
-
-    const createElement = (key, label, x, y, scale) => {
-      const el = document.createElement("div");
-      el.className = "overlay-element";
-      el.dataset.key = key;
-      const canvasScale = getCanvasScale();
-      el.style.left = (x * canvasScale) + "px";
-      el.style.top = (y * canvasScale) + "px";
-      el.style.transform = `scale(${scale})`;
-      el.style.transformOrigin = "top left";
-
-      const sizes = {
-        avatar: { w: 80, h: 80 },
-        name: { w: 420, h: 70 },
-        split: { w: 320, h: 56 },
-        time: { w: 280, h: 100 },
-        pace: { w: 800, h: 80 },
-      };
-      const s = sizes[key] || { w: 200, h: 60 };
-      el.style.width = (s.w * canvasScale) + "px";
-      el.style.height = (s.h * canvasScale) + "px";
-      el.innerHTML = `
-        <div class="resize-handle nw" data-key="${key}" data-handle="nw"></div>
-        <div class="resize-handle ne" data-key="${key}" data-handle="ne"></div>
-        <div class="resize-handle sw" data-key="${key}" data-handle="sw"></div>
-        <div class="resize-handle se" data-key="${key}" data-handle="se"></div>
-      `;
-      return el;
-    };
-
-    const renderEditor = () => {
-      editorOverlay.innerHTML = "";
-      Object.keys(layout).forEach(key => {
-        const item = layout[key];
-        const labels = { avatar: "Avatar", name: "Name", split: "Split", time: "Time", pace: "Pace" };
-        editorOverlay.appendChild(createElement(key, labels[key] || key, item.x, item.y, item.scale));
-      });
-    };
-
-    const getCanvasScale = () => {
-      const canvas = document.getElementById("overlayCanvas");
-      if (!canvas || !canvasWrapper) return 1;
-      return canvasWrapper.clientWidth / canvas.width;
-    };
-
-    editBtn.addEventListener("click", () => {
-      editorMode = !editorMode;
-      editBtn.classList.toggle("active", editorMode);
-      editorOverlay.style.display = editorMode ? "block" : "none";
-      if (editorControls) editorControls.style.display = editorMode ? "flex" : "none";
-      if (editorMode) renderEditor();
-      drawOverlayCanvas();
-    });
-
-    editorOverlay.addEventListener("mousedown", (e) => {
-      if (!editorMode) return;
-      const target = e.target;
-      const el = target.closest(".overlay-element");
-      if (!el) return;
-
-      const key = el.dataset.key;
-      if (target.classList.contains("resize-handle")) {
-        const handle = target.dataset.handle || "se";
-        editorResizing = {
-          key,
-          handle,
-          startX: e.clientX,
-          startY: e.clientY,
-          startScale: layout[key].scale,
-          baseItem: { ...layout[key] },
-        };
-        e.preventDefault();
-      } else {
-        editorDragging = {
-          key,
-          startX: e.clientX,
-          startY: e.clientY,
-          origX: layout[key].x,
-          origY: layout[key].y,
-        };
-        el.classList.add("selected");
-        e.preventDefault();
-      }
-    });
-
-    window.addEventListener("mousemove", (e) => {
-      if (editorDragging) {
-        const canvasScale = getCanvasScale();
-        const dx = (e.clientX - editorDragging.startX) / canvasScale;
-        const dy = (e.clientY - editorDragging.startY) / canvasScale;
-        layout[editorDragging.key].x = Math.max(0, Math.min(800 - 40, editorDragging.origX + dx));
-        layout[editorDragging.key].y = Math.max(0, Math.min(520 - 20, editorDragging.origY + dy));
-        const el = editorOverlay.querySelector(`.overlay-element[data-key="${editorDragging.key}"]`);
-        if (el) {
-          el.style.left = (layout[editorDragging.key].x * canvasScale) + "px";
-          el.style.top = (layout[editorDragging.key].y * canvasScale) + "px";
-        }
-        state.overlay.editorLayout = layout;
-        drawOverlayCanvas();
-      }
-      if (editorResizing) {
-        const item = layout[editorResizing.key];
-        const baseItem = editorResizing.baseItem;
-        const handle = editorResizing.handle;
-        const dx = e.clientX - editorResizing.startX;
-        const dy = e.clientY - editorResizing.startY;
-        const canvasScale = getCanvasScale();
-        const dxCanvas = dx / canvasScale;
-        const dyCanvas = dy / canvasScale;
-
-        let newScale = editorResizing.startScale;
-        let newX = baseItem.x;
-        let newY = baseItem.y;
-
-        if (handle === "se") {
-          newScale = Math.max(0.5, Math.min(3, baseItem.scale + dxCanvas / 200));
-        } else if (handle === "nw") {
-          newScale = Math.max(0.5, Math.min(3, baseItem.scale - dxCanvas / 200));
-          if (newScale !== baseItem.scale) {
-            const ratio = newScale / baseItem.scale;
-            newX = baseItem.x + baseItem.x * (1 - ratio);
-            newY = baseItem.y + baseItem.y * (1 - ratio);
-          }
-        } else if (handle === "ne") {
-          newScale = Math.max(0.5, Math.min(3, baseItem.scale + dxCanvas / 200));
-          if (newScale !== baseItem.scale) {
-            const ratio = newScale / baseItem.scale;
-            newY = baseItem.y + baseItem.y * (1 - ratio);
-          }
-        } else if (handle === "sw") {
-          newScale = Math.max(0.5, Math.min(3, baseItem.scale - dxCanvas / 200));
-          if (newScale !== baseItem.scale) {
-            const ratio = newScale / baseItem.scale;
-            newX = baseItem.x + baseItem.x * (1 - ratio);
-          }
-        }
-
-        item.scale = newScale;
-        item.x = Math.max(0, newX);
-        item.y = Math.max(0, newY);
-
-        const el = editorOverlay.querySelector(`.overlay-element[data-key="${editorResizing.key}"]`);
-        if (el) {
-          el.style.transform = `scale(${newScale})`;
-          el.style.left = (item.x * canvasScale) + "px";
-          el.style.top = (item.y * canvasScale) + "px";
-        }
-        state.overlay.editorLayout = layout;
-        drawOverlayCanvas();
-      }
-    });
-
-    window.addEventListener("mouseup", () => {
-      if (editorDragging) {
-        const el = editorOverlay.querySelector(`.overlay-element[data-key="${editorDragging.key}"]`);
-        if (el) el.classList.remove("selected");
-        editorDragging = null;
-      }
-      if (editorResizing) {
-        editorResizing = null;
-      }
-    });
-
-    if (resetBtn) {
-      resetBtn.addEventListener("click", () => {
-        layout = getDefaultEditorLayout();
-        saveEditorLayout(layout);
-        renderEditor();
-        drawOverlayCanvas();
-      });
-    }
-
-    if (saveBtn) {
-      saveBtn.addEventListener("click", () => {
-        saveEditorLayout(layout);
-        alert("Layout saved");
-      });
-    }
-  }
-
   function initPaceTargets() {
     const container = document.getElementById("paceInputs");
     const saveBtn = document.getElementById("paceSaveBtn");
@@ -3611,7 +3394,6 @@
     initOverlaySearch();
     initPaceTargets();
     initOverlaySettings();
-    initOverlayEditor();
     const overlaySaveBtn = document.getElementById("overlaySaveBtn");
     if (overlaySaveBtn) {
       overlaySaveBtn.addEventListener("click", () => {
@@ -4841,9 +4623,6 @@
     const paceTargets = state.overlay.paceTargets || {};
     const targetTime = currentKey ? paceTargets[currentKey] : null;
 
-    const editorLayout = state.overlay.editorLayout || null;
-    const useCustomLayout = !!editorLayout;
-
     const statsX = avatarX + avatarSize + 48;
     const contentTop = paddingTop + 20;
     let contentBottom = contentTop;
@@ -4859,20 +4638,12 @@
     const cached = overlayAvatarCache.get(name);
     if (cached === "__FAILED__") {
       drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, name);
-      if (useCustomLayout) {
-        drawOverlayBodyCustom(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, settings, editorLayout, currentTime, targetTime, currentKey);
-      } else {
-        drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, contentTop, settings);
-      }
+      drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, contentTop, settings);
       return;
     }
     if (cached) {
       drawOverlayAvatarFromDataUrl(ctx, cached, avatarX, avatarY, avatarSize).then(() => {
-        if (useCustomLayout) {
-          drawOverlayBodyCustom(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, settings, editorLayout, currentTime, targetTime, currentKey);
-        } else {
-          drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, contentTop, settings);
-        }
+        drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, contentTop, settings);
       });
       return;
     }
@@ -5005,88 +4776,7 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     exportOverlayPNG(canvas);
   }
 
-  function drawOverlayBodyCustom(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, settings, layout, currentTime, targetTime, currentKey) {
-    const textPrimary = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
-    const textSecondary = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
-    const splitLabel = currentKey ? SPLITS[currentKey] : "Unknown";
-
-    const avatarItem = layout.avatar || { x: avatarX, y: avatarY, scale: 1 };
-    const nameItem = layout.name || { x: avatarX + avatarSize + 48, y: 100, scale: 1 };
-    const splitItem = layout.split || { x: nameItem.x, y: nameItem.y + 80, scale: 1 };
-    const timeItem = layout.time || { x: splitItem.x, y: splitItem.y + 64, scale: 1 };
-    const paceItem = layout.pace || { x: timeItem.x - 16, y: timeItem.y + 100, scale: 1 };
-
-    if (settings.showAvatar) {
-      drawOverlayAvatarFallback(ctx, avatarItem.x, avatarItem.y, avatarSize * avatarItem.scale, name);
-    }
-
-    if (settings.showName) {
-      ctx.fillStyle = textPrimary;
-      ctx.font = `bold ${64 * nameItem.scale}px Inter, sans-serif`;
-      ctx.fillText(name, nameItem.x, nameItem.y);
-    }
-
-    if (settings.showSplit) {
-      ctx.fillStyle = textSecondary;
-      ctx.font = `${48 * splitItem.scale}px Inter, sans-serif`;
-      ctx.fillText(splitLabel, splitItem.x, splitItem.y);
-    }
-
-    if (settings.showTime && currentTime != null) {
-      ctx.fillStyle = textPrimary;
-      ctx.font = `bold ${100 * timeItem.scale}px Inter, sans-serif`;
-      ctx.fillText(fmt(currentTime), timeItem.x, timeItem.y);
-    }
-
-    if (settings.showPace && currentTime != null && targetTime != null) {
-      const ahead = currentTime <= targetTime;
-      const diff = currentTime - targetTime;
-      const deltaText = (diff > 0 ? "+" : "") + fmt(diff);
-      const deltaColor = ahead ? "#4ade80" : "#f87171";
-
-      const px = paceItem.x;
-      const py = paceItem.y;
-      const pw = 800 * paceItem.scale;
-      const ph = 80 * paceItem.scale;
-      const r = 20 * paceItem.scale;
-
-      ctx.fillStyle = "rgba(255,255,255,0.1)";
-      ctx.beginPath();
-      ctx.moveTo(px + r, py);
-      ctx.lineTo(px + pw - r, py);
-      ctx.quadraticCurveTo(px + pw, py, px + pw, py + r);
-      ctx.lineTo(px + pw, py + ph - r);
-      ctx.quadraticCurveTo(px + pw, py + ph, px + pw - r, py + ph);
-      ctx.lineTo(px + r, py + ph);
-      ctx.quadraticCurveTo(px, py + ph, px, py + ph - r);
-      ctx.lineTo(px, py + r);
-      ctx.quadraticCurveTo(px, py, px + r, py);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.strokeStyle = "rgba(255,255,255,0.5)";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      ctx.fillStyle = textSecondary;
-      ctx.font = `${48 * paceItem.scale}px Inter, sans-serif`;
-      ctx.fillText(splitLabel + " Target", px + 16 * paceItem.scale, py + 50 * paceItem.scale);
-
-      ctx.fillStyle = textPrimary;
-      ctx.font = `bold ${56 * paceItem.scale}px Inter, sans-serif`;
-      ctx.fillText(fmt(targetTime), px + 280 * paceItem.scale, py + 50 * paceItem.scale);
-
-      ctx.fillStyle = deltaColor;
-      ctx.font = `bold ${56 * paceItem.scale}px Inter, sans-serif`;
-      ctx.textAlign = "right";
-      ctx.fillText(deltaText, px + pw - 16 * paceItem.scale, py + 50 * paceItem.scale);
-      ctx.textAlign = "left";
-    }
-
-    exportOverlayPNG(canvas);
-  }
-
-function exportOverlayPNG(canvas) {
+  function exportOverlayPNG(canvas) {
     if (!canvas) return;
     const dataUrl = canvas.toDataURL("image/png");
     const base64 = dataUrl.replace(/^data:image\/png;base64,/, "");
