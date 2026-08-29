@@ -4479,17 +4479,37 @@
 
     const avatarSize = 80;
     const avatarX = 12;
-    const avatarY = 56;
+    const statsY = 100;
+
+    const liveEvent = furthestEvent(run);
+    const liveKey = liveEvent ? liveEvent.key : null;
+    const liveTime = liveEvent ? liveEvent.igt : null;
+    const sessionEventKey = furthestIndex(run).key;
+    const currentKey = liveKey || sessionEventKey;
+    const currentTime = liveTime != null ? liveTime : furthestIndex(run).time;
+
+    const paceTargets = state.overlay.paceTargets || {};
+    const targetTime = currentKey ? paceTargets[currentKey] : null;
+
+    let visualBottom = statsY + 160;
+    if (currentTime != null) visualBottom = statsY + 260;
+    if (currentTime != null && targetTime != null) {
+      visualBottom = statsY + 300;
+    }
+
+    const visualTop = statsY - 64;
+    const textCenter = (visualTop + visualBottom) / 2;
+    const avatarY = Math.max(12, textCenter - avatarSize / 2);
 
     const cached = overlayAvatarCache.get(name);
     if (cached === "__FAILED__") {
       drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, name);
-      drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize);
+      drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, statsY);
       return;
     }
     if (cached) {
       drawOverlayAvatarFromDataUrl(ctx, cached, avatarX, avatarY, avatarSize).then(() => {
-        drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize);
+        drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, statsY);
       });
       return;
     }
@@ -4535,7 +4555,7 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     ctx.textBaseline = "alphabetic";
   }
 
-  function drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize) {
+  function drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, statsY) {
     const textPrimary = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
     const textSecondary = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
 
@@ -4548,7 +4568,6 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     const splitLabel = currentKey ? SPLITS[currentKey] : "Unknown";
 
     const statsX = avatarX + avatarSize + 48;
-    const statsY = avatarY + 64;
 
     ctx.fillStyle = textPrimary;
     ctx.font = "bold 64px Inter, sans-serif";
@@ -4569,7 +4588,7 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
       const py = statsY + 220;
       const pw = 720;
       const ph = 80;
-      const r = 12;
+      const r = 20;
 
       ctx.fillStyle = "rgba(255,255,255,0.1)";
       ctx.beginPath();
@@ -4585,7 +4604,7 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
       ctx.closePath();
       ctx.fill();
 
-      ctx.strokeStyle = "rgba(255,255,255,0.25)";
+      ctx.strokeStyle = "rgba(255,255,255,0.5)";
       ctx.lineWidth = 2;
       ctx.stroke();
 
