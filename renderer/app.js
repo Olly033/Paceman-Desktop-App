@@ -128,7 +128,7 @@
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
     dailyLeaderboardTop10: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
-    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, intervalId: null, paceTargets: {}, settings: { paddingLeft: 20, paddingTop: 20, paddingRight: 20, paddingBottom: 20 }, drawing: false },
+    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, intervalId: null, paceTargets: {}, settings: { paddingLeft: 20, paddingTop: 20, paddingRight: 20, paddingBottom: 20 }, _dirty: true },
   };
 
   const settings = {
@@ -1832,6 +1832,7 @@
         const val = parseInt(el.value, 10);
         state.overlay.settings[key] = isNaN(val) ? 0 : Math.max(0, Math.min(200, val));
         localStorage.setItem("paceman_overlay_settings", JSON.stringify(state.overlay.settings));
+        state.overlay._dirty = true;
         drawOverlayCanvas();
       });
     });
@@ -1864,6 +1865,7 @@
         if (sec != null) targets[key] = sec;
       });
       state.overlay.paceTargets = targets;
+      state.overlay._dirty = true;
       localStorage.setItem("paceman_pace_targets", JSON.stringify(targets));
     };
 
@@ -4394,6 +4396,7 @@
     state.overlay.playerName = name;
     state.overlay.playerUuid = uuid || null;
     state.overlay.run = getOverlayPlayerRun();
+    state.overlay._dirty = true;
     updateOverlayStatus();
     drawOverlayCanvas();
   }
@@ -4433,9 +4436,12 @@
         return;
       }
       state.overlay.run = getOverlayPlayerRun();
-      drawOverlayCanvas();
-      updateOverlayStatus();
-    }, 1000);
+      if (state.overlay._dirty) {
+        drawOverlayCanvas();
+        updateOverlayStatus();
+        state.overlay._dirty = false;
+      }
+    }, 250);
   }
 
   function stopOverlayUpdates() {
@@ -4494,12 +4500,9 @@
       .catch(() => null);
   }
 
-  async function drawOverlayCanvas() {
-    if (state.overlay.drawing) return;
-    state.overlay.drawing = true;
-    try {
-      const canvas = document.getElementById("overlayCanvas");
-      if (!canvas) return;
+  function drawOverlayCanvas() {
+    const canvas = document.getElementById("overlayCanvas");
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
     const W = canvas.width;
     const H = canvas.height;
@@ -4570,26 +4573,24 @@
       ctx.textAlign = "left";
     }
 
-    const drawAvatar = async () => {
-      if (state.overlay.playerName) {
-        const cached = overlayAvatarCache.get(state.overlay.playerName);
-        if (cached && cached !== "__FAILED__") {
-          const cachedImg = overlayAvatarImageCache.get(state.overlay.playerName);
-          if (cachedImg) {
-            ctx.drawImage(cachedImg, avatarX, avatarY, avatarSize, avatarSize);
-            ctx.strokeStyle = "rgba(255,255,255,0.2)";
-            ctx.lineWidth = 3;
-            ctx.strokeRect(avatarX, avatarY, avatarSize, avatarSize);
-          } else {
-            await drawOverlayAvatarFromDataUrl(ctx, cached, avatarX, avatarY, avatarSize);
-          }
+    if (state.overlay.playerName) {
+      const cached = overlayAvatarCache.get(state.overlay.playerName);
+      if (cached && cached !== "__FAILED__") {
+        const cachedImg = overlayAvatarImageCache.get(state.overlay.playerName);
+        if (cachedImg) {
+          ctx.drawImage(cachedImg, avatarX, avatarY, avatarSize, avatarSize);
+          ctx.strokeStyle = "rgba(255,255,255,0.2)";
+          ctx.lineWidth = 3;
+          ctx.strokeRect(avatarX, avatarY, avatarSize, avatarSize);
         } else {
-          drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, state.overlay.playerName);
+          drawOverlayAvatarFromDataUrl(ctx, cached, avatarX, avatarY, avatarSize);
         }
       } else {
-        drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, "P");
+        drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, state.overlay.playerName);
       }
-    };
+    } else {
+      drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, "P");
+    }
 
     const uuid = state.overlay.playerUuid || null;
     const cacheKey = name;
@@ -4600,16 +4601,12 @@
         } else {
           overlayAvatarCache.set(cacheKey, "__FAILED__");
         }
+        state.overlay._dirty = true;
         drawOverlayCanvas();
       });
     }
 
-    await drawAvatar();
-
     exportOverlayPNG(canvas);
-    } finally {
-      state.overlay.drawing = false;
-    }
   }
 function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     return new Promise((resolve) => {
