@@ -131,7 +131,7 @@
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
     dailyLeaderboardTop10: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
-    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, sessionRuns: [], intervalId: null, apiIntervalId: null, paceTargets: {}, settings: { bgOpacity: 60, bgColor: "#000000" }, _dirty: true },
+    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, sessionRuns: [], sessionNph: null, intervalId: null, apiIntervalId: null, paceTargets: {}, settings: { bgOpacity: 60, bgColor: "#000000" }, _dirty: true },
   };
 
   const settings = {
@@ -4515,6 +4515,12 @@
       .catch(() => []);
   }
 
+  function getOverlayNph(name) {
+    return getJSON(`${API}/getNPH?name=${encodeURIComponent(name)}&hours=24&hoursBetween=1`)
+      .then((data) => data || null)
+      .catch(() => null);
+  }
+
   function selectOverlayPlayer(name, uuid) {
     state.overlay.playerName = name;
     state.overlay.playerUuid = uuid || null;
@@ -4529,6 +4535,11 @@
     state.overlay.run = getOverlayPlayerRun();
     getOverlaySessionRuns(name, uuid).then((runs) => {
       state.overlay.sessionRuns = runs.slice(-20);
+      state.overlay._dirty = true;
+      drawOverlayCanvas();
+    });
+    getOverlayNph(name).then((nph) => {
+      state.overlay.sessionNph = nph;
       state.overlay._dirty = true;
       drawOverlayCanvas();
     });
@@ -4621,6 +4632,10 @@
         const uuid = state.overlay.playerUuid;
         getOverlaySessionRuns(name, uuid).then((runs) => {
           state.overlay.sessionRuns = runs.slice(-20);
+          state.overlay._dirty = true;
+        });
+        getOverlayNph(name).then((nph) => {
+          state.overlay.sessionNph = nph;
           state.overlay._dirty = true;
         });
         lastSessionRefresh = now;
@@ -4764,9 +4779,7 @@
     } else if (state.overlay.sessionRuns && state.overlay.sessionRuns.length > 0) {
       const netherStats = calcSplitStats(state.overlay.sessionRuns, "nether");
       if (netherStats.count > 0) {
-        const timestamps = state.overlay.sessionRuns.map(getRunTimestamp).filter((t) => t > 0);
-        const sessionHours = timestamps.length > 1 ? (Math.max(...timestamps) - Math.min(...timestamps)) / 3600 : 0;
-        const nph = sessionHours > 0 ? (netherStats.count / sessionHours).toFixed(2) : "0.00";
+        const nph = state.overlay.sessionNph && state.overlay.sessionNph.rnph != null ? state.overlay.sessionNph.rnph.toFixed(2) : "0.00";
         lines.push({ text: `${netherStats.count} nethers · avg ${netherStats.avg} · NPH ${nph}`, color: textSecondary, font: "28px Inter, sans-serif", offset: 20 });
       }
     }
