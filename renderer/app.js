@@ -4537,7 +4537,7 @@
 
     const avatarSize = 40;
     const avatarX = W - avatarSize - paddingRight;
-    const avatarY = H - avatarSize - paddingBottom;
+    const avatarY = frameTop + (frameHeight - avatarSize) / 2;
 
     const run = state.overlay.run;
     const name = state.overlay.playerName || "Player";
@@ -4562,15 +4562,17 @@
     const lineHeight = 44;
     const totalLines = 3;
     const contentHeight = totalLines * lineHeight;
-    const blockTop = (H - contentHeight) / 2;
+    const frameHeight = 175;
+    const frameTop = (H - frameHeight) / 2;
+    const blockTop = frameTop + (frameHeight - contentHeight) / 2;
     let y = blockTop;
 
     const bgPadX = 16;
-    const bgPadY = 12;
+    const bgPadY = 0;
     const bgX = contentLeft - bgPadX;
-    const bgY = blockTop - bgPadY;
+    const bgY = frameTop;
     const bgW = contentRight + bgPadX;
-    const bgH = contentHeight + bgPadY * 2;
+    const bgH = frameHeight;
     const bgRadius = 12;
 
     ctx.clearRect(0, 0, W, H);
