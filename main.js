@@ -89,17 +89,12 @@ function createWindow() {
   });
 }
 
+let shouldWarnAlreadyRunning = false;
+
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 
 if (!gotSingleInstanceLock) {
-  dialog.showMessageBoxSync({
-    type: 'warning',
-    title: 'Paceman already running',
-    message: 'Paceman is already open.',
-    detail: 'The app will now close. Use the existing window or the tray icon to interact with it.',
-    buttons: ['OK']
-  });
-  app.quit();
+  shouldWarnAlreadyRunning = true;
 } else {
   app.on('second-instance', (event, commandLine, workingDirectory) => {
     if (win) {
@@ -110,6 +105,17 @@ if (!gotSingleInstanceLock) {
 }
 
 app.whenReady().then(async () => {
+  if (shouldWarnAlreadyRunning) {
+    dialog.showMessageBoxSync({
+      type: 'warning',
+      title: 'Paceman already running',
+      message: 'Paceman is already open.',
+      detail: 'The app will now close. Use the existing window or the tray icon to interact with it.',
+      buttons: ['OK']
+    });
+    app.quit();
+    return;
+  }
   try {
     await session.defaultSession.clearCache();
   } catch (e) {
