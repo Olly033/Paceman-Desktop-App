@@ -1891,10 +1891,22 @@
       const el = document.createElement("div");
       el.className = "overlay-element";
       el.dataset.key = key;
-      el.style.left = x + "px";
-      el.style.top = y + "px";
+      const canvasScale = getCanvasScale();
+      el.style.left = (x * canvasScale) + "px";
+      el.style.top = (y * canvasScale) + "px";
       el.style.transform = `scale(${scale})`;
       el.style.transformOrigin = "top left";
+
+      const sizes = {
+        avatar: { w: 80, h: 80 },
+        name: { w: 400, h: 70 },
+        split: { w: 300, h: 56 },
+        time: { w: 280, h: 100 },
+        pace: { w: 800, h: 80 },
+      };
+      const s = sizes[key] || { w: 200, h: 60 };
+      el.style.width = (s.w * canvasScale) + "px";
+      el.style.height = (s.h * canvasScale) + "px";
       el.innerHTML = `<span class="element-label">${label}</span><div class="resize-handle" data-key="${key}"></div>`;
       return el;
     };
@@ -1955,9 +1967,10 @@
         layout[editorDragging.key].y = Math.max(0, Math.min(520 - 20, editorDragging.origY + dy));
         const el = editorOverlay.querySelector(`.overlay-element[data-key="${editorDragging.key}"]`);
         if (el) {
-          el.style.left = layout[editorDragging.key].x + "px";
-          el.style.top = layout[editorDragging.key].y + "px";
+          el.style.left = (layout[editorDragging.key].x * canvasScale) + "px";
+          el.style.top = (layout[editorDragging.key].y * canvasScale) + "px";
         }
+        state.overlay.editorLayout = layout;
         drawOverlayCanvas();
       }
       if (editorResizing) {
@@ -1966,6 +1979,7 @@
         layout[editorResizing.key].scale = newScale;
         const el = editorOverlay.querySelector(`.overlay-element[data-key="${editorResizing.key}"]`);
         if (el) el.style.transform = `scale(${newScale})`;
+        state.overlay.editorLayout = layout;
         drawOverlayCanvas();
       }
     });
@@ -5002,16 +5016,16 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
 
       ctx.fillStyle = textSecondary;
       ctx.font = `${48 * paceItem.scale}px Inter, sans-serif`;
-      ctx.fillText(splitLabel + " Target", px + 16, py + 50);
+      ctx.fillText(splitLabel + " Target", px + 16 * paceItem.scale, py + 50 * paceItem.scale);
 
       ctx.fillStyle = textPrimary;
       ctx.font = `bold ${56 * paceItem.scale}px Inter, sans-serif`;
-      ctx.fillText(fmt(targetTime), px + 280 * paceItem.scale, py + 50);
+      ctx.fillText(fmt(targetTime), px + 280 * paceItem.scale, py + 50 * paceItem.scale);
 
       ctx.fillStyle = deltaColor;
       ctx.font = `bold ${56 * paceItem.scale}px Inter, sans-serif`;
       ctx.textAlign = "right";
-      ctx.fillText(deltaText, px + pw - 16, py + 50);
+      ctx.fillText(deltaText, px + pw - 16 * paceItem.scale, py + 50 * paceItem.scale);
       ctx.textAlign = "left";
     }
 
