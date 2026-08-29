@@ -4507,24 +4507,24 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     const currentTime = liveTime != null ? liveTime : furthestIndex(run).time;
     const splitLabel = currentKey ? SPLITS[currentKey] : "Unknown";
 
-    const x = avatarX + avatarSize + 24;
-    let y = avatarY + 16;
+    const x = avatarX + avatarSize + 28;
+    let y = avatarY + avatarSize + 16;
 
     ctx.fillStyle = textPrimary;
     ctx.font = "bold 40px Inter, sans-serif";
     ctx.fillText(name, x, y);
-    y += 48;
+    y += 50;
 
     ctx.fillStyle = textSecondary;
     ctx.font = "30px Inter, sans-serif";
     ctx.fillText(splitLabel, x, y);
-    y += 36;
+    y += 40;
 
     if (currentTime != null) {
       ctx.fillStyle = textPrimary;
       ctx.font = "bold 60px Inter, sans-serif";
       ctx.fillText(fmt(currentTime), x, y);
-      y += 60;
+      y += 70;
     }
 
     const sessionRuns = (state.profile.timeframeRuns || []).filter((r) => {
@@ -4544,10 +4544,10 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
       const deltaColor = diff <= 0 ? "#4ade80" : "#f87171";
 
       ctx.fillStyle = "rgba(255,255,255,0.1)";
-      ctx.fillRect(x - 10, y, 520, 52);
+      ctx.fillRect(x - 12, y, 520, 52);
       ctx.strokeStyle = "rgba(255,255,255,0.25)";
       ctx.lineWidth = 2;
-      ctx.strokeRect(x - 10, y, 520, 52);
+      ctx.strokeRect(x - 12, y, 520, 52);
 
       ctx.fillStyle = textSecondary;
       ctx.font = "30px Inter, sans-serif";
@@ -4560,7 +4560,7 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
       ctx.fillStyle = deltaColor;
       ctx.font = "bold 36px Inter, sans-serif";
       ctx.textAlign = "right";
-      ctx.fillText(deltaText, x + 510, y + 34);
+      ctx.fillText(deltaText, x + 508, y + 34);
       ctx.textAlign = "left";
     }
 
