@@ -1897,6 +1897,14 @@
       el.style.transform = `scale(${scale})`;
       el.style.transformOrigin = "top left";
 
+      const samples = {
+        avatar: "P",
+        name: "Player",
+        split: "First Structure",
+        time: "13:44",
+        pace: "+0:00",
+      };
+
       const sizes = {
         avatar: { w: 80, h: 80 },
         name: { w: 420, h: 70 },
@@ -1912,6 +1920,8 @@
         <div class="resize-handle ne" data-key="${key}" data-handle="ne"></div>
         <div class="resize-handle sw" data-key="${key}" data-handle="sw"></div>
         <div class="resize-handle se" data-key="${key}" data-handle="se"></div>
+        <span class="element-label">${label}</span>
+        <span class="element-sample">${samples[key] || ""}</span>
       `;
       return el;
     };
