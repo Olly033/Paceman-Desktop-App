@@ -4404,7 +4404,11 @@
         const rUuid = r.user && r.user.uuid ? r.user.uuid.toLowerCase() : null;
         return rNick === nameLower || rUserNick === nameLower || rUuid === (uuid || "").toLowerCase();
       })
-      .slice(-20);
+      .slice(-20)
+      .map((r) => {
+        const times = splitTimes(r);
+        return { ...r, ...times };
+      });
     state.overlay._dirty = true;
     updateOverlayStatus();
     drawOverlayCanvas();
@@ -4415,7 +4419,7 @@
     const name = state.overlay.playerName;
     const uuid = state.overlay.playerUuid;
     const nameLower = name.toLowerCase();
-    return state.liveRuns.find((r) => {
+    const run = state.liveRuns.find((r) => {
       const rNick = (r.nickname || "").toLowerCase();
       const rUserNick = (r.user && r.user.nickname || "").toLowerCase();
       const rUuid = r.user && r.user.uuid || null;
@@ -4423,6 +4427,12 @@
       if (nameLower === rNick || nameLower === rUserNick) return true;
       return false;
     }) || null;
+    if (!run) return null;
+    const times = splitTimes(run);
+    const hasEvents = (run.eventList || []).length > 0;
+    const hasSplits = SPLIT_ORDER.some((k) => times[k] != null);
+    if (!hasEvents && !hasSplits) return null;
+    return run;
   }
 
   function computeSessionBests(runs) {
@@ -4542,9 +4552,10 @@
     const liveEvent = run ? furthestEvent(run) : null;
     const liveKey = liveEvent ? liveEvent.key : null;
     const liveTime = liveEvent ? liveEvent.igt : null;
-    const sessionEventKey = run ? furthestIndex(run).key : null;
+    const splitTimesFromRun = run ? splitTimes(run) : {};
+    const sessionEventKey = SPLIT_ORDER.filter((k) => splitTimesFromRun[k] != null).pop() || null;
     const currentKey = liveKey || sessionEventKey;
-    const currentTime = liveTime != null ? liveTime : (run ? furthestIndex(run).time : null);
+    const currentTime = liveTime != null ? liveTime : (sessionEventKey ? splitTimesFromRun[sessionEventKey] : null);
 
     const paceTargets = state.overlay.paceTargets || {};
     const targetTime = currentKey ? paceTargets[currentKey] : null;
