@@ -815,6 +815,110 @@ body {
   box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
 }
 
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.canvas-wrapper {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-glass);
+}
+
+.editor-overlay {
+  position: absolute;
+  inset: 0;
+  cursor: default;
+}
+
+.editor-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.editor-controls .theme-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.editor-controls .theme-btn:hover {
+  background: var(--bg-glass-hover);
+}
+
+.editor-controls .primary-btn {
+  background: var(--gradient-1);
+  border-color: transparent;
+  color: white;
+  font-weight: 600;
+}
+
+.editor-controls .primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
+}
+
+.overlay-element {
+  position: absolute;
+  cursor: move;
+  user-select: none;
+  border: 2px dashed rgba(124, 58, 237, 0.6);
+  border-radius: 8px;
+  padding: 6px;
+  min-width: 40px;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: border-color 0.2s ease;
+}
+
+.overlay-element:hover {
+  border-color: var(--accent-light);
+}
+
+.overlay-element.selected {
+  border-color: #4ade80;
+  border-style: solid;
+}
+
+.overlay-element .resize-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--accent);
+  border: 2px solid white;
+  border-radius: 50%;
+  bottom: -6px;
+  right: -6px;
+  cursor: nwse-resize;
+}
+
+.overlay-element .element-label {
+  position: absolute;
+  top: -18px;
+  left: 0;
+  font-size: 10px;
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 @media (max-width: 1100px) {
   .overlay-layout {
     grid-template-columns: 1fr;
