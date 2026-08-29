@@ -128,7 +128,7 @@
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
     dailyLeaderboardTop10: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
-    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, intervalId: null, paceTargets: {}, settings: { paddingLeft: 20, paddingTop: 20, paddingRight: 20, paddingBottom: 20 } },
+    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, intervalId: null, paceTargets: {}, settings: { paddingLeft: 20, paddingTop: 20, paddingRight: 20, paddingBottom: 20 }, drawing: false },
   };
 
   const settings = {
@@ -4478,6 +4478,7 @@
   }
 
   const overlayAvatarCache = new Map();
+  const overlayAvatarImageCache = new Map();
 
   function fetchOverlayAvatarDataUrl(name, uuid) {
     const url = avatarUrl(uuid || name, 90);
@@ -4493,9 +4494,12 @@
       .catch(() => null);
   }
 
-  function drawOverlayCanvas() {
-    const canvas = document.getElementById("overlayCanvas");
-    if (!canvas) return;
+  async function drawOverlayCanvas() {
+    if (state.overlay.drawing) return;
+    state.overlay.drawing = true;
+    try {
+      const canvas = document.getElementById("overlayCanvas");
+      if (!canvas) return;
     const ctx = canvas.getContext("2d");
     const W = canvas.width;
     const H = canvas.height;
@@ -4566,18 +4570,46 @@
       ctx.textAlign = "left";
     }
 
-    if (state.overlay.playerName) {
-      const cached = overlayAvatarCache.get(state.overlay.playerName);
-      if (cached && cached !== "__FAILED__") {
-        drawOverlayAvatarFromDataUrl(ctx, cached, avatarX, avatarY, avatarSize);
+    const drawAvatar = async () => {
+      if (state.overlay.playerName) {
+        const cached = overlayAvatarCache.get(state.overlay.playerName);
+        if (cached && cached !== "__FAILED__") {
+          const cachedImg = overlayAvatarImageCache.get(state.overlay.playerName);
+          if (cachedImg) {
+            ctx.drawImage(cachedImg, avatarX, avatarY, avatarSize, avatarSize);
+            ctx.strokeStyle = "rgba(255,255,255,0.2)";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(avatarX, avatarY, avatarSize, avatarSize);
+          } else {
+            await drawOverlayAvatarFromDataUrl(ctx, cached, avatarX, avatarY, avatarSize);
+          }
+        } else {
+          drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, state.overlay.playerName);
+        }
       } else {
-        drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, state.overlay.playerName);
+        drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, "P");
       }
-    } else {
-      drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, "P");
+    };
+
+    const uuid = state.overlay.playerUuid || null;
+    const cacheKey = name;
+    if (!overlayAvatarCache.has(cacheKey)) {
+      fetchOverlayAvatarDataUrl(name, uuid).then((dataUrl) => {
+        if (dataUrl) {
+          overlayAvatarCache.set(cacheKey, dataUrl);
+        } else {
+          overlayAvatarCache.set(cacheKey, "__FAILED__");
+        }
+        drawOverlayCanvas();
+      });
     }
 
+    await drawAvatar();
+
     exportOverlayPNG(canvas);
+    } finally {
+      state.overlay.drawing = false;
+    }
   }
 function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     return new Promise((resolve) => {
@@ -4587,6 +4619,11 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
         ctx.strokeStyle = "rgba(255,255,255,0.2)";
         ctx.lineWidth = 3;
         ctx.strokeRect(x, y, size, size);
+        try {
+          if (state && state.overlay && state.overlay.playerName) {
+            overlayAvatarImageCache.set(state.overlay.playerName, img);
+          }
+        } catch (e) {}
         resolve();
       };
       img.onerror = () => {
