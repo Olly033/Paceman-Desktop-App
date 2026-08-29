@@ -128,7 +128,7 @@
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
     dailyLeaderboardTop10: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
-    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, intervalId: null },
+    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, intervalId: null, paceTargets: {} },
   };
 
   const settings = {
@@ -1811,6 +1811,45 @@
     }
   }
 
+  
+  function initPaceTargets() {
+    const container = document.getElementById("paceInputs");
+    const saveBtn = document.getElementById("paceSaveBtn");
+    if (!container) return;
+
+    const splits = [
+      { key: "finish", label: "Finish" },
+      { key: "drag_end", label: "Dragon End" },
+      { key: "blaze_end", label: "Blaze End" },
+      { key: "stronghold_end", label: "Stronghold" },
+      { key: "end_entry", label: "End Entry" },
+      { key: "exit_end", label: "Exit End" },
+    ];
+
+    const saved = JSON.parse(localStorage.getItem("paceman_pace_targets") || "{}");
+    state.overlay.paceTargets = saved;
+
+    container.innerHTML = splits.map(s => `
+      <label>
+        ${s.label}
+        <input type="number" data-split="${s.key}" value="${saved[s.key] || ''}" placeholder="--">
+      </label>
+    `).join("");
+
+    const collect = () => {
+      const targets = {};
+      container.querySelectorAll("input").forEach(input => {
+        const key = input.dataset.split;
+        const val = input.value.trim();
+        if (val && !isNaN(val)) targets[key] = parseInt(val, 10);
+      });
+      state.overlay.paceTargets = targets;
+      localStorage.setItem("paceman_pace_targets", JSON.stringify(targets));
+    };
+
+    saveBtn.addEventListener("click", collect);
+  }
+
   function initSplitDetail() {
     const closeBtn = document.getElementById("closeSplitDetail");
     if (closeBtn) closeBtn.addEventListener("click", closeSplitDetail);
@@ -3295,6 +3334,7 @@
     initComparisonSearch();
     initFavoritesSearch();
     initOverlaySearch();
+    initPaceTargets();
     const overlaySaveBtn = document.getElementById("overlaySaveBtn");
     if (overlaySaveBtn) {
       overlaySaveBtn.addEventListener("click", () => {
@@ -4439,7 +4479,7 @@
 
     const avatarSize = 80;
     const avatarX = 12;
-    const avatarY = 12;
+    const avatarY = 56;
 
     const cached = overlayAvatarCache.get(name);
     if (cached === "__FAILED__") {
@@ -4507,61 +4547,60 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     const currentTime = liveTime != null ? liveTime : furthestIndex(run).time;
     const splitLabel = currentKey ? SPLITS[currentKey] : "Unknown";
 
-    const x = avatarX + avatarSize + 48;
-    let y = avatarY + avatarSize + 60;
+    const statsX = avatarX + avatarSize + 48;
+    const statsY = avatarY + 64;
 
     ctx.fillStyle = textPrimary;
     ctx.font = "bold 64px Inter, sans-serif";
-    ctx.fillText(name, x, y);
-    y += 80;
+    ctx.fillText(name, statsX, statsY);
+    ctx.fillText(splitLabel, statsX, statsY + 80);
+    ctx.fillText(currentTime != null ? fmt(currentTime) : "--:--", statsX, statsY + 160);
 
-    ctx.fillStyle = textSecondary;
-    ctx.font = "48px Inter, sans-serif";
-    ctx.fillText(splitLabel, x, y);
-    y += 64;
+    const paceTargets = state.overlay.paceTargets || {};
+    const targetTime = currentKey ? paceTargets[currentKey] : null;
 
-    if (currentTime != null) {
-      y += 32;
-      ctx.fillStyle = textPrimary;
-      ctx.font = "bold 100px Inter, sans-serif";
-      ctx.fillText(fmt(currentTime), x, y);
-      y += 100;
-    }
-
-    const sessionRuns = (state.profile.timeframeRuns || []).filter((r) => {
-      const rName = r.nickname || (r.user && r.user.nickname);
-      return rName === name;
-    });
-
-    let best = null;
-    if (currentKey && sessionRuns.length > 0) {
-      const vals = sessionRuns.filter((r) => r[currentKey] != null).map((r) => r[currentKey]);
-      if (vals.length > 0) best = Math.min(...vals);
-    }
-
-    if (currentTime != null && best != null) {
-      const diff = currentTime - best;
+    if (currentTime != null && targetTime != null) {
+      const ahead = currentTime <= targetTime;
+      const diff = currentTime - targetTime;
       const deltaText = (diff > 0 ? "+" : "") + fmt(diff);
-      const deltaColor = diff <= 0 ? "#4ade80" : "#f87171";
+      const deltaColor = ahead ? "#4ade80" : "#f87171";
+
+      const px = statsX - 16;
+      const py = statsY + 220;
+      const pw = 720;
+      const ph = 80;
+      const r = 12;
 
       ctx.fillStyle = "rgba(255,255,255,0.1)";
-      ctx.fillRect(x - 16, y, 720, 80);
+      ctx.beginPath();
+      ctx.moveTo(px + r, py);
+      ctx.lineTo(px + pw - r, py);
+      ctx.quadraticCurveTo(px + pw, py, px + pw, py + r);
+      ctx.lineTo(px + pw, py + ph - r);
+      ctx.quadraticCurveTo(px + pw, py + ph, px + pw - r, py + ph);
+      ctx.lineTo(px + r, py + ph);
+      ctx.quadraticCurveTo(px, py + ph, px, py + ph - r);
+      ctx.lineTo(px, py + r);
+      ctx.quadraticCurveTo(px, py, px + r, py);
+      ctx.closePath();
+      ctx.fill();
+
       ctx.strokeStyle = "rgba(255,255,255,0.25)";
       ctx.lineWidth = 2;
-      ctx.strokeRect(x - 16, y, 720, 80);
+      ctx.stroke();
 
       ctx.fillStyle = textSecondary;
       ctx.font = "48px Inter, sans-serif";
-      ctx.fillText(splitLabel + " PB", x, y + 50);
+      ctx.fillText(splitLabel + " Target", px + 16, py + 50);
 
       ctx.fillStyle = textPrimary;
       ctx.font = "bold 56px Inter, sans-serif";
-      ctx.fillText(fmt(best), x + 260, y + 50);
+      ctx.fillText(fmt(targetTime), px + 260, py + 50);
 
       ctx.fillStyle = deltaColor;
       ctx.font = "bold 56px Inter, sans-serif";
       ctx.textAlign = "right";
-      ctx.fillText(deltaText, x + 708, y + 50);
+      ctx.fillText(deltaText, px + pw - 16, py + 50);
       ctx.textAlign = "left";
     }
 
