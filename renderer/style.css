@@ -773,30 +773,75 @@ body {
   gap: 10px;
 }
 
-.settings-card .padding-row {
+.settings-card .setting-row {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   font-size: 12px;
   color: var(--text-secondary);
 }
 
-.settings-card .padding-row input {
-  width: 100%;
-  padding: 5px 8px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border-glass);
-  border-radius: 6px;
-  color: var(--text-primary);
-  font-size: 12px;
-  font-family: monospace;
-  text-align: center;
+.settings-card .setting-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.settings-card .padding-row input:focus {
+.settings-card .setting-control input[type="range"] {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.settings-card .setting-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid #fff;
+}
+
+.settings-card .setting-control input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid #fff;
+}
+
+.settings-card .setting-value {
+  min-width: 40px;
+  text-align: right;
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.settings-card .color-control input[type="color"] {
+  width: 40px;
+  height: 28px;
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.settings-card .color-control input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.settings-card .color-control input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
 }
 
 .canvas-wrapper {
@@ -1469,8 +1514,8 @@ body {
 }
 
 .profile-head-container {
-  width: 72px;
-  height: 72px;
+  width: 80px;
+  height: 80px;
   flex-shrink: 0;
   cursor: grab;
   touch-action: none;

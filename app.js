@@ -236,6 +236,20 @@
       cachePlayer(name, formatted);
       return formatted;
     } catch (e) {
+      try {
+        const [netherPlayers, finishPlayers] = await Promise.all([
+          getJSON(`${API}/getLeaderboard?category=nether&type=count&days=9999&limit=200`).catch(() => []),
+          getJSON(`${API}/getLeaderboard?category=finish&type=count&days=9999&limit=200`).catch(() => []),
+        ]);
+        const all = [...(netherPlayers || []), ...(finishPlayers || [])];
+        const match = all.find((p) => p.name && p.name.toLowerCase() === name.toLowerCase());
+        if (match && match.uuid) {
+          cachePlayer(name, match.uuid);
+          return match.uuid;
+        }
+      } catch (fallbackError) {
+        // ignore fallback failure
+      }
       return null;
     }
   }
@@ -495,7 +509,7 @@
     try {
       const [daily, all] = await Promise.all([
         getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=24&limit=50`),
-        getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=999999&limit=5000`),
+        getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=999999&limit=99999`),
       ]);
       state.profile.dailyRuns = daily || [];
       state.profile.allRuns = all || [];

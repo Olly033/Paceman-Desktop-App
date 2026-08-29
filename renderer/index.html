@@ -307,21 +307,19 @@
                 <h2>Overlay Settings</h2>
               </div>
               <div class="settings-grid">
-                <label class="padding-row">
-                  <span>Padding Left</span>
-                  <input type="number" id="overlayPaddingLeft" value="20" min="0" max="200">
+                <label class="setting-row">
+                  <span>Background Opacity</span>
+                  <div class="setting-control">
+                    <input type="range" id="overlayBgOpacity" value="60" min="0" max="100">
+                    <span class="setting-value" id="overlayBgOpacityValue">60%</span>
+                  </div>
                 </label>
-                <label class="padding-row">
-                  <span>Padding Top</span>
-                  <input type="number" id="overlayPaddingTop" value="20" min="0" max="200">
-                </label>
-                <label class="padding-row">
-                  <span>Padding Right</span>
-                  <input type="number" id="overlayPaddingRight" value="20" min="0" max="200">
-                </label>
-                <label class="padding-row">
-                  <span>Padding Bottom</span>
-                  <input type="number" id="overlayPaddingBottom" value="20" min="0" max="200">
+                <label class="setting-row">
+                  <span>Background Color</span>
+                  <div class="setting-control color-control">
+                    <input type="color" id="overlayBgColor" value="#000000">
+                    <span class="setting-value" id="overlayBgColorValue">#000000</span>
+                  </div>
                 </label>
               </div>
             </div>

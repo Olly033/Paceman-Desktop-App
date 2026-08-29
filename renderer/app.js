@@ -21,13 +21,16 @@
     "enter_bastion": "bastion",
     "enter_fortress": "fortress",
     "first_portal": "first_portal",
-    "stronghold": "stronghold",
-    "end": "end",
-    "finish": "finish",
+    "second_portal": "first_portal",
+    "enter_stronghold": "stronghold",
+    "enter_end": "end",
+    "credits": "finish",
   };
   const LB_CATEGORIES = ["nether", "bastion", "fortress", "first_portal", "stronghold", "end", "finish"];
 
   const LB_DAYS = { daily: 1, weekly: 7, monthly: 30, lifetime: 9999 };
+  const TF_HOURS = { session: 24, daily: 24, weekly: 168, monthly: 730, lifetime: 999999 };
+  const TF_BETWEEN = { session: 1, daily: 24, weekly: 168, monthly: 730, lifetime: 999999 };
 
   const LB_MIN_QTYS = {
     1: {
@@ -128,7 +131,7 @@
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
     dailyLeaderboardTop10: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
-    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, sessionRuns: [], intervalId: null, paceTargets: {}, settings: { paddingLeft: 20, paddingTop: 20, paddingRight: 20, paddingBottom: 20 }, _dirty: true },
+    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, sessionRuns: [], intervalId: null, apiIntervalId: null, paceTargets: {}, settings: { bgOpacity: 60, bgColor: "#000000" }, _dirty: true },
   };
 
   const settings = {
@@ -289,7 +292,6 @@
   let suppressNavPush = false;
   let liveRunsIntervalId = null;
   const MAX_LIVE_RUNS = 200;
-  const MAX_PROFILE_RUNS = 1000;
 
   function startLiveRunsPolling() {
     if (liveRunsIntervalId) return;
@@ -311,12 +313,6 @@
   function pruneRuns() {
     if (state.liveRuns.length > MAX_LIVE_RUNS) {
       state.liveRuns = state.liveRuns.slice(0, MAX_LIVE_RUNS);
-    }
-    if (state.profile.timeframeRuns.length > MAX_PROFILE_RUNS) {
-      state.profile.timeframeRuns = state.profile.timeframeRuns.slice(0, MAX_PROFILE_RUNS);
-    }
-    if (state.profile.allRuns.length > MAX_PROFILE_RUNS) {
-      state.profile.allRuns = state.profile.allRuns.slice(0, MAX_PROFILE_RUNS);
     }
   }
 
@@ -529,6 +525,20 @@
       cachePlayer(name, formatted);
       return formatted;
     } catch (e) {
+      try {
+        const [netherPlayers, finishPlayers] = await Promise.all([
+          getJSON(`${API}/getLeaderboard?category=nether&type=count&days=9999&limit=200`).catch(() => []),
+          getJSON(`${API}/getLeaderboard?category=finish&type=count&days=9999&limit=200`).catch(() => []),
+        ]);
+        const all = [...(netherPlayers || []), ...(finishPlayers || [])];
+        const match = all.find((p) => p.name && p.name.toLowerCase() === name.toLowerCase());
+        if (match && match.uuid) {
+          cachePlayer(name, match.uuid);
+          return match.uuid;
+        }
+      } catch (fallbackError) {
+        // ignore fallback failure
+      }
       return null;
     }
   }
@@ -580,7 +590,7 @@
     try {
       const hours = TF_HOURS[state.profile.tf] || 24;
       const between = TF_BETWEEN[state.profile.tf] || 24;
-      const runs = await getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}&limit=5000`);
+      const runs = await getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}&limit=99999`);
       if (!Array.isArray(runs) || runs.length < 2) return null;
       
       const currentIdx = runs.findIndex(r => (r.id || r.worldId || r.runId || r._id) == runId);
@@ -854,6 +864,54 @@
     }
   }
 
+  function calcStatsFromRuns(runs) {
+    const stats = {};
+    const structures = calcFirstSecondStructure(runs);
+    for (const key of SPLIT_ORDER) {
+      if (key === "bastion") {
+        stats[key] = { count: structures.firstCount, avg: structures.firstAvg };
+      } else if (key === "fortress") {
+        stats[key] = { count: structures.secondCount, avg: structures.secondAvg };
+      } else {
+        const values = runs.filter((r) => r[key] != null).map((r) => r[key]);
+        stats[key] = {
+          count: values.length,
+          avg: values.length > 0 ? fmt(Math.round(values.reduce((a, b) => a + b, 0) / values.length)) : "0:00"
+        };
+      }
+    }
+    const finishes = runs.filter((r) => r.finish != null).map((r) => r.finish);
+    stats.finish = {
+      count: finishes.length,
+      avg: finishes.length > 0 ? fmt(Math.round(finishes.reduce((a, b) => a + b, 0) / finishes.length)) : "0:00"
+    };
+    return stats;
+  }
+
+  function updateProfileCards(stats) {
+    const wrap = document.getElementById("profileSplits");
+    if (!wrap) return;
+    for (const key of SPLIT_ORDER) {
+      const s = stats[key] || { count: 0, avg: "0:00" };
+      const cards = wrap.querySelectorAll(".split-card");
+      for (const card of cards) {
+        const nameEl = card.querySelector(".split-name");
+        if (nameEl && nameEl.textContent === SPLITS[key]) {
+          const countEl = card.querySelector(".split-value");
+          const avgEl = card.querySelector(".split-count");
+          if (countEl) countEl.textContent = s.count;
+          if (avgEl) avgEl.textContent = `Avg ${s.avg}`;
+          break;
+        }
+      }
+    }
+    const fin = stats.finish || { count: 0, avg: "0:00" };
+    const completionEl = document.getElementById("profileCompletion");
+    const avgEl = document.getElementById("profileAvg");
+    if (completionEl) completionEl.textContent = `${fin.count} completions`;
+    if (avgEl) avgEl.textContent = `Avg: ${fin.avg}`;
+  }
+
   async function loadProfileStats() {
     const { name, tf } = state.profile;
     const hours = TF_HOURS[tf],
@@ -863,15 +921,17 @@
     try {
       const stats = await getJSON(`${API}/getSessionStats?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${between}`);
       if (wrap) wrap.innerHTML = "";
+      const runs = state.profile.timeframeRuns || [];
+      const localStats = runs.length > 0 ? calcStatsFromRuns(runs) : null;
       for (const key of SPLIT_ORDER) {
-        const s = stats[key] || { count: 0, avg: "0:00" };
+        const s = localStats ? localStats[key] : (stats[key] || { count: 0, avg: "0:00" });
         const card = document.createElement("div");
         card.className = "split-card";
         card.innerHTML = `<div class="split-name">${SPLITS[key]}</div><div class="split-value">${s.count}</div><div class="split-count">Avg ${s.avg}</div>`;
         card.addEventListener("click", () => openSplitDetail(key));
         if (wrap) wrap.appendChild(card);
       }
-      const fin = stats.finish || { count: 0, avg: "0:00" };
+      const fin = localStats ? localStats.finish : (stats.finish || { count: 0, avg: "0:00" });
       const completionEl = document.getElementById("profileCompletion");
       const avgEl = document.getElementById("profileAvg");
       if (completionEl) completionEl.textContent = `${fin.count} completions`;
@@ -1164,13 +1224,19 @@
     for (const r of runs) {
       const bastion = r.bastion;
       const fortress = r.fortress;
-      if (bastion != null && fortress != null) {
-        if (bastion < fortress) {
+      if (bastion != null || fortress != null) {
+        if (bastion != null && fortress != null) {
+          if (bastion <= fortress) {
+            first.push(bastion);
+            second.push(fortress);
+          } else {
+            first.push(fortress);
+            second.push(bastion);
+          }
+        } else if (bastion != null) {
           first.push(bastion);
-          second.push(fortress);
-        } else if (fortress < bastion) {
+        } else if (fortress != null) {
           first.push(fortress);
-          second.push(bastion);
         }
       }
     }
@@ -1317,12 +1383,18 @@
       if (typeof addDevLog === "function") addDevLog("error", "loadProfileRuns failed: " + (e && e.message ? e.message : e));
     } finally {
       await updateSessionStats();
+      if (generation === profileRunsGeneration) {
+        const runs = state.profile.timeframeRuns || [];
+        if (runs.length > 0) {
+          updateProfileCards(calcStatsFromRuns(runs));
+        }
+      }
     }
   }
 
   async function safeGetRecentRuns(name, hours, hoursBetween) {
     try {
-      const data = await getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${hoursBetween}&limit=5000`);
+      const data = await getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=${hours}&hoursBetween=${hoursBetween}&limit=99999`);
       return Array.isArray(data) ? data : [];
     } catch (e) {
       if (e && e.message && e.message.includes("HTTP 404")) {
@@ -1378,8 +1450,13 @@
         const row = document.createElement("div");
         row.className = "run-row";
         let cells = "";
+        const bastion = r.bastion;
+        const fortress = r.fortress;
+        const swap = bastion != null && fortress != null && fortress < bastion;
         for (const split of SPLIT_ORDER) {
-          const t = r[split];
+          let t = r[split];
+          if (split === "bastion" && swap) t = r.fortress;
+          if (split === "fortress" && swap) t = r.bastion;
           cells += `<div class="run-cell ${t == null ? "empty" : ""}">${t == null ? "—" : fmt(t)}</div>`;
         }
         const runId = r.id || r.worldId || r.runId || r._id || null;
@@ -1590,8 +1667,13 @@
 
     function renderSplits(data) {
       let html = "";
+      const bastion = data.bastion;
+      const fortress = data.fortress;
+      const swapStructures = bastion != null && fortress != null && fortress < bastion;
       for (const split of SPLIT_ORDER) {
-        const igt = data[split];
+        let igt = data[split];
+        if (split === "bastion" && swapStructures) igt = data.fortress;
+        if (split === "fortress" && swapStructures) igt = data.bastion;
         html += `<div class="detail-split" data-igt="${igt != null ? igt : ''}">
           <div class="detail-split-name">${SPLITS[split]}</div>
           <div class="detail-split-times">
@@ -1812,30 +1894,45 @@
   }
 
   function initOverlaySettings() {
-    const els = {
-      paddingLeft: document.getElementById("overlayPaddingLeft"),
-      paddingTop: document.getElementById("overlayPaddingTop"),
-      paddingRight: document.getElementById("overlayPaddingRight"),
-      paddingBottom: document.getElementById("overlayPaddingBottom"),
-    };
+    const opacityEl = document.getElementById("overlayBgOpacity");
+    const opacityValueEl = document.getElementById("overlayBgOpacityValue");
+    const colorEl = document.getElementById("overlayBgColor");
+    const colorValueEl = document.getElementById("overlayBgColorValue");
 
     const saved = JSON.parse(localStorage.getItem("paceman_overlay_settings") || "null");
     if (saved) {
       state.overlay.settings = { ...state.overlay.settings, ...saved };
+      const savedPlayer = saved.playerName || null;
+      const savedUuid = saved.playerUuid || null;
+      if (savedPlayer) {
+        selectOverlayPlayer(savedPlayer, savedUuid);
+      }
     }
 
-    Object.keys(els).forEach(key => {
-      const el = els[key];
-      if (!el) return;
-      el.value = state.overlay.settings[key];
-      el.addEventListener("input", () => {
-        const val = parseInt(el.value, 10);
-        state.overlay.settings[key] = isNaN(val) ? 0 : Math.max(0, Math.min(200, val));
+    if (opacityEl) {
+      opacityEl.value = state.overlay.settings.bgOpacity ?? 60;
+      if (opacityValueEl) opacityValueEl.textContent = (state.overlay.settings.bgOpacity ?? 60) + "%";
+      opacityEl.addEventListener("input", () => {
+        const val = parseInt(opacityEl.value, 10);
+        state.overlay.settings.bgOpacity = isNaN(val) ? 60 : Math.max(0, Math.min(100, val));
+        if (opacityValueEl) opacityValueEl.textContent = state.overlay.settings.bgOpacity + "%";
         localStorage.setItem("paceman_overlay_settings", JSON.stringify(state.overlay.settings));
         state.overlay._dirty = true;
         drawOverlayCanvas();
       });
-    });
+    }
+
+    if (colorEl) {
+      colorEl.value = state.overlay.settings.bgColor || "#000000";
+      if (colorValueEl) colorValueEl.textContent = state.overlay.settings.bgColor || "#000000";
+      colorEl.addEventListener("input", () => {
+        state.overlay.settings.bgColor = colorEl.value;
+        if (colorValueEl) colorValueEl.textContent = colorEl.value;
+        localStorage.setItem("paceman_overlay_settings", JSON.stringify(state.overlay.settings));
+        state.overlay._dirty = true;
+        drawOverlayCanvas();
+      });
+    }
   }
 
   function initPaceTargets() {
@@ -2886,11 +2983,12 @@
     const between = TF_BETWEEN[tf];
 
     try {
-      const [stats, nph] = await Promise.all([
-        getJSON(`${API}/getSessionStats?name=${encodeURIComponent(player.name)}&hours=${hours}&hoursBetween=${between}`),
+      const [runs, nph] = await Promise.all([
+        getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(player.name)}&hours=${hours}&hoursBetween=${between}&limit=99999`).catch(() => []),
         tf === "session" ? getJSON(`${API}/getNPH?name=${encodeURIComponent(player.name)}&hours=${hours}&hoursBetween=${between}`).catch(() => null) : Promise.resolve(null)
       ]);
 
+      const stats = Array.isArray(runs) && runs.length > 0 ? calcStatsFromRuns(runs) : {};
       player.splits = stats;
       player.nph = nph;
       player.tf = tf;
@@ -4392,23 +4490,45 @@
     }
   }
 
+  function getOverlaySessionRuns(name, uuid) {
+    return getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=999999&hoursBetween=24&limit=5000`)
+      .then((data) => {
+        if (!Array.isArray(data) || data.length === 0) return [];
+        const withTime = data.map((r) => ({ ...r, _ts: getRunTimestamp(r) })).filter((r) => r._ts > 0);
+        if (withTime.length === 0) return [];
+        const sorted = withTime.sort((a, b) => b._ts - a._ts);
+        const latest = sorted[0];
+        const gapSec = 2 * 60 * 60;
+        const session = [latest];
+        for (let i = 1; i < sorted.length; i++) {
+          if (latest._ts - sorted[i]._ts <= gapSec) {
+            session.push(sorted[i]);
+          } else {
+            break;
+          }
+        }
+        return session.map((r) => ({ ...r, ...splitTimes(r) }));
+      })
+      .catch(() => []);
+  }
+
   function selectOverlayPlayer(name, uuid) {
     state.overlay.playerName = name;
     state.overlay.playerUuid = uuid || null;
+    try {
+      const current = JSON.parse(localStorage.getItem("paceman_overlay_settings") || "null") || {};
+      current.playerName = name;
+      current.playerUuid = uuid || null;
+      localStorage.setItem("paceman_overlay_settings", JSON.stringify(current));
+    } catch (e) {
+      // ignore storage errors
+    }
     state.overlay.run = getOverlayPlayerRun();
-    const nameLower = name.toLowerCase();
-    state.overlay.sessionRuns = (state.liveRuns || [])
-      .filter((r) => {
-        const rNick = (r.nickname || "").toLowerCase();
-        const rUserNick = (r.user && r.user.nickname || "").toLowerCase();
-        const rUuid = r.user && r.user.uuid ? r.user.uuid.toLowerCase() : null;
-        return rNick === nameLower || rUserNick === nameLower || rUuid === (uuid || "").toLowerCase();
-      })
-      .slice(-20)
-      .map((r) => {
-        const times = splitTimes(r);
-        return { ...r, ...times };
-      });
+    getOverlaySessionRuns(name, uuid).then((runs) => {
+      state.overlay.sessionRuns = runs.slice(-20);
+      state.overlay._dirty = true;
+      drawOverlayCanvas();
+    });
     state.overlay._dirty = true;
     updateOverlayStatus();
     drawOverlayCanvas();
@@ -4419,20 +4539,53 @@
     const name = state.overlay.playerName;
     const uuid = state.overlay.playerUuid;
     const nameLower = name.toLowerCase();
-    const run = state.liveRuns.find((r) => {
-      const rNick = (r.nickname || "").toLowerCase();
-      const rUserNick = (r.user && r.user.nickname || "").toLowerCase();
-      const rUuid = r.user && r.user.uuid || null;
-      if (uuid && rUuid && uuid === rUuid) return true;
-      if (nameLower === rNick || nameLower === rUserNick) return true;
-      return false;
-    }) || null;
+    const now = Date.now();
+    const run = state.liveRuns
+      .filter((r) => {
+        const rNick = (r.nickname || "").toLowerCase();
+        const rUserNick = (r.user && r.user.nickname || "").toLowerCase();
+        const rUuid = r.user && r.user.uuid || null;
+        if (uuid && rUuid && uuid === rUuid) return true;
+        if (nameLower === rNick || nameLower === rUserNick) return true;
+        return false;
+      })
+      .sort((a, b) => (getRunTimestamp(b) || 0) - (getRunTimestamp(a) || 0))[0] || null;
     if (!run) return null;
+    const runTs = getRunTimestamp(run) || 0;
+    if (runTs > 0 && now - runTs * 1000 > 15 * 60 * 1000) return null;
     const times = splitTimes(run);
     const hasEvents = (run.eventList || []).length > 0;
     const hasSplits = SPLIT_ORDER.some((k) => times[k] != null);
     if (!hasEvents && !hasSplits) return null;
     return run;
+  }
+
+  async function refreshOverlayRunFromAPI() {
+    if (!state.overlay.playerName) return;
+    const name = state.overlay.playerName;
+    const uuid = state.overlay.playerUuid;
+    try {
+      const data = await getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=1&limit=10`);
+      if (!Array.isArray(data) || data.length === 0) return;
+      const withTime = data.map((r) => ({ ...r, _ts: getRunTimestamp(r) })).filter((r) => r._ts > 0);
+      if (withTime.length === 0) return;
+      const sorted = withTime.sort((a, b) => b._ts - a._ts);
+      const latest = sorted[0];
+      const now = Date.now();
+      if (now - latest._ts * 1000 > 15 * 60 * 1000) return;
+      const times = splitTimes(latest);
+      const hasEvents = (latest.eventList || []).length > 0;
+      const hasSplits = SPLIT_ORDER.some((k) => times[k] != null);
+      if (!hasEvents && !hasSplits) return;
+      const prevId = state.overlay.run ? (state.overlay.run.id || state.overlay.run.worldId || state.overlay.run.runId || state.overlay.run._id || JSON.stringify(state.overlay.run)) : null;
+      const nextId = latest.id || latest.worldId || latest.runId || latest._id || JSON.stringify(latest);
+      if (prevId !== nextId) {
+        state.overlay.run = latest;
+        state.overlay._dirty = true;
+      }
+    } catch (e) {
+      // ignore API errors
+    }
   }
 
   function computeSessionBests(runs) {
@@ -4449,24 +4602,46 @@
 
   function startOverlayUpdates() {
     stopOverlayUpdates();
+    let lastSessionRefresh = 0;
     state.overlay.intervalId = setInterval(() => {
       if (state.page !== "overlay") {
         stopOverlayUpdates();
         return;
       }
+      const prevRun = state.overlay.run;
       state.overlay.run = getOverlayPlayerRun();
-      if (state.overlay._dirty) {
+      const prevId = prevRun ? (prevRun.id || prevRun.worldId || prevRun.runId || prevRun._id || JSON.stringify(prevRun)) : null;
+      const nextId = state.overlay.run ? (state.overlay.run.id || state.overlay.run.worldId || state.overlay.run.runId || state.overlay.run._id || JSON.stringify(state.overlay.run)) : null;
+      const now = Date.now();
+      if (prevId !== nextId && now - lastSessionRefresh > 5000) {
+        const name = state.overlay.playerName;
+        const uuid = state.overlay.playerUuid;
+        getOverlaySessionRuns(name, uuid).then((runs) => {
+          state.overlay.sessionRuns = runs.slice(-20);
+          state.overlay._dirty = true;
+        });
+        lastSessionRefresh = now;
+      }
+      if (state.overlay._dirty || prevId !== nextId) {
         drawOverlayCanvas();
         updateOverlayStatus();
         state.overlay._dirty = false;
       }
     }, 250);
+    state.overlay.apiIntervalId = setInterval(() => {
+      if (state.page !== "overlay" || !state.overlay.playerName) return;
+      refreshOverlayRunFromAPI();
+    }, 1000);
   }
 
   function stopOverlayUpdates() {
     if (state.overlay.intervalId) {
       clearInterval(state.overlay.intervalId);
       state.overlay.intervalId = null;
+    }
+    if (state.overlay.apiIntervalId) {
+      clearInterval(state.overlay.apiIntervalId);
+      state.overlay.apiIntervalId = null;
     }
   }
 
@@ -4544,8 +4719,11 @@
     const textSecondary = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
 
     const settings = state.overlay.settings || {};
-    const paddingLeft = settings.paddingLeft || 20;
-    const paddingRight = settings.paddingRight || 20;
+    const bgOpacity = Math.max(0, Math.min(100, settings.bgOpacity ?? 60)) / 100;
+    const bgColor = settings.bgColor || "#000000";
+
+    const paddingLeft = 20;
+    const paddingRight = 20;
 
     const run = state.overlay.run;
     const name = state.overlay.playerName || "Player";
@@ -4564,7 +4742,7 @@
     const deltaText = delta != null ? ((delta > 0 ? "+" : "-") + (Math.abs(delta) < 60 ? Math.abs(delta) : fmt(Math.abs(delta) * 1000))) : null;
     const deltaColor = delta != null && delta <= 0 ? "#4ade80" : "#f87171";
 
-    const avatarSize = 40;
+    const avatarSize = 80;
     const frameHeight = 175;
     const frameTop = (H - frameHeight) / 2;
     const avatarX = W - avatarSize - paddingRight;
@@ -4594,11 +4772,11 @@
     let y = blockTop;
 
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = "rgba(0,0,0,0.6)";
-    ctx.fillRect(0, 0, W, H);
 
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    const r = parseInt(bgColor.slice(1, 3), 16);
+    const g = parseInt(bgColor.slice(3, 5), 16);
+    const b = parseInt(bgColor.slice(5, 7), 16);
+    ctx.fillStyle = `rgba(${r},${g},${b},${bgOpacity})`;
     const bgX = Math.min(contentLeft - 16, avatarX - 16);
     const bgY = frameTop;
     const bgW = Math.max(contentRight + 16, avatarX + avatarSize + 8) - bgX;
