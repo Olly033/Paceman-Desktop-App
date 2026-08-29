@@ -4536,15 +4536,6 @@
     const sessionEventKey = run ? furthestIndex(run).key : null;
     const currentKey = liveKey || sessionEventKey;
     const currentTime = liveTime != null ? liveTime : (run ? furthestIndex(run).time : null);
-    let splitLabel = currentKey ? SPLITS[currentKey] : null;
-    if (!splitLabel && state.overlay.sessionRuns && state.overlay.sessionRuns.length > 0) {
-      const netherStats = calcSplitStats(state.overlay.sessionRuns, "nether");
-      if (netherStats.count > 0) {
-        splitLabel = netherStats.count + " nethers · avg " + netherStats.avg;
-      }
-    }
-    if (!splitLabel) splitLabel = "Gamestate";
-    const timerText = currentTime != null ? fmt(currentTime) : "XX:XX";
 
     const paceTargets = state.overlay.paceTargets || {};
     const targetTime = currentKey ? paceTargets[currentKey] : null;
@@ -4560,8 +4551,24 @@
     const avatarY = frameTop + (frameHeight - avatarSize) / 2;
     const contentLeft = paddingLeft;
     const contentRight = avatarX - 16;
+
+    let lines = [];
+    lines.push({ text: name, color: textPrimary, font: "bold 36px Inter, sans-serif", offset: 24 });
+
+    if (currentKey) {
+      const splitLabel = SPLITS[currentKey] || "Gamestate";
+      lines.push({ text: splitLabel, color: textSecondary, font: "28px Inter, sans-serif", offset: 20 });
+      const timerText = currentTime != null ? fmt(currentTime) : "XX:XX";
+      lines.push({ text: timerText, color: textPrimary, font: "bold 36px Inter, sans-serif", offset: 24, delta: deltaText, deltaColor: deltaColor });
+    } else if (state.overlay.sessionRuns && state.overlay.sessionRuns.length > 0) {
+      const netherStats = calcSplitStats(state.overlay.sessionRuns, "nether");
+      if (netherStats.count > 0) {
+        lines.push({ text: netherStats.count + " nethers · avg " + netherStats.avg, color: textSecondary, font: "28px Inter, sans-serif", offset: 20 });
+      }
+    }
+
     const lineHeight = 44;
-    const totalLines = 3;
+    const totalLines = lines.length;
     const contentHeight = totalLines * lineHeight;
     const blockTop = frameTop + (frameHeight - contentHeight) / 2;
     let y = blockTop;
@@ -4578,28 +4585,20 @@
     roundRect(ctx, bgX, bgY, bgW, frameHeight, 12);
     ctx.fill();
 
-    ctx.textAlign = "left";
-    ctx.fillStyle = textPrimary;
-    ctx.font = "bold 36px Inter, sans-serif";
-    ctx.fillText(name, contentLeft, y + 24);
-    y += lineHeight;
-
-    ctx.fillStyle = textSecondary;
-    ctx.font = "28px Inter, sans-serif";
-    ctx.fillText(splitLabel, contentLeft, y + 20);
-    y += lineHeight;
-
-    ctx.fillStyle = textPrimary;
-    ctx.font = "bold 36px Inter, sans-serif";
-    ctx.fillText(timerText, contentLeft, y + 24);
-
-    if (deltaText) {
-      ctx.textAlign = "right";
-      ctx.fillStyle = deltaColor;
-      ctx.font = "bold 32px Inter, sans-serif";
-      ctx.fillText(deltaText, contentRight, y + 24);
+    lines.forEach((line) => {
       ctx.textAlign = "left";
-    }
+      ctx.fillStyle = line.color;
+      ctx.font = line.font;
+      ctx.fillText(line.text, contentLeft, y + line.offset);
+      if (line.delta) {
+        ctx.textAlign = "right";
+        ctx.fillStyle = line.deltaColor;
+        ctx.font = "bold 32px Inter, sans-serif";
+        ctx.fillText(line.delta, contentRight, y + line.offset);
+        ctx.textAlign = "left";
+      }
+      y += lineHeight;
+    });
 
     if (state.overlay.playerName) {
       const cached = overlayAvatarCache.get(state.overlay.playerName);
@@ -4640,7 +4639,7 @@
 
     exportOverlayPNG(canvas);
   }
-  function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
+function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
