@@ -4538,7 +4538,7 @@
 
     const paceTargets = state.overlay.paceTargets || {};
     const targetTime = currentKey ? paceTargets[currentKey] : null;
-    const currentTimeSec = currentTime != null ? currentTime / 1000 : null;
+    const currentTimeSec = currentTime != null ? Math.floor(currentTime / 1000) : null;
     const delta = currentTimeSec != null && targetTime != null ? currentTimeSec - targetTime : null;
     const deltaText = delta != null ? ((delta > 0 ? "+" : "-") + (Math.abs(delta) < 60 ? Math.abs(delta) : fmt(Math.abs(delta) * 1000))) : null;
     const deltaColor = delta != null && delta <= 0 ? "#4ade80" : "#f87171";
