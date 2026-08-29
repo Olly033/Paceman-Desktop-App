@@ -4524,20 +4524,9 @@
     const textPrimary = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
     const textSecondary = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
 
-    ctx.clearRect(0, 0, W, H);
-
-    ctx.fillStyle = "rgba(0,0,0,0.6)";
-    ctx.fillRect(0, 0, W, H);
-
     const settings = state.overlay.settings || {};
     const paddingLeft = settings.paddingLeft || 20;
-    const paddingTop = settings.paddingTop || 20;
     const paddingRight = settings.paddingRight || 20;
-    const paddingBottom = settings.paddingBottom || 20;
-
-    const avatarSize = 40;
-    const avatarX = W - avatarSize - paddingRight;
-    const avatarY = frameTop + (frameHeight - avatarSize) / 2;
 
     const run = state.overlay.run;
     const name = state.overlay.playerName || "Player";
@@ -4557,27 +4546,29 @@
     const deltaText = delta != null ? ((delta > 0 ? "+" : "-") + (Math.abs(delta) < 60 ? Math.abs(delta) : fmt(Math.abs(delta) * 1000))) : null;
     const deltaColor = delta != null && delta <= 0 ? "#4ade80" : "#f87171";
 
+    const avatarSize = 40;
+    const frameHeight = 175;
+    const frameTop = (H - frameHeight) / 2;
+    const avatarX = W - avatarSize - paddingRight;
+    const avatarY = frameTop + (frameHeight - avatarSize) / 2;
     const contentLeft = paddingLeft;
     const contentRight = avatarX - 16;
     const lineHeight = 44;
     const totalLines = 3;
     const contentHeight = totalLines * lineHeight;
-    const frameHeight = 175;
-    const frameTop = (H - frameHeight) / 2;
     const blockTop = frameTop + (frameHeight - contentHeight) / 2;
     let y = blockTop;
 
-    const bgPadX = 16;
-    const bgPadY = 0;
-    const bgX = contentLeft - bgPadX;
-    const bgY = frameTop;
-    const bgW = contentRight + bgPadX;
-    const bgH = frameHeight;
-    const bgRadius = 12;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(0, 0, W, H);
 
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = "rgba(0,0,0,0.6)";
-    roundRect(ctx, bgX, bgY, bgW - bgX, bgH, bgRadius);
+    const bgX = Math.min(contentLeft - 16, avatarX - 16);
+    const bgY = frameTop;
+    const bgW = Math.max(contentRight + 16, avatarX + avatarSize + 8) - bgX;
+    roundRect(ctx, bgX, bgY, bgW, frameHeight, 12);
     ctx.fill();
 
     ctx.textAlign = "left";
