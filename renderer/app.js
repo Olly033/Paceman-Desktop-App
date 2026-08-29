@@ -4486,6 +4486,20 @@
   const overlayAvatarCache = new Map();
   const overlayAvatarImageCache = new Map();
 
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
   function fetchOverlayAvatarDataUrl(name, uuid) {
     const url = avatarUrl(uuid || name, 90);
     return fetch(url)
@@ -4550,6 +4564,19 @@
     const contentHeight = totalLines * lineHeight;
     const blockTop = (H - contentHeight) / 2;
     let y = blockTop;
+
+    const bgPadX = 16;
+    const bgPadY = 12;
+    const bgX = contentLeft - bgPadX;
+    const bgY = blockTop - bgPadY;
+    const bgW = contentRight + bgPadX;
+    const bgH = contentHeight + bgPadY * 2;
+    const bgRadius = 12;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    roundRect(ctx, bgX, bgY, bgW - bgX, bgH, bgRadius);
+    ctx.fill();
 
     ctx.textAlign = "left";
     ctx.fillStyle = textPrimary;
