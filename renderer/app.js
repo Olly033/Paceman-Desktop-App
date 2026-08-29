@@ -4521,6 +4521,7 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     y += 40;
 
     if (currentTime != null) {
+      y += 18;
       ctx.fillStyle = textPrimary;
       ctx.font = "bold 60px Inter, sans-serif";
       ctx.fillText(fmt(currentTime), x, y);
