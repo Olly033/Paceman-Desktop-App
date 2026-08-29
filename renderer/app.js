@@ -128,7 +128,7 @@
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
     dailyLeaderboardTop10: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
-    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, intervalId: null, paceTargets: {}, settings: { showAvatar: true, showName: true, showSplit: true, showTime: true, showPace: true, paddingTop: 0, paddingBottom: 0 } },
+    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, intervalId: null, paceTargets: {}, settings: { paddingLeft: 20, paddingTop: 20, paddingRight: 20, paddingBottom: 20 } },
   };
 
   const settings = {
@@ -1813,12 +1813,9 @@
 
   function initOverlaySettings() {
     const els = {
-      showAvatar: document.getElementById("overlayShowAvatar"),
-      showName: document.getElementById("overlayShowName"),
-      showSplit: document.getElementById("overlayShowSplit"),
-      showTime: document.getElementById("overlayShowTime"),
-      showPace: document.getElementById("overlayShowPace"),
+      paddingLeft: document.getElementById("overlayPaddingLeft"),
       paddingTop: document.getElementById("overlayPaddingTop"),
+      paddingRight: document.getElementById("overlayPaddingRight"),
       paddingBottom: document.getElementById("overlayPaddingBottom"),
     };
 
@@ -1830,22 +1827,13 @@
     Object.keys(els).forEach(key => {
       const el = els[key];
       if (!el) return;
-      if (el.type === "checkbox") {
-        el.checked = state.overlay.settings[key];
-        el.addEventListener("change", () => {
-          state.overlay.settings[key] = el.checked;
-          localStorage.setItem("paceman_overlay_settings", JSON.stringify(state.overlay.settings));
-          drawOverlayCanvas();
-        });
-      } else {
-        el.value = state.overlay.settings[key];
-        el.addEventListener("input", () => {
-          const val = parseInt(el.value, 10);
-          state.overlay.settings[key] = isNaN(val) ? 0 : Math.max(0, Math.min(200, val));
-          localStorage.setItem("paceman_overlay_settings", JSON.stringify(state.overlay.settings));
-          drawOverlayCanvas();
-        });
-      }
+      el.value = state.overlay.settings[key];
+      el.addEventListener("input", () => {
+        const val = parseInt(el.value, 10);
+        state.overlay.settings[key] = isNaN(val) ? 0 : Math.max(0, Math.min(200, val));
+        localStorage.setItem("paceman_overlay_settings", JSON.stringify(state.overlay.settings));
+        drawOverlayCanvas();
+      });
     });
   }
 
@@ -4521,143 +4509,59 @@
     ctx.fillRect(0, 0, W, H);
 
     const settings = state.overlay.settings || {};
-    const paddingTop = settings.paddingTop || 0;
-    const paddingBottom = settings.paddingBottom || 0;
+    const paddingLeft = settings.paddingLeft || 20;
+    const paddingTop = settings.paddingTop || 20;
+    const paddingRight = settings.paddingRight || 20;
+    const paddingBottom = settings.paddingBottom || 20;
 
-    if (!state.overlay.playerName) {
-      const demoName = "Player";
-      const demoSplits = ["Nether", "First Structure", "Second Structure", "Blind Portal", "Stronghold", "End", "Completion"];
-      const demoKey = "bastion";
-      const demoSplit = SPLITS[demoKey] || "First Structure";
-      const demoTime = 824000;
-      const demoTarget = 900000;
+    const avatarSize = 48;
+    const avatarX = W - avatarSize - paddingRight;
+    const avatarY = H - avatarSize - paddingBottom;
 
-      const avatarSize = 80;
-      const avatarX = 12;
-      const statsX = avatarX + avatarSize + 48;
-      const contentTop = paddingTop + 20;
-      let y = contentTop;
+    const wins = 17;
+    const losses = 13;
+    const rank = 80;
+    const elo = 2000;
+    const eloChange = 57;
 
-      ctx.fillStyle = textPrimary;
-      ctx.font = "bold 64px Inter, sans-serif";
-      ctx.fillText(demoName, statsX, y);
-      y += 80;
+    const contentLeft = paddingLeft;
+    let y = H - paddingBottom;
 
-      ctx.fillStyle = textSecondary;
-      ctx.font = "48px Inter, sans-serif";
-      ctx.fillText(demoSplit, statsX, y);
-      y += 64;
+    ctx.textAlign = "right";
+    ctx.fillStyle = textSecondary;
+    ctx.font = "24px Inter, sans-serif";
+    ctx.fillText("W/L " + wins + "/" + losses, avatarX - 12, y - 62);
 
-      ctx.fillStyle = textPrimary;
-      ctx.font = "bold 100px Inter, sans-serif";
-      ctx.fillText(fmt(demoTime), statsX, y);
-      y += 100;
+    ctx.fillStyle = textSecondary;
+    ctx.font = "24px Inter, sans-serif";
+    ctx.fillText("rank #" + rank, avatarX - 12, y - 30);
 
-      const ahead = demoTime <= demoTarget;
-      const diff = demoTime - demoTarget;
-      const deltaText = (diff > 0 ? "+" : "") + fmt(diff);
-      const deltaColor = ahead ? "#4ade80" : "#f87171";
+    ctx.textAlign = "left";
+    ctx.fillStyle = textPrimary;
+    ctx.font = "bold 64px Inter, sans-serif";
+    ctx.fillText(elo + " elo", contentLeft, y - 50);
 
-      const px = statsX - 16;
-      const py = y;
-      const pw = 800;
-      const ph = 80;
-      const r = 20;
-
-      ctx.fillStyle = "rgba(255,255,255,0.1)";
-      ctx.beginPath();
-      ctx.moveTo(px + r, py);
-      ctx.lineTo(px + pw - r, py);
-      ctx.quadraticCurveTo(px + pw, py, px + pw, py + r);
-      ctx.lineTo(px + pw, py + ph - r);
-      ctx.quadraticCurveTo(px + pw, py + ph, px + pw - r, py + ph);
-      ctx.lineTo(px + r, py + ph);
-      ctx.quadraticCurveTo(px, py + ph, px, py + ph - r);
-      ctx.lineTo(px, py + r);
-      ctx.quadraticCurveTo(px, py, px + r, py);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.strokeStyle = "rgba(255,255,255,0.5)";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      ctx.fillStyle = textSecondary;
-      ctx.font = "48px Inter, sans-serif";
-      ctx.fillText(demoSplit + " Target", px + 16, py + 50);
-
-      ctx.fillStyle = textPrimary;
-      ctx.font = "bold 56px Inter, sans-serif";
-      ctx.fillText(fmt(demoTarget), px + 280, py + 50);
-
-      ctx.fillStyle = deltaColor;
-      ctx.font = "bold 56px Inter, sans-serif";
-      ctx.textAlign = "right";
-      ctx.fillText(deltaText, px + pw - 16, py + 50);
-      ctx.textAlign = "left";
-
-      const contentCenter = (contentTop + py + ph) / 2;
-      const avatarY = Math.max(12, contentCenter - avatarSize / 2);
-      drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, "P");
-
-      exportOverlayPNG(canvas);
-      return;
-    }
-
-    const run = state.overlay.run;
-    const name = state.overlay.playerName;
-    const uuid = state.overlay.playerUuid;
+    ctx.textAlign = "right";
+    const deltaColor = eloChange >= 0 ? "#4ade80" : "#f87171";
+    ctx.fillStyle = deltaColor;
+    ctx.font = "bold 48px Inter, sans-serif";
+    ctx.fillText((eloChange >= 0 ? "+" : "") + eloChange, avatarX - 12, y - 50);
 
     ctx.textAlign = "left";
 
-    const avatarSize = 80;
-    const avatarX = 12;
-
-    const liveEvent = furthestEvent(run);
-    const liveKey = liveEvent ? liveEvent.key : null;
-    const liveTime = liveEvent ? liveEvent.igt : null;
-    const sessionEventKey = furthestIndex(run).key;
-    const currentKey = liveKey || sessionEventKey;
-    const currentTime = liveTime != null ? liveTime : furthestIndex(run).time;
-
-    const paceTargets = state.overlay.paceTargets || {};
-    const targetTime = currentKey ? paceTargets[currentKey] : null;
-
-    const statsX = avatarX + avatarSize + 48;
-    const contentTop = paddingTop + 20;
-    let contentBottom = contentTop;
-    if (settings.showName) contentBottom += 80;
-    if (settings.showSplit) contentBottom += 64;
-    if (settings.showTime && currentTime != null) contentBottom += 100;
-    if (settings.showPace && currentTime != null && targetTime != null) contentBottom += 80;
-    contentBottom += paddingBottom;
-
-    const contentCenter = (contentTop + contentBottom) / 2;
-    const avatarY = Math.max(12, contentCenter - avatarSize / 2);
-
-    const cached = overlayAvatarCache.get(name);
-    if (cached === "__FAILED__") {
-      drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, name);
-      drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, contentTop, settings);
-      return;
-    }
-    if (cached) {
-      drawOverlayAvatarFromDataUrl(ctx, cached, avatarX, avatarY, avatarSize).then(() => {
-        drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, contentTop, settings);
-      });
-      return;
-    }
-
-    fetchOverlayAvatarDataUrl(name, uuid).then((dataUrl) => {
-      if (dataUrl) {
-        overlayAvatarCache.set(name, dataUrl);
+    if (state.overlay.playerName) {
+      const cached = overlayAvatarCache.get(state.overlay.playerName);
+      if (cached && cached !== "__FAILED__") {
+        drawOverlayAvatarFromDataUrl(ctx, cached, avatarX, avatarY, avatarSize);
       } else {
-        overlayAvatarCache.set(name, "__FAILED__");
+        drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, state.overlay.playerName);
       }
-      drawOverlayCanvas();
-    });
-  }
+    } else {
+      drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, "P");
+    }
 
+    exportOverlayPNG(canvas);
+  }
 function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     return new Promise((resolve) => {
       const img = new Image();
@@ -4687,93 +4591,6 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     ctx.fillText(initial, x + size / 2, y + size / 2);
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
-  }
-
-  function drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, statsY, settings) {
-    const textPrimary = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
-    const textSecondary = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
-
-    const liveEvent = furthestEvent(run);
-    const liveKey = liveEvent ? liveEvent.key : null;
-    const liveTime = liveEvent ? liveEvent.igt : null;
-    const sessionEventKey = furthestIndex(run).key;
-    const currentKey = liveKey || sessionEventKey;
-    const currentTime = liveTime != null ? liveTime : furthestIndex(run).time;
-    const splitLabel = currentKey ? SPLITS[currentKey] : "Unknown";
-
-    const statsX = avatarX + avatarSize + 48;
-    let y = statsY;
-
-    if (settings.showName) {
-      ctx.fillStyle = textPrimary;
-      ctx.font = "bold 64px Inter, sans-serif";
-      ctx.fillText(name, statsX, y);
-      y += 80;
-    }
-
-    if (settings.showSplit) {
-      ctx.fillStyle = textSecondary;
-      ctx.font = "48px Inter, sans-serif";
-      ctx.fillText(splitLabel, statsX, y);
-      y += 64;
-    }
-
-    if (settings.showTime && currentTime != null) {
-      ctx.fillStyle = textPrimary;
-      ctx.font = "bold 100px Inter, sans-serif";
-      ctx.fillText(fmt(currentTime), statsX, y);
-      y += 100;
-    }
-
-    const paceTargets = state.overlay.paceTargets || {};
-    const targetTime = currentKey ? paceTargets[currentKey] : null;
-
-    if (settings.showPace && currentTime != null && targetTime != null) {
-      const ahead = currentTime <= targetTime;
-      const diff = currentTime - targetTime;
-      const deltaText = (diff > 0 ? "+" : "") + fmt(diff);
-      const deltaColor = ahead ? "#4ade80" : "#f87171";
-
-      const px = statsX - 16;
-      const py = y;
-      const pw = 800;
-      const ph = 80;
-      const r = 20;
-
-      ctx.fillStyle = "rgba(255,255,255,0.1)";
-      ctx.beginPath();
-      ctx.moveTo(px + r, py);
-      ctx.lineTo(px + pw - r, py);
-      ctx.quadraticCurveTo(px + pw, py, px + pw, py + r);
-      ctx.lineTo(px + pw, py + ph - r);
-      ctx.quadraticCurveTo(px + pw, py + ph, px + pw - r, py + ph);
-      ctx.lineTo(px + r, py + ph);
-      ctx.quadraticCurveTo(px, py + ph, px, py + ph - r);
-      ctx.lineTo(px, py + r);
-      ctx.quadraticCurveTo(px, py, px + r, py);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.strokeStyle = "rgba(255,255,255,0.5)";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      ctx.fillStyle = textSecondary;
-      ctx.font = "48px Inter, sans-serif";
-      ctx.fillText(splitLabel + " Target", px + 16, py + 50);
-
-      ctx.fillStyle = textPrimary;
-      ctx.font = "bold 56px Inter, sans-serif";
-      ctx.fillText(fmt(targetTime), px + 280, py + 50);
-
-      ctx.fillStyle = deltaColor;
-      ctx.font = "bold 56px Inter, sans-serif";
-      ctx.textAlign = "right";
-      ctx.fillText(deltaText, px + pw - 16, py + 50);
-      ctx.textAlign = "left";
-    }
-
-    exportOverlayPNG(canvas);
   }
 
   function exportOverlayPNG(canvas) {

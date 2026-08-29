@@ -773,22 +773,6 @@ body {
   gap: 10px;
 }
 
-.settings-card .toggle-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.settings-card .toggle-row input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
 .settings-card .padding-row {
   display: flex;
   flex-direction: column;
