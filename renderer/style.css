@@ -901,39 +901,31 @@ body {
   background: var(--accent);
   border: 2px solid white;
   border-radius: 50%;
-  bottom: -6px;
-  right: -6px;
   cursor: nwse-resize;
 }
 
-.overlay-element .element-label {
-  position: absolute;
-  top: -18px;
-  left: 0;
-  font-size: 10px;
-  color: var(--text-muted);
-  background: rgba(0, 0, 0, 0.6);
-  padding: 1px 5px;
-  border-radius: 4px;
-  white-space: nowrap;
-  pointer-events: none;
+.overlay-element .resize-handle.nw {
+  top: -6px;
+  left: -6px;
+  cursor: nwse-resize;
 }
 
-.overlay-element .element-sample {
-  font-size: 12px;
-  color: var(--text-secondary);
-  pointer-events: none;
-  text-align: center;
-  width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.overlay-element .resize-handle.ne {
+  top: -6px;
+  right: -6px;
+  cursor: nesw-resize;
 }
 
-.overlay-element[data-key="avatar"] .element-sample {
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--text-primary);
+.overlay-element .resize-handle.sw {
+  bottom: -6px;
+  left: -6px;
+  cursor: nesw-resize;
+}
+
+.overlay-element .resize-handle.se {
+  bottom: -6px;
+  right: -6px;
+  cursor: nwse-resize;
 }
 
 @media (max-width: 1100px) {

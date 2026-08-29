@@ -1897,14 +1897,6 @@
       el.style.transform = `scale(${scale})`;
       el.style.transformOrigin = "top left";
 
-      const samples = {
-        avatar: "P",
-        name: "Player",
-        split: "First Structure",
-        time: "13:44",
-        pace: "+0:00",
-      };
-
       const sizes = {
         avatar: { w: 80, h: 80 },
         name: { w: 420, h: 70 },
@@ -1915,7 +1907,12 @@
       const s = sizes[key] || { w: 200, h: 60 };
       el.style.width = (s.w * canvasScale) + "px";
       el.style.height = (s.h * canvasScale) + "px";
-      el.innerHTML = `<span class="element-label">${label}</span><span class="element-sample">${samples[key] || ""}</span><div class="resize-handle" data-key="${key}"></div>`;
+      el.innerHTML = `
+        <div class="resize-handle nw" data-key="${key}" data-handle="nw"></div>
+        <div class="resize-handle ne" data-key="${key}" data-handle="ne"></div>
+        <div class="resize-handle sw" data-key="${key}" data-handle="sw"></div>
+        <div class="resize-handle se" data-key="${key}" data-handle="se"></div>
+      `;
       return el;
     };
 
@@ -1951,7 +1948,15 @@
 
       const key = el.dataset.key;
       if (target.classList.contains("resize-handle")) {
-        editorResizing = { key, startX: e.clientX, startY: e.clientY, startScale: layout[key].scale };
+        const handle = target.dataset.handle || "se";
+        editorResizing = {
+          key,
+          handle,
+          startX: e.clientX,
+          startY: e.clientY,
+          startScale: layout[key].scale,
+          baseItem: { ...layout[key] },
+        };
         e.preventDefault();
       } else {
         editorDragging = {
@@ -1982,11 +1987,52 @@
         drawOverlayCanvas();
       }
       if (editorResizing) {
+        const item = layout[editorResizing.key];
+        const baseItem = editorResizing.baseItem;
+        const handle = editorResizing.handle;
         const dx = e.clientX - editorResizing.startX;
-        const newScale = Math.max(0.5, Math.min(3, editorResizing.startScale + dx / 200));
-        layout[editorResizing.key].scale = newScale;
+        const dy = e.clientY - editorResizing.startY;
+        const canvasScale = getCanvasScale();
+        const dxCanvas = dx / canvasScale;
+        const dyCanvas = dy / canvasScale;
+
+        let newScale = editorResizing.startScale;
+        let newX = baseItem.x;
+        let newY = baseItem.y;
+
+        if (handle === "se") {
+          newScale = Math.max(0.5, Math.min(3, baseItem.scale + dxCanvas / 200));
+        } else if (handle === "nw") {
+          newScale = Math.max(0.5, Math.min(3, baseItem.scale - dxCanvas / 200));
+          if (newScale !== baseItem.scale) {
+            const ratio = newScale / baseItem.scale;
+            newX = baseItem.x + baseItem.x * (1 - ratio);
+            newY = baseItem.y + baseItem.y * (1 - ratio);
+          }
+        } else if (handle === "ne") {
+          newScale = Math.max(0.5, Math.min(3, baseItem.scale + dxCanvas / 200));
+          if (newScale !== baseItem.scale) {
+            const ratio = newScale / baseItem.scale;
+            newY = baseItem.y + baseItem.y * (1 - ratio);
+          }
+        } else if (handle === "sw") {
+          newScale = Math.max(0.5, Math.min(3, baseItem.scale - dxCanvas / 200));
+          if (newScale !== baseItem.scale) {
+            const ratio = newScale / baseItem.scale;
+            newX = baseItem.x + baseItem.x * (1 - ratio);
+          }
+        }
+
+        item.scale = newScale;
+        item.x = Math.max(0, newX);
+        item.y = Math.max(0, newY);
+
         const el = editorOverlay.querySelector(`.overlay-element[data-key="${editorResizing.key}"]`);
-        if (el) el.style.transform = `scale(${newScale})`;
+        if (el) {
+          el.style.transform = `scale(${newScale})`;
+          el.style.left = (item.x * canvasScale) + "px";
+          el.style.top = (item.y * canvasScale) + "px";
+        }
         state.overlay.editorLayout = layout;
         drawOverlayCanvas();
       }
