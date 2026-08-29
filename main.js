@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, Menu, session, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Menu, session, dialog, Tray } = require('electron');
 const path = require('path');
 const https = require('https');
 const http = require('http');
@@ -73,6 +73,20 @@ function createWindow() {
   }
 
   win.loadFile('renderer/index.html');
+
+  win.on('minimize', (e) => {
+    if (!app.isQuitting) {
+      e.preventDefault();
+      win.hide();
+    }
+  });
+
+  win.on('close', (e) => {
+    if (!app.isQuitting) {
+      e.preventDefault();
+      win.hide();
+    }
+  });
 }
 
 app.whenReady().then(async () => {
@@ -94,6 +108,31 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
+
+let tray = null;
+function createTray() {
+  const iconPath = path.join(__dirname, 'icon.ico');
+  tray = new Tray(iconPath);
+  const contextMenu = Menu.buildFromTemplate([
+    { label: 'Show', click: () => { if (win) { win.show(); win.focus(); } } },
+    { label: 'Quit', click: () => { app.isQuitting = true; app.quit(); } }
+  ]);
+  tray.setToolTip('Paceman');
+  tray.setContextMenu(contextMenu);
+  tray.on('double-click', () => { if (win) { win.show(); win.focus(); } });
+}
+
+app.on('ready', () => {
+  createTray();
+});
+
+app.on('before-quit', () => {
+  app.isQuitting = true;
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin' && app.isQuitting) app.quit();
 });
 
 function httpGetJson(url) {

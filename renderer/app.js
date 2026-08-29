@@ -131,7 +131,8 @@
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
     dailyLeaderboardTop10: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
-    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, sessionRuns: [], sessionNph: null, intervalId: null, apiIntervalId: null, paceTargets: {}, settings: { bgOpacity: 60, bgColor: "#000000" }, _dirty: true },
+    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, sessionRuns: [], sessionNph: null, intervalId: null, apiIntervalId: null, paceTargets: {}, settings: { bgOpacity: 60, bgColor: "#000000", sessionGapMinutes: 45 }, _dirty: true },
+    settings: JSON.parse(localStorage.getItem("paceman_settings") || "null") || { sessionGapMinutes: 45 },
   };
 
   const settings = {
@@ -394,7 +395,7 @@
           <img src="${avatarUrl(uuid || name, 28)}" onerror="this.style.visibility='hidden'">
           ${escapeHtml(name)}
           ${isRunning ? `<span class="live-pill"><span class="live-dot"></span>LIVE</span>` : ""}
-          ${channel && isRunning ? `<a class="run-twitch" href="https://twitch.tv/${escapeHtml(channel)}" target="_blank" rel="noopener">Twitch</a>` : ""}
+          ${channel && isRunning ? `<a class="run-twitch" href="https://twitch.tv/${escapeHtml(channel)}" target="_blank" rel="noopener" title="Watch ${escapeHtml(channel)} on Twitch"><img src="${TWITCH_ICON}" alt="Twitch" style="width:16px;height:16px;vertical-align:middle;"></a>` : ""}
           <button class="fav-remove-btn" data-name="${escapeHtml(name)}" title="Remove from favorites">&times;</button>
         </div>
         <div class="run-cells">
@@ -1041,12 +1042,13 @@
     return r.insertTime || r.createdAt || r.timestamp || r.startTime || r.lastUpdated || r.time || r.updatedTime || r.realUpdated || 0;
   }
 
-  function groupRunsIntoSessions(runs, gapHours = 2) {
+  function groupRunsIntoSessions(runs, gapHours) {
     if (!runs || runs.length === 0) return [];
+    const gapMinutes = typeof gapHours === "number" && gapHours > 0 ? gapHours * 60 : (state.settings && state.settings.sessionGapMinutes ? state.settings.sessionGapMinutes : 45);
     const sorted = [...runs].sort((a, b) => getRunTimestamp(a) - getRunTimestamp(b));
     const sessions = [];
     let current = null;
-    const gapSec = gapHours * 60 * 60;
+    const gapSec = gapMinutes * 60;
     for (const run of sorted) {
       const ts = getRunTimestamp(run);
       if (ts <= 0) continue;
@@ -1934,6 +1936,19 @@
         localStorage.setItem("paceman_overlay_settings", JSON.stringify(state.overlay.settings));
         state.overlay._dirty = true;
         drawOverlayCanvas();
+      });
+    }
+
+    const gapEl = document.getElementById("sessionGapMinutes");
+    const gapValueEl = document.getElementById("sessionGapValue");
+    if (gapEl) {
+      gapEl.value = state.settings.sessionGapMinutes ?? 45;
+      if (gapValueEl) gapValueEl.textContent = (state.settings.sessionGapMinutes ?? 45) + " min";
+      gapEl.addEventListener("input", () => {
+        const val = parseInt(gapEl.value, 10);
+        state.settings.sessionGapMinutes = isNaN(val) ? 45 : Math.max(1, Math.min(180, val));
+        if (gapValueEl) gapValueEl.textContent = state.settings.sessionGapMinutes + " min";
+        localStorage.setItem("paceman_settings", JSON.stringify(state.settings));
       });
     }
   }
@@ -3343,6 +3358,7 @@
     initFilters();
     initThemes();
     seedSuggestions();
+    startOverlayApiPolling();
     (async () => {
       const protoArgs = await window.pacemanAPI.getProtocolArgs();
       if (!protoArgs || protoArgs.consumed === true) return;
@@ -4497,20 +4513,9 @@
     return getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=999999&hoursBetween=24&limit=5000`)
       .then((data) => {
         if (!Array.isArray(data) || data.length === 0) return [];
-        const withTime = data.map((r) => ({ ...r, _ts: getRunTimestamp(r) })).filter((r) => r._ts > 0);
-        if (withTime.length === 0) return [];
-        const sorted = withTime.sort((a, b) => b._ts - a._ts);
-        const latest = sorted[0];
-        const gapSec = 2 * 60 * 60;
-        const session = [latest];
-        for (let i = 1; i < sorted.length; i++) {
-          if (latest._ts - sorted[i]._ts <= gapSec) {
-            session.push(sorted[i]);
-          } else {
-            break;
-          }
-        }
-        return session.map((r) => ({ ...r, ...splitTimes(r) }));
+        const sessions = groupRunsIntoSessions(data);
+        const latest = sessions[0];
+        return (latest && latest.runs ? latest.runs : []).map((r) => ({ ...r, ...splitTimes(r) }));
       })
       .catch(() => []);
   }
@@ -4616,7 +4621,6 @@
 
   function startOverlayUpdates() {
     stopOverlayUpdates();
-    let lastSessionRefresh = 0;
     state.overlay.intervalId = setInterval(() => {
       if (state.page !== "overlay") {
         stopOverlayUpdates();
@@ -4626,29 +4630,33 @@
       state.overlay.run = getOverlayPlayerRun();
       const prevId = prevRun ? (prevRun.id || prevRun.worldId || prevRun.runId || prevRun._id || JSON.stringify(prevRun)) : null;
       const nextId = state.overlay.run ? (state.overlay.run.id || state.overlay.run.worldId || state.overlay.run.runId || state.overlay.run._id || JSON.stringify(state.overlay.run)) : null;
-      const now = Date.now();
-      if (prevId !== nextId && now - lastSessionRefresh > 5000) {
-        const name = state.overlay.playerName;
-        const uuid = state.overlay.playerUuid;
-        getOverlaySessionRuns(name, uuid).then((runs) => {
-          state.overlay.sessionRuns = runs.slice(-20);
-          state.overlay._dirty = true;
-        });
-        getOverlayNph(name).then((nph) => {
-          state.overlay.sessionNph = nph;
-          state.overlay._dirty = true;
-        });
-        lastSessionRefresh = now;
-      }
       if (state.overlay._dirty || prevId !== nextId) {
         drawOverlayCanvas();
         updateOverlayStatus();
         state.overlay._dirty = false;
       }
     }, 250);
+  }
+
+  function startOverlayApiPolling() {
+    if (state.overlay.apiIntervalId) return;
     state.overlay.apiIntervalId = setInterval(() => {
-      if (state.page !== "overlay" || !state.overlay.playerName) return;
+      if (!state.overlay.playerName) return;
       refreshOverlayRunFromAPI();
+      const name = state.overlay.playerName;
+      const uuid = state.overlay.playerUuid;
+      getOverlaySessionRuns(name, uuid).then((runs) => {
+        if (!state.overlay.sessionRuns || state.overlay.sessionRuns.length === 0 || runs.length !== state.overlay.sessionRuns.length) {
+          state.overlay.sessionRuns = runs.slice(-20);
+          state.overlay._dirty = true;
+        }
+      });
+      getOverlayNph(name).then((nph) => {
+        if (!state.overlay.sessionNph || state.overlay.sessionNph.rnph !== (nph && nph.rnph)) {
+          state.overlay.sessionNph = nph;
+          state.overlay._dirty = true;
+        }
+      });
     }, 1000);
   }
 
