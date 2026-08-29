@@ -4396,6 +4396,15 @@
     state.overlay.playerName = name;
     state.overlay.playerUuid = uuid || null;
     state.overlay.run = getOverlayPlayerRun();
+    const nameLower = name.toLowerCase();
+    state.overlay.sessionRuns = (state.liveRuns || [])
+      .filter((r) => {
+        const rNick = (r.nickname || "").toLowerCase();
+        const rUserNick = (r.user && r.user.nickname || "").toLowerCase();
+        const rUuid = r.user && r.user.uuid ? r.user.uuid.toLowerCase() : null;
+        return rNick === nameLower || rUserNick === nameLower || rUuid === (uuid || "").toLowerCase();
+      })
+      .slice(-20);
     state.overlay._dirty = true;
     updateOverlayStatus();
     drawOverlayCanvas();
