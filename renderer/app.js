@@ -298,9 +298,7 @@
     if (liveRunsIntervalId) return;
     loadLiveRuns();
     liveRunsIntervalId = setInterval(() => {
-      if (state.page === "home" && document.hasFocus()) {
-        loadLiveRuns();
-      }
+      loadLiveRuns();
     }, 5000);
   }
 
@@ -624,7 +622,7 @@
 
   async function loadLiveRuns() {
     const list = document.getElementById("runsList");
-    if (state.liveRuns.length === 0) list.innerHTML = '<div class="loading">Loading live runs...</div>';
+    if (state.liveRuns.length === 0 && list) list.innerHTML = '<div class="loading">Loading live runs...</div>';
     try {
       const runs = await getJSON(LIVERUNS);
       state.liveRuns = runs.filter(
@@ -633,9 +631,11 @@
       cachePlayersFromRuns(runs);
       cleanupAutoOpenedStreams(state.liveRuns);
       pruneRuns();
-      renderLiveRuns();
+      if (state.page === "home") {
+        renderLiveRuns();
+      }
     } catch (e) {
-      list.innerHTML = '<div class="loading">Failed to load live runs. Check your connection.</div>';
+      if (list) list.innerHTML = '<div class="loading">Failed to load live runs. Check your connection.</div>';
     }
   }
 
@@ -2746,7 +2746,6 @@
       document.getElementById("page-favorites").classList.add("active");
       document.querySelector('[data-page="favorites"]').classList.add("active");
       renderFavorites();
-      stopLiveRunsPolling();
       if (!suppressNavPush) pushNav({ page: "favorites" });
     } else if (p === "leaderboard") {
       document.getElementById("page-leaderboard").classList.add("active");
@@ -2754,7 +2753,6 @@
       state.leaderboard.rows = null;
       state.leaderboard.pages = {};
       loadLeaderboard(true);
-      stopLiveRunsPolling();
       if (!suppressNavPush) pushNav({ page: "leaderboard" });
     } else if (p === "profile") {
       document.getElementById("page-profile").classList.add("active");
@@ -3864,7 +3862,6 @@
       if (state.page === "home") startLiveRunsPolling();
     });
     window.addEventListener("blur", () => {
-      stopLiveRunsPolling();
     });
     const debouncedResizeHead = debounce(() => {
       if (state.profile.uuid && document.getElementById("page-profile").classList.contains("active")) {
