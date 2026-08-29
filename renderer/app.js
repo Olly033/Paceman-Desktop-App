@@ -128,7 +128,7 @@
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
     dailyLeaderboardTop10: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
-    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, intervalId: null, paceTargets: {} },
+    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, intervalId: null, paceTargets: {}, settings: { showAvatar: true, showName: true, showSplit: true, showTime: true, showPace: true, paddingTop: 0, paddingBottom: 0 } },
   };
 
   const settings = {
@@ -1811,7 +1811,44 @@
     }
   }
 
-  
+  function initOverlaySettings() {
+    const els = {
+      showAvatar: document.getElementById("overlayShowAvatar"),
+      showName: document.getElementById("overlayShowName"),
+      showSplit: document.getElementById("overlayShowSplit"),
+      showTime: document.getElementById("overlayShowTime"),
+      showPace: document.getElementById("overlayShowPace"),
+      paddingTop: document.getElementById("overlayPaddingTop"),
+      paddingBottom: document.getElementById("overlayPaddingBottom"),
+    };
+
+    const saved = JSON.parse(localStorage.getItem("paceman_overlay_settings") || "null");
+    if (saved) {
+      state.overlay.settings = { ...state.overlay.settings, ...saved };
+    }
+
+    Object.keys(els).forEach(key => {
+      const el = els[key];
+      if (!el) return;
+      if (el.type === "checkbox") {
+        el.checked = state.overlay.settings[key];
+        el.addEventListener("change", () => {
+          state.overlay.settings[key] = el.checked;
+          localStorage.setItem("paceman_overlay_settings", JSON.stringify(state.overlay.settings));
+          drawOverlayCanvas();
+        });
+      } else {
+        el.value = state.overlay.settings[key];
+        el.addEventListener("input", () => {
+          const val = parseInt(el.value, 10);
+          state.overlay.settings[key] = isNaN(val) ? 0 : Math.max(0, Math.min(200, val));
+          localStorage.setItem("paceman_overlay_settings", JSON.stringify(state.overlay.settings));
+          drawOverlayCanvas();
+        });
+      }
+    });
+  }
+
   function initPaceTargets() {
     const container = document.getElementById("paceInputs");
     const saveBtn = document.getElementById("paceSaveBtn");
@@ -3356,6 +3393,7 @@
     initFavoritesSearch();
     initOverlaySearch();
     initPaceTargets();
+    initOverlaySettings();
     const overlaySaveBtn = document.getElementById("overlaySaveBtn");
     if (overlaySaveBtn) {
       overlaySaveBtn.addEventListener("click", () => {
@@ -4500,7 +4538,9 @@
 
     const avatarSize = 80;
     const avatarX = 12;
-    const statsY = 100;
+    const settings = state.overlay.settings || {};
+    const paddingTop = settings.paddingTop || 0;
+    const paddingBottom = settings.paddingBottom || 0;
 
     const liveEvent = furthestEvent(run);
     const liveKey = liveEvent ? liveEvent.key : null;
@@ -4512,25 +4552,27 @@
     const paceTargets = state.overlay.paceTargets || {};
     const targetTime = currentKey ? paceTargets[currentKey] : null;
 
-    let visualBottom = statsY + 160;
-    if (currentTime != null) visualBottom = statsY + 260;
-    if (currentTime != null && targetTime != null) {
-      visualBottom = statsY + 300;
-    }
+    const statsX = avatarX + avatarSize + 48;
+    const contentTop = paddingTop + 20;
+    let contentBottom = contentTop;
+    if (settings.showName) contentBottom += 80;
+    if (settings.showSplit) contentBottom += 64;
+    if (settings.showTime && currentTime != null) contentBottom += 100;
+    if (settings.showPace && currentTime != null && targetTime != null) contentBottom += 80;
+    contentBottom += paddingBottom;
 
-    const visualTop = statsY - 64;
-    const textCenter = (visualTop + visualBottom) / 2;
-    const avatarY = Math.max(12, textCenter - avatarSize / 2);
+    const contentCenter = (contentTop + contentBottom) / 2;
+    const avatarY = Math.max(12, contentCenter - avatarSize / 2);
 
     const cached = overlayAvatarCache.get(name);
     if (cached === "__FAILED__") {
       drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, name);
-      drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, statsY);
+      drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, contentTop, settings);
       return;
     }
     if (cached) {
       drawOverlayAvatarFromDataUrl(ctx, cached, avatarX, avatarY, avatarSize).then(() => {
-        drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, statsY);
+        drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, contentTop, settings);
       });
       return;
     }
@@ -4576,7 +4618,7 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     ctx.textBaseline = "alphabetic";
   }
 
-  function drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, statsY) {
+  function drawOverlayBody(ctx, canvas, W, H, name, run, avatarX, avatarY, avatarSize, statsY, settings) {
     const textPrimary = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
     const textSecondary = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
 
@@ -4589,25 +4631,41 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     const splitLabel = currentKey ? SPLITS[currentKey] : "Unknown";
 
     const statsX = avatarX + avatarSize + 48;
+    let y = statsY;
 
-    ctx.fillStyle = textPrimary;
-    ctx.font = "bold 64px Inter, sans-serif";
-    ctx.fillText(name, statsX, statsY);
-    ctx.fillText(splitLabel, statsX, statsY + 80);
-    ctx.fillText(currentTime != null ? fmt(currentTime) : "--:--", statsX, statsY + 160);
+    if (settings.showName) {
+      ctx.fillStyle = textPrimary;
+      ctx.font = "bold 64px Inter, sans-serif";
+      ctx.fillText(name, statsX, y);
+      y += 80;
+    }
+
+    if (settings.showSplit) {
+      ctx.fillStyle = textSecondary;
+      ctx.font = "48px Inter, sans-serif";
+      ctx.fillText(splitLabel, statsX, y);
+      y += 64;
+    }
+
+    if (settings.showTime && currentTime != null) {
+      ctx.fillStyle = textPrimary;
+      ctx.font = "bold 100px Inter, sans-serif";
+      ctx.fillText(fmt(currentTime), statsX, y);
+      y += 100;
+    }
 
     const paceTargets = state.overlay.paceTargets || {};
     const targetTime = currentKey ? paceTargets[currentKey] : null;
 
-    if (currentTime != null && targetTime != null) {
+    if (settings.showPace && currentTime != null && targetTime != null) {
       const ahead = currentTime <= targetTime;
       const diff = currentTime - targetTime;
       const deltaText = (diff > 0 ? "+" : "") + fmt(diff);
       const deltaColor = ahead ? "#4ade80" : "#f87171";
 
       const px = statsX - 16;
-      const py = statsY + 220;
-      const pw = 720;
+      const py = y;
+      const pw = 800;
       const ph = 80;
       const r = 20;
 
@@ -4635,7 +4693,7 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
 
       ctx.fillStyle = textPrimary;
       ctx.font = "bold 56px Inter, sans-serif";
-      ctx.fillText(fmt(targetTime), px + 260, py + 50);
+      ctx.fillText(fmt(targetTime), px + 280, py + 50);
 
       ctx.fillStyle = deltaColor;
       ctx.font = "bold 56px Inter, sans-serif";
