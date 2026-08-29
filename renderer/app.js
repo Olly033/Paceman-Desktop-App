@@ -4508,7 +4508,7 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     const splitLabel = currentKey ? SPLITS[currentKey] : "Unknown";
 
     const x = avatarX + avatarSize + 28;
-    let y = avatarY + avatarSize + 16;
+    let y = avatarY + 40;
 
     ctx.fillStyle = textPrimary;
     ctx.font = "bold 40px Inter, sans-serif";
