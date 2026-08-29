@@ -4518,36 +4518,53 @@
     const avatarX = W - avatarSize - paddingRight;
     const avatarY = H - avatarSize - paddingBottom;
 
-    const wins = 17;
-    const losses = 13;
-    const rank = 80;
-    const elo = 2000;
-    const eloChange = 57;
+    const run = state.overlay.run;
+    const name = state.overlay.playerName || "Player";
+    const liveEvent = run ? furthestEvent(run) : null;
+    const liveKey = liveEvent ? liveEvent.key : null;
+    const liveTime = liveEvent ? liveEvent.igt : null;
+    const sessionEventKey = run ? furthestIndex(run).key : null;
+    const currentKey = liveKey || sessionEventKey;
+    const currentTime = liveTime != null ? liveTime : (run ? furthestIndex(run).time : null);
+    const splitLabel = currentKey ? SPLITS[currentKey] : "Gamestate";
+    const timerText = currentTime != null ? fmt(currentTime) : "XX:XX";
+
+    const paceTargets = state.overlay.paceTargets || {};
+    const targetTime = currentKey ? paceTargets[currentKey] : null;
+    const delta = currentTime != null && targetTime != null ? currentTime - targetTime : null;
+    const deltaText = delta != null ? ((delta > 0 ? "+" : "") + fmt(delta)) : null;
+    const deltaColor = delta != null && delta <= 0 ? "#4ade80" : "#f87171";
 
     const contentLeft = paddingLeft;
-    let y = H - paddingBottom;
-
-    ctx.textAlign = "right";
-    ctx.fillStyle = textSecondary;
-    ctx.font = "24px Inter, sans-serif";
-    ctx.fillText("W/L " + wins + "/" + losses, avatarX - 12, y - 62);
-
-    ctx.fillStyle = textSecondary;
-    ctx.font = "24px Inter, sans-serif";
-    ctx.fillText("rank #" + rank, avatarX - 12, y - 30);
+    const contentRight = avatarX - 16;
+    const lineHeight = 52;
+    const totalLines = 3;
+    const contentHeight = totalLines * lineHeight;
+    const blockTop = (H - contentHeight) / 2;
+    let y = blockTop;
 
     ctx.textAlign = "left";
     ctx.fillStyle = textPrimary;
-    ctx.font = "bold 64px Inter, sans-serif";
-    ctx.fillText(elo + " elo", contentLeft, y - 50);
+    ctx.font = "bold 40px Inter, sans-serif";
+    ctx.fillText(name, contentLeft, y + 28);
+    y += lineHeight;
 
-    ctx.textAlign = "right";
-    const deltaColor = eloChange >= 0 ? "#4ade80" : "#f87171";
-    ctx.fillStyle = deltaColor;
-    ctx.font = "bold 48px Inter, sans-serif";
-    ctx.fillText((eloChange >= 0 ? "+" : "") + eloChange, avatarX - 12, y - 50);
+    ctx.fillStyle = textSecondary;
+    ctx.font = "32px Inter, sans-serif";
+    ctx.fillText(splitLabel, contentLeft, y + 24);
+    y += lineHeight;
 
-    ctx.textAlign = "left";
+    ctx.fillStyle = textPrimary;
+    ctx.font = "bold 40px Inter, sans-serif";
+    ctx.fillText(timerText, contentLeft, y + 28);
+
+    if (deltaText) {
+      ctx.textAlign = "right";
+      ctx.fillStyle = deltaColor;
+      ctx.font = "bold 36px Inter, sans-serif";
+      ctx.fillText(deltaText, contentRight, y + 28);
+      ctx.textAlign = "left";
+    }
 
     if (state.overlay.playerName) {
       const cached = overlayAvatarCache.get(state.overlay.playerName);
