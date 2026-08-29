@@ -239,7 +239,10 @@
       </div>
       <div class="page" id="page-overlay">
         <div class="page-header">
-          <h1>Live Overlay</h1>
+          <div class="header-content">
+            <h1>Live Overlay</h1>
+            <p class="header-subtitle">Generate and export your live overlay PNG</p>
+          </div>
           <div class="page-header-actions">
             <div class="search-container">
               <input type="text" class="search-input" placeholder="Search player..." id="overlaySearchInput">
@@ -265,18 +268,39 @@
             </button>
           </div>
         </div>
-        <div class="overlay-controls">
-          <div class="overlay-preview">
-            <canvas id="overlayCanvas" width="800" height="520"></canvas>
+        <div class="overlay-layout">
+          <div class="overlay-main">
+            <div class="glass-card preview-card">
+              <div class="card-header">
+                <h2>Preview</h2>
+                <span class="card-badge">800 × 520</span>
+              </div>
+              <div class="canvas-wrapper">
+                <canvas id="overlayCanvas" width="800" height="520"></canvas>
+              </div>
+            </div>
           </div>
-          <div class="overlay-info">
-            <div class="overlay-status" id="overlayStatus">Select a player to start</div>
-            <div class="overlay-path-label">Local PNG path:</div>
-            <div class="overlay-path" id="overlayPath" title="Local file path - use copy button to copy"></div>
-            <div class="pace-targets" id="paceTargets">
-              <div class="pace-title">Pace Targets (seconds)</div>
+          <div class="overlay-sidebar">
+            <div class="glass-card status-card">
+              <div class="card-header">
+                <h2>Status</h2>
+                <div class="status-dot" id="statusDot"></div>
+              </div>
+              <p class="status-text" id="overlayStatus">Select a player to start</p>
+            </div>
+            <div class="glass-card path-card">
+              <div class="card-header">
+                <h2>Export Path</h2>
+              </div>
+              <div class="path-display" id="overlayPath" title="Local file path - use copy button to copy"></div>
+            </div>
+            <div class="glass-card pace-card">
+              <div class="card-header">
+                <h2>Pace Targets</h2>
+                <span class="card-hint">Per-split target times</span>
+              </div>
               <div class="pace-inputs" id="paceInputs"></div>
-              <button class="theme-btn" id="paceSaveBtn">Save Pace</button>
+              <button class="theme-btn primary-btn" id="paceSaveBtn">Save Pace</button>
             </div>
           </div>
         </div>
