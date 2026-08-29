@@ -1076,6 +1076,9 @@
         if (nethers.length > 0) {
           s.netherAvg = nethers.reduce((a, b) => a + b, 0) / nethers.length;
         }
+        const netherCount = s.runs.filter((r) => r.nether != null).length;
+        const sessionHours = diff / 3600;
+        s.nph = sessionHours > 0 ? netherCount / sessionHours : 0;
         const structures = calcFirstSecondStructure(s.runs);
         s.firstCount = structures.firstCount;
         s.firstAvg = structures.firstAvg;
@@ -4761,7 +4764,10 @@
     } else if (state.overlay.sessionRuns && state.overlay.sessionRuns.length > 0) {
       const netherStats = calcSplitStats(state.overlay.sessionRuns, "nether");
       if (netherStats.count > 0) {
-        lines.push({ text: netherStats.count + " nethers · avg " + netherStats.avg, color: textSecondary, font: "28px Inter, sans-serif", offset: 20 });
+        const timestamps = state.overlay.sessionRuns.map(getRunTimestamp).filter((t) => t > 0);
+        const sessionHours = timestamps.length > 1 ? (Math.max(...timestamps) - Math.min(...timestamps)) / 3600 : 0;
+        const nph = sessionHours > 0 ? (netherStats.count / sessionHours).toFixed(2) : "0.00";
+        lines.push({ text: `${netherStats.count} nethers · avg ${netherStats.avg} · NPH ${nph}`, color: textSecondary, font: "28px Inter, sans-serif", offset: 20 });
       }
     }
 
