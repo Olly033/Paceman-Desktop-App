@@ -623,15 +623,15 @@ body {
 .pace-targets {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: 6px;
+  padding: 8px 10px;
   background: var(--bg-glass);
   border: 1px solid var(--border-glass);
   border-radius: 10px;
 }
 
 .pace-title {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -640,18 +640,7 @@ body {
 .pace-inputs {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-}
-
-.pace-inputs input {
-  width: 70px;
-  padding: 4px 6px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border-glass);
-  border-radius: 6px;
-  color: var(--text-primary);
-  font-size: 12px;
-  font-family: monospace;
+  gap: 4px;
 }
 
 .pace-inputs label {
@@ -660,17 +649,50 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 1px;
+}
+
+.pace-inputs .time-input {
+  display: flex;
+  align-items: center;
   gap: 2px;
+}
+
+.pace-inputs .time-input input {
+  width: 56px;
+  padding: 2px 4px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-glass);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-family: monospace;
+  text-align: center;
+}
+
+.time-arrow {
+  padding: 1px 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-glass);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 9px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.time-arrow:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 #paceSaveBtn {
   align-self: flex-start;
-  padding: 6px 12px;
+  padding: 4px 10px;
   background: var(--bg-glass);
   border: 1px solid var(--border-glass);
   border-radius: 6px;
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
 }
 

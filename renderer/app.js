@@ -1817,22 +1817,17 @@
     const saveBtn = document.getElementById("paceSaveBtn");
     if (!container) return;
 
-    const splits = [
-      { key: "finish", label: "Finish" },
-      { key: "drag_end", label: "Dragon End" },
-      { key: "blaze_end", label: "Blaze End" },
-      { key: "stronghold_end", label: "Stronghold" },
-      { key: "end_entry", label: "End Entry" },
-      { key: "exit_end", label: "Exit End" },
-    ];
-
     const saved = JSON.parse(localStorage.getItem("paceman_pace_targets") || "{}");
     state.overlay.paceTargets = saved;
 
-    container.innerHTML = splits.map(s => `
+    container.innerHTML = SPLIT_ORDER.map(split => `
       <label>
-        ${s.label}
-        <input type="number" data-split="${s.key}" value="${saved[s.key] || ''}" placeholder="--">
+        ${SPLITS[split]}
+        <div class="time-input">
+          <button class="time-arrow time-arrow-down" data-split="${split}" type="button">&#9660;</button>
+          <input type="text" data-split="${split}" placeholder="0:00" value="${saved[split] != null ? formatTime(saved[split]) : ''}">
+          <button class="time-arrow time-arrow-up" data-split="${split}" type="button">&#9650;</button>
+        </div>
       </label>
     `).join("");
 
@@ -1840,12 +1835,38 @@
       const targets = {};
       container.querySelectorAll("input").forEach(input => {
         const key = input.dataset.split;
-        const val = input.value.trim();
-        if (val && !isNaN(val)) targets[key] = parseInt(val, 10);
+        const sec = parseTimeToSec(input.value);
+        if (sec != null) targets[key] = sec;
       });
       state.overlay.paceTargets = targets;
       localStorage.setItem("paceman_pace_targets", JSON.stringify(targets));
     };
+
+    container.querySelectorAll(".time-arrow-up").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const split = btn.dataset.split;
+        const input = container.querySelector(`input[data-split="${split}"]`);
+        const current = parseTimeToSec(input.value) || 0;
+        input.value = formatTime(current + 30);
+      });
+    });
+
+    container.querySelectorAll(".time-arrow-down").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const split = btn.dataset.split;
+        const input = container.querySelector(`input[data-split="${split}"]`);
+        const current = parseTimeToSec(input.value) || 0;
+        const next = Math.max(0, current - 30);
+        input.value = next === 0 ? "" : formatTime(next);
+      });
+    });
+
+    container.querySelectorAll("input").forEach(input => {
+      input.addEventListener("blur", () => {
+        const sec = parseTimeToSec(input.value);
+        input.value = sec != null ? formatTime(sec) : "";
+      });
+    });
 
     saveBtn.addEventListener("click", collect);
   }
