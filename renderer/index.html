@@ -321,13 +321,6 @@
                     <span class="setting-value" id="overlayBgColorValue">#000000</span>
                   </div>
                 </label>
-                <label class="setting-row">
-                  <span>Session Gap (minutes)</span>
-                  <div class="setting-control">
-                    <input type="number" id="sessionGapMinutes" value="45" min="1" max="180">
-                    <span class="setting-value" id="sessionGapValue">45 min</span>
-                  </div>
-                </label>
               </div>
             </div>
           </div>
@@ -556,6 +549,19 @@
               <div class="settings-row-desc">Send a test notification to see how it looks</div>
             </div>
             <button class="settings-action-btn" id="settingPreviewNotification">Preview</button>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Session Detection</h3>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-title">Session gap (minutes)</div>
+              <div class="settings-row-desc">Time without runs before starting a new session</div>
+            </div>
+            <div class="settings-number-control">
+              <input type="number" id="settingSessionGapMinutes" value="45" min="1" max="180">
+              <span class="setting-unit">min</span>
+            </div>
           </div>
         </div>
         <div class="settings-section">

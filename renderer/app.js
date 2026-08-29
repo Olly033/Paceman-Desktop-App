@@ -132,7 +132,6 @@
     dailyLeaderboardTop10: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
     overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, sessionRuns: [], sessionNph: null, intervalId: null, apiIntervalId: null, paceTargets: {}, settings: { bgOpacity: 60, bgColor: "#000000", sessionGapMinutes: 45 }, _dirty: true },
-    settings: JSON.parse(localStorage.getItem("paceman_settings") || "null") || { sessionGapMinutes: 45 },
   };
 
   const settings = {
@@ -141,6 +140,7 @@
     notificationSound: JSON.parse(localStorage.getItem("paceman_settings_notification_sound") || "false"),
     notificationVolume: parseFloat(localStorage.getItem("paceman_settings_notification_volume") || "0.5"),
     animationsEnabled: JSON.parse(localStorage.getItem("paceman_settings_animations_enabled") || "true"),
+    sessionGapMinutes: parseInt(localStorage.getItem("paceman_settings_session_gap_minutes") || "45", 10),
   };
 
   const autoOpenedStreams = new Set();
@@ -1044,7 +1044,7 @@
 
   function groupRunsIntoSessions(runs, gapHours) {
     if (!runs || runs.length === 0) return [];
-    const gapMinutes = typeof gapHours === "number" && gapHours > 0 ? gapHours * 60 : (state.settings && state.settings.sessionGapMinutes ? state.settings.sessionGapMinutes : 45);
+    const gapMinutes = typeof gapHours === "number" && gapHours > 0 ? gapHours * 60 : (settings && settings.sessionGapMinutes ? settings.sessionGapMinutes : 45);
     const sorted = [...runs].sort((a, b) => getRunTimestamp(a) - getRunTimestamp(b));
     const sessions = [];
     let current = null;
@@ -1936,19 +1936,6 @@
         localStorage.setItem("paceman_overlay_settings", JSON.stringify(state.overlay.settings));
         state.overlay._dirty = true;
         drawOverlayCanvas();
-      });
-    }
-
-    const gapEl = document.getElementById("sessionGapMinutes");
-    const gapValueEl = document.getElementById("sessionGapValue");
-    if (gapEl) {
-      gapEl.value = state.settings.sessionGapMinutes ?? 45;
-      if (gapValueEl) gapValueEl.textContent = (state.settings.sessionGapMinutes ?? 45) + " min";
-      gapEl.addEventListener("input", () => {
-        const val = parseInt(gapEl.value, 10);
-        state.settings.sessionGapMinutes = isNaN(val) ? 45 : Math.max(1, Math.min(180, val));
-        if (gapValueEl) gapValueEl.textContent = state.settings.sessionGapMinutes + " min";
-        localStorage.setItem("paceman_settings", JSON.stringify(state.settings));
       });
     }
   }
@@ -4050,11 +4037,13 @@
       const soundToggle = document.getElementById("settingNotificationSound");
       const animationsToggle = document.getElementById("settingAnimations");
       const volumeSlider = document.getElementById("settingNotificationVolume");
+      const sessionGapInput = document.getElementById("settingSessionGapMinutes");
       if (pbToggle) pbToggle.checked = settings.pbNotifications;
       if (liveToggle) liveToggle.checked = settings.liveNotifications;
       if (soundToggle) soundToggle.checked = settings.notificationSound;
       if (animationsToggle) animationsToggle.checked = settings.animationsEnabled;
       if (volumeSlider) volumeSlider.value = settings.notificationVolume;
+      if (sessionGapInput) sessionGapInput.value = settings.sessionGapMinutes;
       settingsOverlay.classList.add("visible");
     };
 
@@ -4066,16 +4055,19 @@
       const soundToggle = document.getElementById("settingNotificationSound");
       const animationsToggle = document.getElementById("settingAnimations");
       const volumeSlider = document.getElementById("settingNotificationVolume");
+      const sessionGapInput = document.getElementById("settingSessionGapMinutes");
       if (pbToggle) settings.pbNotifications = pbToggle.checked;
       if (liveToggle) settings.liveNotifications = liveToggle.checked;
       if (soundToggle) settings.notificationSound = soundToggle.checked;
       if (animationsToggle) settings.animationsEnabled = animationsToggle.checked;
       if (volumeSlider) settings.notificationVolume = parseFloat(volumeSlider.value);
+      if (sessionGapInput) settings.sessionGapMinutes = parseInt(sessionGapInput.value, 10);
       localStorage.setItem("paceman_settings_pb_notifications", settings.pbNotifications);
       localStorage.setItem("paceman_settings_live_notifications", settings.liveNotifications);
       localStorage.setItem("paceman_settings_notification_sound", settings.notificationSound);
       localStorage.setItem("paceman_settings_notification_volume", settings.notificationVolume);
       localStorage.setItem("paceman_settings_animations_enabled", settings.animationsEnabled);
+      localStorage.setItem("paceman_settings_session_gap_minutes", settings.sessionGapMinutes);
       applyAnimationsSetting();
     };
 
@@ -4364,6 +4356,7 @@
         notificationSound: settings.notificationSound,
         notificationVolume: settings.notificationVolume,
         animationsEnabled: settings.animationsEnabled,
+        sessionGapMinutes: settings.sessionGapMinutes,
         autoOpenTwitch: state.autoOpenTwitch,
         favorites: state.favorites,
         favoritePBs: state.favoritePBs,
@@ -4422,6 +4415,10 @@
             if (typeof data.animationsEnabled === "boolean") {
               settings.animationsEnabled = data.animationsEnabled;
               localStorage.setItem("paceman_settings_animations_enabled", data.animationsEnabled);
+            }
+            if (typeof data.sessionGapMinutes === "number") {
+              settings.sessionGapMinutes = data.sessionGapMinutes;
+              localStorage.setItem("paceman_settings_session_gap_minutes", data.sessionGapMinutes);
             }
             if (typeof data.autoOpenTwitch === "boolean") {
               state.autoOpenTwitch = data.autoOpenTwitch;
