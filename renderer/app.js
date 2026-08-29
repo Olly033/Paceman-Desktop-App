@@ -1897,17 +1897,25 @@
       el.style.transform = `scale(${scale})`;
       el.style.transformOrigin = "top left";
 
+      const samples = {
+        avatar: "P",
+        name: "Player",
+        split: "First Structure",
+        time: "13:44",
+        pace: "+0:00",
+      };
+
       const sizes = {
         avatar: { w: 80, h: 80 },
-        name: { w: 400, h: 70 },
-        split: { w: 300, h: 56 },
+        name: { w: 420, h: 70 },
+        split: { w: 320, h: 56 },
         time: { w: 280, h: 100 },
         pace: { w: 800, h: 80 },
       };
       const s = sizes[key] || { w: 200, h: 60 };
       el.style.width = (s.w * canvasScale) + "px";
       el.style.height = (s.h * canvasScale) + "px";
-      el.innerHTML = `<span class="element-label">${label}</span><div class="resize-handle" data-key="${key}"></div>`;
+      el.innerHTML = `<span class="element-label">${label}</span><span class="element-sample">${samples[key] || ""}</span><div class="resize-handle" data-key="${key}"></div>`;
       return el;
     };
 

@@ -919,6 +919,23 @@ body {
   pointer-events: none;
 }
 
+.overlay-element .element-sample {
+  font-size: 12px;
+  color: var(--text-secondary);
+  pointer-events: none;
+  text-align: center;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overlay-element[data-key="avatar"] .element-sample {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
 @media (max-width: 1100px) {
   .overlay-layout {
     grid-template-columns: 1fr;
