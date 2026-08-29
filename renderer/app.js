@@ -4670,12 +4670,86 @@
     ctx.fillStyle = "rgba(0,0,0,0.6)";
     ctx.fillRect(0, 0, W, H);
 
+    const settings = state.overlay.settings || {};
+    const paddingTop = settings.paddingTop || 0;
+    const paddingBottom = settings.paddingBottom || 0;
+
     if (!state.overlay.playerName) {
+      const demoName = "Player";
+      const demoSplits = ["Nether", "First Structure", "Second Structure", "Blind Portal", "Stronghold", "End", "Completion"];
+      const demoKey = "bastion";
+      const demoSplit = SPLITS[demoKey] || "First Structure";
+      const demoTime = 824000;
+      const demoTarget = 900000;
+
+      const avatarSize = 80;
+      const avatarX = 12;
+      const statsX = avatarX + avatarSize + 48;
+      const contentTop = paddingTop + 20;
+      let y = contentTop;
+
+      ctx.fillStyle = textPrimary;
+      ctx.font = "bold 64px Inter, sans-serif";
+      ctx.fillText(demoName, statsX, y);
+      y += 80;
+
       ctx.fillStyle = textSecondary;
-      ctx.font = "40px Inter, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("Select player", W / 2, H / 2);
+      ctx.font = "48px Inter, sans-serif";
+      ctx.fillText(demoSplit, statsX, y);
+      y += 64;
+
+      ctx.fillStyle = textPrimary;
+      ctx.font = "bold 100px Inter, sans-serif";
+      ctx.fillText(fmt(demoTime), statsX, y);
+      y += 100;
+
+      const ahead = demoTime <= demoTarget;
+      const diff = demoTime - demoTarget;
+      const deltaText = (diff > 0 ? "+" : "") + fmt(diff);
+      const deltaColor = ahead ? "#4ade80" : "#f87171";
+
+      const px = statsX - 16;
+      const py = y;
+      const pw = 800;
+      const ph = 80;
+      const r = 20;
+
+      ctx.fillStyle = "rgba(255,255,255,0.1)";
+      ctx.beginPath();
+      ctx.moveTo(px + r, py);
+      ctx.lineTo(px + pw - r, py);
+      ctx.quadraticCurveTo(px + pw, py, px + pw, py + r);
+      ctx.lineTo(px + pw, py + ph - r);
+      ctx.quadraticCurveTo(px + pw, py + ph, px + pw - r, py + ph);
+      ctx.lineTo(px + r, py + ph);
+      ctx.quadraticCurveTo(px, py + ph, px, py + ph - r);
+      ctx.lineTo(px, py + r);
+      ctx.quadraticCurveTo(px, py, px + r, py);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(255,255,255,0.5)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = textSecondary;
+      ctx.font = "48px Inter, sans-serif";
+      ctx.fillText(demoSplit + " Target", px + 16, py + 50);
+
+      ctx.fillStyle = textPrimary;
+      ctx.font = "bold 56px Inter, sans-serif";
+      ctx.fillText(fmt(demoTarget), px + 280, py + 50);
+
+      ctx.fillStyle = deltaColor;
+      ctx.font = "bold 56px Inter, sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText(deltaText, px + pw - 16, py + 50);
       ctx.textAlign = "left";
+
+      const contentCenter = (contentTop + py + ph) / 2;
+      const avatarY = Math.max(12, contentCenter - avatarSize / 2);
+      drawOverlayAvatarFallback(ctx, avatarX, avatarY, avatarSize, "P");
+
       exportOverlayPNG(canvas);
       return;
     }
@@ -4688,9 +4762,6 @@
 
     const avatarSize = 80;
     const avatarX = 12;
-    const settings = state.overlay.settings || {};
-    const paddingTop = settings.paddingTop || 0;
-    const paddingBottom = settings.paddingBottom || 0;
 
     const liveEvent = furthestEvent(run);
     const liveKey = liveEvent ? liveEvent.key : null;
