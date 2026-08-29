@@ -7,7 +7,7 @@ const { promisify } = require('util');
 const execAsync = promisify(exec);
 const fs = require('fs');
 
-const APP_VERSION = app.getVersion ? app.getVersion() : '2.1.2';
+const APP_VERSION = app.getVersion ? app.getVersion() : '2.1.3';
 const REPO_OWNER = 'Olly033';
 const REPO_NAME = 'Paceman-Desktop-App';
 const YTDLP_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe';
@@ -98,7 +98,7 @@ app.on('activate', () => {
 
 function httpGetJson(url) {
   return new Promise((resolve, reject) => {
-      const req = https.get(url, { headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.2' } }, (res) => {
+      const req = https.get(url, { headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.3' } }, (res) => {
       const chunks = [];
       res.on('data', (c) => chunks.push(c));
       res.on('end', () => {
@@ -153,7 +153,7 @@ ipcMain.handle('check-for-updates', async () => {
 ipcMain.handle('fetch-json', async (event, url) => {
   try {
     const resp = await new Promise((resolve, reject) => {
-      const req = https.request(url, { method: 'GET', headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.2' } }, (res) => {
+      const req = https.request(url, { method: 'GET', headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.3' } }, (res) => {
         const chunks = [];
         res.on('data', (chunk) => chunks.push(chunk));
         res.on('end', () => resolve({ status: res.statusCode, data: Buffer.concat(chunks).toString() }));
@@ -182,7 +182,7 @@ ipcMain.handle('open-external', (event, url) => {
 function httpGetText(url, headers) {
   return new Promise((resolve, reject) => {
     const mod = url.startsWith('https') ? https : http;
-    const req = mod.get(url, { headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.2', 'Accept': '*/*', 'Accept-Encoding': 'identity', ...(headers || {}) } }, (res) => {
+    const req = mod.get(url, { headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.3', 'Accept': '*/*', 'Accept-Encoding': 'identity', ...(headers || {}) } }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return resolve(httpGetText(res.headers.location, headers));
       }
@@ -203,7 +203,7 @@ function httpGetText(url, headers) {
 async function httpGetBuffer(url, headers) {
   return new Promise((resolve, reject) => {
     const mod = url.startsWith('https') ? https : http;
-    const req = mod.get(url, { headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.2', 'Accept': '*/*', 'Accept-Encoding': 'identity', ...(headers || {}) } }, (res) => {
+    const req = mod.get(url, { headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.3', 'Accept': '*/*', 'Accept-Encoding': 'identity', ...(headers || {}) } }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return resolve(httpGetBuffer(res.headers.location, headers));
       }
