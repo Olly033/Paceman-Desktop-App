@@ -128,7 +128,7 @@
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
     dailyLeaderboardTop10: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
-    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, intervalId: null, paceTargets: {}, settings: { paddingLeft: 20, paddingTop: 20, paddingRight: 20, paddingBottom: 20 }, _dirty: true },
+    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, sessionRuns: [], intervalId: null, paceTargets: {}, settings: { paddingLeft: 20, paddingTop: 20, paddingRight: 20, paddingBottom: 20 }, _dirty: true },
   };
 
   const settings = {
@@ -4536,7 +4536,14 @@
     const sessionEventKey = run ? furthestIndex(run).key : null;
     const currentKey = liveKey || sessionEventKey;
     const currentTime = liveTime != null ? liveTime : (run ? furthestIndex(run).time : null);
-    const splitLabel = currentKey ? SPLITS[currentKey] : "Gamestate";
+    let splitLabel = currentKey ? SPLITS[currentKey] : null;
+    if (!splitLabel && state.overlay.sessionRuns && state.overlay.sessionRuns.length > 0) {
+      const netherStats = calcSplitStats(state.overlay.sessionRuns, "nether");
+      if (netherStats.count > 0) {
+        splitLabel = netherStats.count + " nethers · avg " + netherStats.avg;
+      }
+    }
+    if (!splitLabel) splitLabel = "Gamestate";
     const timerText = currentTime != null ? fmt(currentTime) : "XX:XX";
 
     const paceTargets = state.overlay.paceTargets || {};
@@ -4599,7 +4606,11 @@
       if (cached && cached !== "__FAILED__") {
         const cachedImg = overlayAvatarImageCache.get(state.overlay.playerName);
         if (cachedImg) {
+          ctx.save();
+          roundRect(ctx, avatarX, avatarY, avatarSize, avatarSize, 3);
+          ctx.clip();
           ctx.drawImage(cachedImg, avatarX, avatarY, avatarSize, avatarSize);
+          ctx.restore();
           ctx.strokeStyle = "rgba(255,255,255,0.2)";
           ctx.lineWidth = 3;
           ctx.strokeRect(avatarX, avatarY, avatarSize, avatarSize);
@@ -4629,11 +4640,15 @@
 
     exportOverlayPNG(canvas);
   }
-function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
+  function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
+        ctx.save();
+        roundRect(ctx, x, y, size, size, 3);
+        ctx.clip();
         ctx.drawImage(img, x, y, size, size);
+        ctx.restore();
         ctx.strokeStyle = "rgba(255,255,255,0.2)";
         ctx.lineWidth = 3;
         ctx.strokeRect(x, y, size, size);
