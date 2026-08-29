@@ -4507,25 +4507,25 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     const currentTime = liveTime != null ? liveTime : furthestIndex(run).time;
     const splitLabel = currentKey ? SPLITS[currentKey] : "Unknown";
 
-    const x = avatarX + avatarSize + 36;
-    let y = avatarY + 20;
+    const x = avatarX + avatarSize + 48;
+    let y = avatarY + avatarSize + 60;
 
     ctx.fillStyle = textPrimary;
-    ctx.font = "bold 54px Inter, sans-serif";
+    ctx.font = "bold 64px Inter, sans-serif";
     ctx.fillText(name, x, y);
-    y += 64;
+    y += 80;
 
     ctx.fillStyle = textSecondary;
-    ctx.font = "40px Inter, sans-serif";
+    ctx.font = "48px Inter, sans-serif";
     ctx.fillText(splitLabel, x, y);
-    y += 52;
+    y += 64;
 
     if (currentTime != null) {
-      y += 24;
+      y += 32;
       ctx.fillStyle = textPrimary;
-      ctx.font = "bold 80px Inter, sans-serif";
+      ctx.font = "bold 100px Inter, sans-serif";
       ctx.fillText(fmt(currentTime), x, y);
-      y += 80;
+      y += 100;
     }
 
     const sessionRuns = (state.profile.timeframeRuns || []).filter((r) => {
@@ -4545,23 +4545,23 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
       const deltaColor = diff <= 0 ? "#4ade80" : "#f87171";
 
       ctx.fillStyle = "rgba(255,255,255,0.1)";
-      ctx.fillRect(x - 14, y, 640, 64);
+      ctx.fillRect(x - 16, y, 720, 80);
       ctx.strokeStyle = "rgba(255,255,255,0.25)";
       ctx.lineWidth = 2;
-      ctx.strokeRect(x - 14, y, 640, 64);
+      ctx.strokeRect(x - 16, y, 720, 80);
 
       ctx.fillStyle = textSecondary;
-      ctx.font = "40px Inter, sans-serif";
-      ctx.fillText(splitLabel + " PB", x, y + 42);
+      ctx.font = "48px Inter, sans-serif";
+      ctx.fillText(splitLabel + " PB", x, y + 50);
 
       ctx.fillStyle = textPrimary;
-      ctx.font = "bold 48px Inter, sans-serif";
-      ctx.fillText(fmt(best), x + 220, y + 42);
+      ctx.font = "bold 56px Inter, sans-serif";
+      ctx.fillText(fmt(best), x + 260, y + 50);
 
       ctx.fillStyle = deltaColor;
-      ctx.font = "bold 48px Inter, sans-serif";
+      ctx.font = "bold 56px Inter, sans-serif";
       ctx.textAlign = "right";
-      ctx.fillText(deltaText, x + 628, y + 42);
+      ctx.fillText(deltaText, x + 708, y + 50);
       ctx.textAlign = "left";
     }
 
