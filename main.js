@@ -17,6 +17,179 @@ let activeDownloads = new Map();
 
 let win;
 let pendingProtocolArgs = null;
+let overlayHttpServer = null;
+const OVERLAY_HTTP_PORT = 9876;
+
+function startOverlayHttpServer() {
+  if (overlayHttpServer) return;
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url, `http://localhost:${OVERLAY_HTTP_PORT}`);
+    const playerName = url.searchParams.get('player') || '';
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Paceman Overlay</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+    canvas { display: block; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <canvas id="c" width="600" height="140"></canvas>
+  <script>
+    const API = 'https://paceman.gg/stats/api';
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    const player = decodeURIComponent('${playerName}');
+
+    function fmt(ms) {
+      const totalSec = Math.floor(ms / 1000);
+      const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+      const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+      const s = String(totalSec % 60).padStart(2, '0');
+      return h + ':' + m + ':' + s;
+    }
+
+    async function getJSON(url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }
+
+    function draw(overlay) {
+      const bgOpacity = (overlay.settings && overlay.settings.bgOpacity != null ? overlay.settings.bgOpacity : 60) / 100;
+      const bgColor = (overlay.settings && overlay.settings.bgColor) || '#000000';
+      const faceLeft = !!(overlay.settings && overlay.settings.faceLeft);
+      const paddingLeft = 24;
+      const paddingRight = faceLeft ? 24 : 48;
+      const avatarSize = 64;
+      const frameHeight = 120;
+      const frameTop = (H - frameHeight) / 2;
+      const avatarX = faceLeft ? paddingLeft : W - avatarSize - paddingRight;
+      const avatarY = frameTop + (frameHeight - avatarSize) / 2;
+      const contentLeft = faceLeft ? paddingLeft + avatarSize + 12 : paddingLeft;
+      const contentRight = faceLeft ? W - paddingRight : avatarX - 16;
+
+      const run = overlay.run;
+      const name = overlay.playerName || player || 'Player';
+      const liveEvent = run ? run.furthestEvent : null;
+      const liveKey = liveEvent ? liveEvent.key : null;
+      const liveTime = liveEvent ? liveEvent.igt : null;
+      const splitTimesFromRun = run ? run.splitTimes : {};
+      const sessionEventKey = Object.keys(splitTimesFromRun).pop() || null;
+      const currentKey = liveKey || sessionEventKey;
+      const currentTime = liveTime != null ? liveTime : (sessionEventKey ? splitTimesFromRun[sessionEventKey] : null);
+
+      const lines = [];
+      lines.push({ text: name, font: 'bold 28px Inter, sans-serif', offset: 18 });
+      if (currentKey) {
+        lines.push({ text: currentKey, font: '22px Inter, sans-serif', offset: 14 });
+        lines.push({ text: currentTime != null ? fmt(currentTime) : 'XX:XX', font: 'bold 28px Inter, sans-serif', offset: 18 });
+      } else if (overlay.sessionRuns && overlay.sessionRuns.length > 0) {
+        const nethers = overlay.sessionRuns.filter(r => r.nether != null).length;
+        const avg = overlay.sessionRuns.filter(r => r.nether != null).reduce((a, b) => a + b, 0) / nethers;
+        const nph = overlay.sessionNph && overlay.sessionNph.rnph != null ? overlay.sessionNph.rnph.toFixed(2) : '0.00';
+        lines.push({ text: nethers + ' nethers · avg ' + fmt(Math.round(avg)) + ' · NPH ' + nph, font: '22px Inter, sans-serif', offset: 14 });
+      }
+
+      const lineHeight = 34;
+      const totalLines = lines.length;
+      const contentHeight = totalLines * lineHeight;
+      const blockTop = frameTop + (frameHeight - contentHeight) / 2;
+      let y = blockTop;
+
+      const r = parseInt(bgColor.slice(1, 3), 16);
+      const g = parseInt(bgColor.slice(3, 5), 16);
+      const b = parseInt(bgColor.slice(5, 7), 16);
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + bgOpacity + ')';
+      const bgX = Math.min(contentLeft - 12, avatarX - 12);
+      const bgY = frameTop;
+      const bgW = Math.max(contentRight + 12, avatarX + avatarSize + 8) - bgX;
+      ctx.beginPath();
+      ctx.moveTo(bgX + 16, bgY);
+      ctx.lineTo(bgX + bgW - 16, bgY);
+      ctx.quadraticCurveTo(bgX + bgW, bgY, bgX + bgW, bgY + 16);
+      ctx.lineTo(bgX + bgW, bgY + frameHeight - 16);
+      ctx.quadraticCurveTo(bgX + bgW, bgY + frameHeight, bgX + bgW - 16, bgY + frameHeight);
+      ctx.lineTo(bgX + 16, bgY + frameHeight);
+      ctx.quadraticCurveTo(bgX, bgY + frameHeight, bgX, bgY + frameHeight - 16);
+      ctx.lineTo(bgX, bgY + 16);
+      ctx.quadraticCurveTo(bgX, bgY, bgX + 16, bgY);
+      ctx.closePath();
+      ctx.fill();
+
+      lines.forEach((line) => {
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#fff';
+        ctx.font = line.font;
+        ctx.fillText(line.text, contentLeft, y + line.offset);
+        y += lineHeight;
+      });
+
+      if (player) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+        ctx.clip();
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = 'https://crafatar.com/avatars/' + player + '?size=128';
+        ctx.drawImage(img, avatarX, avatarY, avatarSize, avatarSize);
+        ctx.restore();
+      }
+    }
+
+    async function update() {
+      try {
+        const [runData, sessionData, nphData] = await Promise.all([
+          getJSON(API + '/getRecentRuns?name=' + encodeURIComponent(player) + '&hours=1&limit=10'),
+          getJSON(API + '/getRecentRuns?name=' + encodeURIComponent(player) + '&hours=999999&hoursBetween=24&limit=5000'),
+          getJSON(API + '/getNPH?name=' + encodeURIComponent(player) + '&hours=24&hoursBetween=1')
+        ]);
+        const runs = Array.isArray(runData) ? runData : [];
+        const sessions = Array.isArray(sessionData) ? sessionData : [];
+        const latest = runs.sort((a, b) => (b.lastUpdated || 0) - (a.lastUpdated || 0))[0] || null;
+        const withTime = sessions.map(r => ({ ...r, _ts: r.lastUpdated || 0 })).filter(r => r._ts > 0).sort((a, b) => b._ts - a._ts);
+        const anchor = withTime[0];
+        const sessionRuns = anchor ? withTime.filter(r => anchor._ts - r._ts <= 2 * 60 * 60) : [];
+        draw({
+          playerName: player,
+          run: latest,
+          sessionRuns: sessionRuns,
+          sessionNph: nphData,
+          settings: { bgOpacity: 60, bgColor: '#000000', faceLeft: false }
+        });
+      } catch (e) {
+        console.error('Overlay update failed:', e);
+      }
+    }
+    setInterval(update, 1000);
+    update();
+  </script>
+</body>
+</html>`;
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(html);
+  });
+  return new Promise((resolve) => {
+    server.listen(OVERLAY_HTTP_PORT, '127.0.0.1', () => {
+      overlayHttpServer = server;
+      resolve('http://127.0.0.1:' + OVERLAY_HTTP_PORT);
+    });
+  });
+}
+
+function stopOverlayHttpServer() {
+  if (overlayHttpServer) {
+    overlayHttpServer.close();
+    overlayHttpServer = null;
+  }
+}
 
 function ensureProtocolRegistered() {
   if (process.platform !== 'win32') return Promise.resolve();
@@ -155,6 +328,7 @@ app.on('ready', () => {
 
 app.on('before-quit', () => {
   app.isQuitting = true;
+  stopOverlayHttpServer();
 });
 
 app.on('window-all-closed', () => {
@@ -543,4 +717,19 @@ ipcMain.handle('get-user-data-path', async () => {
   } catch (e) {
     return { success: false, error: e.message };
   }
+});
+
+ipcMain.handle('start-overlay-server', async () => {
+  try {
+    if (overlayHttpServer) return { success: true, url: 'http://127.0.0.1:' + OVERLAY_HTTP_PORT };
+    const url = await startOverlayHttpServer();
+    return { success: true, url };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('stop-overlay-server', async () => {
+  stopOverlayHttpServer();
+  return { success: true };
 });

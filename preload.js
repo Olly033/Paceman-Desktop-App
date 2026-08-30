@@ -12,7 +12,9 @@ contextBridge.exposeInMainWorld('pacemanAPI', {
   readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
   writeFile: (filePath, data) => ipcRenderer.invoke('write-file', filePath, data),
   clearCache: () => ipcRenderer.invoke('clear-cache'),
-  getUserDataPath: () => ipcRenderer.invoke('get-user-data-path')
+  getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
+  startOverlayServer: () => ipcRenderer.invoke('start-overlay-server'),
+  stopOverlayServer: () => ipcRenderer.invoke('stop-overlay-server')
 });
 
 ipcRenderer.on('protocol-args', (event, args) => {

@@ -865,6 +865,16 @@ body {
   .pace-card {
     grid-column: 1 / -1;
   }
+
+  .browser-source-card {
+    grid-column: 1 / -1;
+  }
+
+  .browser-source-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -3823,6 +3833,36 @@ input[type="range"]::-moz-range-thumb {
 .toggle input:checked + .toggle-slider::before {
   transform: translateX(20px);
   background: #fff;
+}
+
+.settings-number-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-number-control input[type="number"] {
+  width: 72px;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: monospace;
+  text-align: center;
+}
+
+.settings-number-control input[type="number"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+}
+
+.setting-unit {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 24px;
 }
 
 html {

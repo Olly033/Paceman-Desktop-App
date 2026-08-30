@@ -3530,6 +3530,34 @@
         }
       });
     }
+    const overlayStartServerBtn = document.getElementById("overlayStartServerBtn");
+    const overlayCopyUrlBtn = document.getElementById("overlayCopyUrlBtn");
+    const overlayBrowserUrlEl = document.getElementById("overlayBrowserUrl");
+    if (overlayStartServerBtn && window.pacemanAPI) {
+      overlayStartServerBtn.addEventListener("click", async () => {
+        const result = await window.pacemanAPI.startOverlayServer();
+        if (result && result.success) {
+          const url = result.url + '?player=' + encodeURIComponent(state.overlay.playerName || '');
+          overlayBrowserUrlEl.textContent = url;
+          overlayBrowserUrlEl.style.display = "";
+          overlayStartServerBtn.textContent = 'Server Running';
+          overlayStartServerBtn.disabled = true;
+        }
+      });
+    }
+    if (overlayCopyUrlBtn && overlayBrowserUrlEl) {
+      overlayCopyUrlBtn.addEventListener("click", async () => {
+        const text = overlayBrowserUrlEl.textContent.trim();
+        if (!text) return;
+        try {
+          await navigator.clipboard.writeText(text);
+          overlayCopyUrlBtn.classList.add("copied");
+          setTimeout(() => overlayCopyUrlBtn.classList.remove("copied"), 1500);
+        } catch (e) {
+          console.log("Copy browser URL failed", e);
+        }
+      });
+    }
     initSplitDetail();
     const autoOpenBtn = document.getElementById("autoOpenTwitchBtn");
     if (autoOpenBtn) {
