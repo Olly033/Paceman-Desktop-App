@@ -4581,6 +4581,9 @@
     } catch (e) {
       // ignore storage errors
     }
+    if (window.pacemanAPI && name) {
+      window.pacemanAPI.updateOverlayPlayer(name).catch(() => {});
+    }
     state.overlay.run = getOverlayPlayerRun();
     getOverlaySessionRuns(name, uuid).then((runs) => {
       state.overlay.sessionRuns = runs.slice(-20);

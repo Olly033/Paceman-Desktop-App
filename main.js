@@ -18,14 +18,28 @@ let activeDownloads = new Map();
 let win;
 let pendingProtocolArgs = null;
 let overlayHttpServer = null;
+let overlayHttpPlayerName = '';
 const OVERLAY_HTTP_PORT = 9876;
+
+ipcMain.handle('update-overlay-player', async (event, playerName) => {
+  overlayHttpPlayerName = playerName || '';
+  if (!overlayHttpServer && overlayHttpPlayerName) {
+    await startOverlayHttpServer();
+  }
+  return { success: true };
+});
 
 function startOverlayHttpServer() {
   if (overlayHttpServer) return;
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, `http://localhost:${OVERLAY_HTTP_PORT}`);
-    const playerName = url.searchParams.get('player') || '';
-    const html = `<!DOCTYPE html>
+    if (url.pathname === '/player') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ player: overlayHttpPlayerName || '' }));
+      return;
+    }
+    const requestedPlayer = url.searchParams.get('player') || overlayHttpPlayerName || '';
+    const escapedPlayer = requestedPlayer.replace(/'/g, "\\'");
 <html>
 <head>
   <meta charset="utf-8">
@@ -138,7 +152,7 @@ function startOverlayHttpServer() {
         ctx.clip();
         const img = new Image();
         img.crossOrigin = 'anonymous';
-        img.src = 'https://crafatar.com/avatars/' + player + '?size=128';
+        img.src = 'https://crafatar.com/avatars/' + encodeURIComponent(player) + '?size=128';
         ctx.drawImage(img, avatarX, avatarY, avatarSize, avatarSize);
         ctx.restore();
       }
@@ -146,11 +160,17 @@ function startOverlayHttpServer() {
 
     async function update() {
       try {
-        const [runData, sessionData, nphData] = await Promise.all([
+        const [runData, sessionData, nphData, playerData] = await Promise.all([
           getJSON(API + '/getRecentRuns?name=' + encodeURIComponent(player) + '&hours=1&limit=10'),
           getJSON(API + '/getRecentRuns?name=' + encodeURIComponent(player) + '&hours=999999&hoursBetween=24&limit=5000'),
-          getJSON(API + '/getNPH?name=' + encodeURIComponent(player) + '&hours=24&hoursBetween=1')
+          getJSON(API + '/getNPH?name=' + encodeURIComponent(player) + '&hours=24&hoursBetween=1'),
+          getJSON('/player')
         ]);
+        const latestPlayer = (playerData && playerData.player) || player;
+        if (latestPlayer && latestPlayer !== player) {
+          window.location.href = '/?player=' + encodeURIComponent(latestPlayer);
+          return;
+        }
         const runs = Array.isArray(runData) ? runData : [];
         const sessions = Array.isArray(sessionData) ? sessionData : [];
         const latest = runs.sort((a, b) => (b.lastUpdated || 0) - (a.lastUpdated || 0))[0] || null;

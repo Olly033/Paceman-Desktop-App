@@ -14,7 +14,8 @@ contextBridge.exposeInMainWorld('pacemanAPI', {
   clearCache: () => ipcRenderer.invoke('clear-cache'),
   getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
   startOverlayServer: () => ipcRenderer.invoke('start-overlay-server'),
-  stopOverlayServer: () => ipcRenderer.invoke('stop-overlay-server')
+  stopOverlayServer: () => ipcRenderer.invoke('stop-overlay-server'),
+  updateOverlayPlayer: (name) => ipcRenderer.invoke('update-overlay-player', name)
 });
 
 ipcRenderer.on('protocol-args', (event, args) => {
