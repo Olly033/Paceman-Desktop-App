@@ -2759,6 +2759,7 @@
     } else if (p === "overlay") {
       document.getElementById("page-overlay").classList.add("active");
       document.querySelector('[data-page="overlay"]').classList.add("active");
+      state.overlay._dirty = true;
       startOverlayUpdates();
     }
     const footer = document.getElementById("appFooter");
@@ -4595,6 +4596,14 @@
       if (prevId !== nextId) {
         state.overlay.run = latest;
         state.overlay._dirty = true;
+      } else if (nextId) {
+        const prevTimes = splitTimes(state.overlay.run || {});
+        const nextTimes = splitTimes(latest);
+        const changed = SPLIT_ORDER.some((k) => nextTimes[k] !== prevTimes[k]);
+        if (changed) {
+          state.overlay.run = latest;
+          state.overlay._dirty = true;
+        }
       }
     } catch (e) {
       // ignore API errors
@@ -4620,11 +4629,7 @@
         stopOverlayUpdates();
         return;
       }
-      const prevRun = state.overlay.run;
-      state.overlay.run = getOverlayPlayerRun();
-      const prevId = prevRun ? (prevRun.id || prevRun.worldId || prevRun.runId || prevRun._id || JSON.stringify(prevRun)) : null;
-      const nextId = state.overlay.run ? (state.overlay.run.id || state.overlay.run.worldId || state.overlay.run.runId || state.overlay.run._id || JSON.stringify(state.overlay.run)) : null;
-      if (state.overlay._dirty || prevId !== nextId) {
+      if (state.overlay._dirty) {
         drawOverlayCanvas();
         updateOverlayStatus();
         state.overlay._dirty = false;
@@ -4651,7 +4656,7 @@
           state.overlay._dirty = true;
         }
       });
-    }, 1000);
+    }, 250);
   }
 
   function stopOverlayUpdates() {
@@ -4659,6 +4664,9 @@
       clearInterval(state.overlay.intervalId);
       state.overlay.intervalId = null;
     }
+  }
+
+  function stopOverlayApiPolling() {
     if (state.overlay.apiIntervalId) {
       clearInterval(state.overlay.apiIntervalId);
       state.overlay.apiIntervalId = null;
