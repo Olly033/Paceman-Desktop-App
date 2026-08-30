@@ -131,7 +131,7 @@
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
     dailyLeaderboardTop10: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
-    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, sessionRuns: [], sessionNph: null, intervalId: null, apiIntervalId: null, paceTargets: {}, settings: { bgOpacity: 60, bgColor: "#000000", sessionGapMinutes: 45 }, _dirty: true },
+    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, sessionRuns: [], sessionNph: null, intervalId: null, apiIntervalId: null, paceTargets: {}, settings: { bgOpacity: 60, bgColor: "#000000", sessionGapMinutes: 45, faceLeft: false }, _dirty: true },
   };
 
   const settings = {
@@ -1903,6 +1903,7 @@
     const opacityValueEl = document.getElementById("overlayBgOpacityValue");
     const colorEl = document.getElementById("overlayBgColor");
     const colorValueEl = document.getElementById("overlayBgColorValue");
+    const faceLeftEl = document.getElementById("overlayFaceLeft");
 
     const saved = JSON.parse(localStorage.getItem("paceman_overlay_settings") || "null");
     if (saved) {
@@ -1936,6 +1937,26 @@
         localStorage.setItem("paceman_overlay_settings", JSON.stringify(state.overlay.settings));
         state.overlay._dirty = true;
         drawOverlayCanvas();
+      });
+    }
+
+    if (faceLeftEl) {
+      faceLeftEl.checked = !!state.overlay.settings.faceLeft;
+      faceLeftEl.addEventListener("change", () => {
+        state.overlay.settings.faceLeft = faceLeftEl.checked;
+        localStorage.setItem("paceman_overlay_settings", JSON.stringify(state.overlay.settings));
+        state.overlay._dirty = true;
+        drawOverlayCanvas();
+      });
+    }
+
+    const togglePathBtn = document.getElementById("overlayTogglePathBtn");
+    const pathEl = document.getElementById("overlayPath");
+    if (togglePathBtn && pathEl) {
+      pathEl.style.display = "none";
+      togglePathBtn.addEventListener("click", () => {
+        const hidden = pathEl.style.display === "none";
+        pathEl.style.display = hidden ? "" : "none";
       });
     }
   }
@@ -4751,9 +4772,10 @@
     const settings = state.overlay.settings || {};
     const bgOpacity = Math.max(0, Math.min(100, settings.bgOpacity ?? 60)) / 100;
     const bgColor = settings.bgColor || "#000000";
+    const faceLeft = !!settings.faceLeft;
 
     const paddingLeft = 20;
-    const paddingRight = 20;
+    const paddingRight = faceLeft ? 20 : 40;
 
     const run = state.overlay.run;
     const name = state.overlay.playerName || "Player";
@@ -4772,31 +4794,31 @@
     const deltaText = delta != null ? ((delta > 0 ? "+" : "-") + (Math.abs(delta) < 60 ? Math.abs(delta) : fmt(Math.abs(delta) * 1000))) : null;
     const deltaColor = delta != null && delta <= 0 ? "#4ade80" : "#f87171";
 
-    const avatarSize = 80;
-    const frameHeight = 175;
+    const avatarSize = 64;
+    const frameHeight = 140;
     const frameTop = (H - frameHeight) / 2;
-    const avatarX = W - avatarSize - paddingRight;
+    const avatarX = faceLeft ? paddingLeft : W - avatarSize - paddingRight;
     const avatarY = frameTop + (frameHeight - avatarSize) / 2;
-    const contentLeft = paddingLeft;
-    const contentRight = avatarX - 16;
+    const contentLeft = faceLeft ? paddingLeft + avatarSize + 12 : paddingLeft;
+    const contentRight = faceLeft ? W - paddingRight : avatarX - 16;
 
     let lines = [];
-    lines.push({ text: name, color: textPrimary, font: "bold 36px Inter, sans-serif", offset: 24 });
+    lines.push({ text: name, color: textPrimary, font: "bold 28px Inter, sans-serif", offset: 18 });
 
     if (currentKey) {
       const splitLabel = SPLITS[currentKey] || "Gamestate";
-      lines.push({ text: splitLabel, color: textSecondary, font: "28px Inter, sans-serif", offset: 20 });
+      lines.push({ text: splitLabel, color: textSecondary, font: "22px Inter, sans-serif", offset: 14 });
       const timerText = currentTime != null ? fmt(currentTime) : "XX:XX";
-      lines.push({ text: timerText, color: textPrimary, font: "bold 36px Inter, sans-serif", offset: 24, delta: deltaText, deltaColor: deltaColor });
+      lines.push({ text: timerText, color: textPrimary, font: "bold 28px Inter, sans-serif", offset: 18, delta: deltaText, deltaColor: deltaColor });
     } else if (state.overlay.sessionRuns && state.overlay.sessionRuns.length > 0) {
       const netherStats = calcSplitStats(state.overlay.sessionRuns, "nether");
       if (netherStats.count > 0) {
         const nph = state.overlay.sessionNph && state.overlay.sessionNph.rnph != null ? state.overlay.sessionNph.rnph.toFixed(2) : "0.00";
-        lines.push({ text: `${netherStats.count} nethers · avg ${netherStats.avg} · NPH ${nph}`, color: textSecondary, font: "28px Inter, sans-serif", offset: 20 });
+        lines.push({ text: `${netherStats.count} nethers · avg ${netherStats.avg} · NPH ${nph}`, color: textSecondary, font: "22px Inter, sans-serif", offset: 14 });
       }
     }
 
-    const lineHeight = 44;
+    const lineHeight = 34;
     const totalLines = lines.length;
     const contentHeight = totalLines * lineHeight;
     const blockTop = frameTop + (frameHeight - contentHeight) / 2;
@@ -4808,10 +4830,10 @@
     ctx.fillStyle = `rgba(${r},${g},${b},1)`;
     ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = `rgba(${r},${g},${b},${bgOpacity})`;
-    const bgX = Math.min(contentLeft - 16, avatarX - 16);
+    const bgX = Math.min(contentLeft - 12, avatarX - 12);
     const bgY = frameTop;
-    const bgW = Math.max(contentRight + 16, avatarX + avatarSize + 8) - bgX;
-    roundRect(ctx, bgX, bgY, bgW, frameHeight, 12);
+    const bgW = Math.max(contentRight + 12, avatarX + avatarSize + 8) - bgX;
+    roundRect(ctx, bgX, bgY, bgW, frameHeight, 10);
     ctx.fill();
 
     lines.forEach((line) => {
@@ -4821,9 +4843,9 @@
       ctx.fillText(line.text, contentLeft, y + line.offset);
       if (line.delta) {
         ctx.textAlign = "right";
-        ctx.fillStyle = line.deltaColor;
-        ctx.font = "bold 32px Inter, sans-serif";
-        ctx.fillText(line.delta, contentRight, y + line.offset);
+          ctx.fillStyle = line.deltaColor;
+          ctx.font = "bold 26px Inter, sans-serif";
+          ctx.fillText(line.delta, contentRight, y + line.offset);
         ctx.textAlign = "left";
       }
       y += lineHeight;

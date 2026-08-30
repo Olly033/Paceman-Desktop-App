@@ -273,26 +273,25 @@
             <div class="glass-card preview-card">
               <div class="card-header">
                 <h2>Preview</h2>
-                <span class="card-badge">600 × 250</span>
+                <span class="card-badge">600 × 180</span>
               </div>
               <div class="canvas-wrapper">
-                <canvas id="overlayCanvas" width="600" height="250"></canvas>
+                <canvas id="overlayCanvas" width="600" height="180"></canvas>
               </div>
             </div>
           </div>
           <div class="overlay-sidebar">
-            <div class="glass-card status-card">
-              <div class="card-header">
-                <h2>Status</h2>
-                <div class="status-dot" id="statusDot"></div>
-              </div>
-              <p class="status-text" id="overlayStatus">Select a player to start</p>
-            </div>
             <div class="glass-card path-card">
               <div class="card-header">
                 <h2>Export Path</h2>
+                <button class="theme-btn" id="overlayTogglePathBtn" title="Toggle path visibility">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
               </div>
-              <div class="path-display" id="overlayPath" title="Local file path - use copy button to copy"></div>
+              <div class="path-display" id="overlayPath" title="Local file path - use copy button to copy" style="display:none"></div>
             </div>
             <div class="glass-card pace-card">
               <div class="card-header">
@@ -320,6 +319,13 @@
                     <input type="color" id="overlayBgColor" value="#000000">
                     <span class="setting-value" id="overlayBgColorValue">#000000</span>
                   </div>
+                </label>
+                <label class="setting-row">
+                  <span>Face on Left</span>
+                  <label class="toggle">
+                    <input type="checkbox" id="overlayFaceLeft">
+                    <span class="toggle-slider"></span>
+                  </label>
                 </label>
               </div>
             </div>
