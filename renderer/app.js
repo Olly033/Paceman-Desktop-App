@@ -4629,11 +4629,7 @@
         stopOverlayUpdates();
         return;
       }
-      const prevRun = state.overlay.run;
-      state.overlay.run = getOverlayPlayerRun();
-      const prevId = prevRun ? (prevRun.id || prevRun.worldId || prevRun.runId || prevRun._id || JSON.stringify(prevRun)) : null;
-      const nextId = state.overlay.run ? (state.overlay.run.id || state.overlay.run.worldId || state.overlay.run.runId || state.overlay.run._id || JSON.stringify(state.overlay.run)) : null;
-      if (state.overlay._dirty || prevId !== nextId) {
+      if (state.overlay._dirty) {
         drawOverlayCanvas();
         updateOverlayStatus();
         state.overlay._dirty = false;
@@ -4806,11 +4802,11 @@
     const blockTop = frameTop + (frameHeight - contentHeight) / 2;
     let y = blockTop;
 
-    ctx.clearRect(0, 0, W, H);
-
     const r = parseInt(bgColor.slice(1, 3), 16);
     const g = parseInt(bgColor.slice(3, 5), 16);
     const b = parseInt(bgColor.slice(5, 7), 16);
+    ctx.fillStyle = `rgba(${r},${g},${b},1)`;
+    ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = `rgba(${r},${g},${b},${bgOpacity})`;
     const bgX = Math.min(contentLeft - 16, avatarX - 16);
     const bgY = frameTop;
