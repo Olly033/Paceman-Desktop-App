@@ -4774,8 +4774,8 @@
     const bgColor = settings.bgColor || "#000000";
     const faceLeft = !!settings.faceLeft;
 
-    const paddingLeft = 20;
-    const paddingRight = faceLeft ? 20 : 40;
+    const paddingLeft = 24;
+    const paddingRight = faceLeft ? 24 : 48;
 
     const run = state.overlay.run;
     const name = state.overlay.playerName || "Player";
