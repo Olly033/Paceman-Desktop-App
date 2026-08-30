@@ -4645,15 +4645,17 @@
       const name = state.overlay.playerName;
       const uuid = state.overlay.playerUuid;
       getOverlaySessionRuns(name, uuid).then((runs) => {
-        if (!state.overlay.sessionRuns || state.overlay.sessionRuns.length === 0 || runs.length !== state.overlay.sessionRuns.length) {
+        if (Array.isArray(runs) && runs.length > 0) {
           state.overlay.sessionRuns = runs.slice(-20);
           state.overlay._dirty = true;
         }
       });
       getOverlayNph(name).then((nph) => {
-        if (!state.overlay.sessionNph || state.overlay.sessionNph.rnph !== (nph && nph.rnph)) {
-          state.overlay.sessionNph = nph;
-          state.overlay._dirty = true;
+        if (nph && nph.rnph != null) {
+          if (!state.overlay.sessionNph || state.overlay.sessionNph.rnph !== nph.rnph) {
+            state.overlay.sessionNph = nph;
+            state.overlay._dirty = true;
+          }
         }
       });
     }, 250);
