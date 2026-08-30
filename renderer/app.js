@@ -4565,7 +4565,7 @@
       })
       .sort((a, b) => (getRunTimestamp(b) || 0) - (getRunTimestamp(a) || 0))[0] || null;
     if (!run) return null;
-    const runTs = getRunTimestamp(run) || 0;
+    const runTs = (run.lastUpdated || getRunTimestamp(run) || 0);
     if (runTs > 0 && now - runTs * 1000 > 15 * 60 * 1000) return null;
     const times = splitTimes(run);
     const hasEvents = (run.eventList || []).length > 0;
@@ -4581,7 +4581,7 @@
     try {
       const data = await getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=1&limit=10`);
       if (!Array.isArray(data) || data.length === 0) return;
-      const withTime = data.map((r) => ({ ...r, _ts: getRunTimestamp(r) })).filter((r) => r._ts > 0);
+      const withTime = data.map((r) => ({ ...r, _ts: r.lastUpdated || getRunTimestamp(r) })).filter((r) => r._ts > 0);
       if (withTime.length === 0) return;
       const sorted = withTime.sort((a, b) => b._ts - a._ts);
       const latest = sorted[0];
@@ -4629,7 +4629,11 @@
         stopOverlayUpdates();
         return;
       }
-      if (state.overlay._dirty) {
+      const prevRun = state.overlay.run;
+      state.overlay.run = getOverlayPlayerRun();
+      const prevId = prevRun ? (prevRun.id || prevRun.worldId || prevRun.runId || prevRun._id || JSON.stringify(prevRun)) : null;
+      const nextId = state.overlay.run ? (state.overlay.run.id || state.overlay.run.worldId || state.overlay.run.runId || state.overlay.run._id || JSON.stringify(state.overlay.run)) : null;
+      if (state.overlay._dirty || prevId !== nextId) {
         drawOverlayCanvas();
         updateOverlayStatus();
         state.overlay._dirty = false;
