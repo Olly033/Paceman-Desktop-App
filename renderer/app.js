@@ -4827,8 +4827,7 @@
     const r = parseInt(bgColor.slice(1, 3), 16);
     const g = parseInt(bgColor.slice(3, 5), 16);
     const b = parseInt(bgColor.slice(5, 7), 16);
-    ctx.fillStyle = `rgba(${r},${g},${b},1)`;
-    ctx.fillRect(0, 0, W, H);
+    ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = `rgba(${r},${g},${b},${bgOpacity})`;
     const bgX = Math.min(contentLeft - 12, avatarX - 12);
     const bgY = frameTop;
