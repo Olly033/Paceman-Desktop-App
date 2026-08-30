@@ -4795,7 +4795,7 @@
     const deltaColor = delta != null && delta <= 0 ? "#4ade80" : "#f87171";
 
     const avatarSize = 64;
-    const frameHeight = 140;
+    const frameHeight = 120;
     const frameTop = (H - frameHeight) / 2;
     const avatarX = faceLeft ? paddingLeft : W - avatarSize - paddingRight;
     const avatarY = frameTop + (frameHeight - avatarSize) / 2;
@@ -4833,7 +4833,7 @@
     const bgX = Math.min(contentLeft - 12, avatarX - 12);
     const bgY = frameTop;
     const bgW = Math.max(contentRight + 12, avatarX + avatarSize + 8) - bgX;
-    roundRect(ctx, bgX, bgY, bgW, frameHeight, 10);
+    roundRect(ctx, bgX, bgY, bgW, frameHeight, 16);
     ctx.fill();
 
     lines.forEach((line) => {
