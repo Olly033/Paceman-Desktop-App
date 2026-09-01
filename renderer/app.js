@@ -188,8 +188,7 @@
     const displayKeys = getSplitDisplayKeys();
     let html = "";
     for (const displayKey of displayKeys) {
-      const statKey = getSplitStatKey(displayKey);
-      const igt = data[statKey];
+      const igt = getRunSplitValue(data, displayKey);
       html += `<div class="detail-split" data-igt="${igt != null ? igt : ''}">
         <div class="detail-split-name">${getSplitDisplayName(displayKey)}</div>
         <div class="detail-split-times">
@@ -973,13 +972,15 @@
     return stats;
   }
 
-  function updateProfileCards(stats) {
+  function updateProfileCards(stats, runs) {
     const wrap = document.getElementById("profileSplits");
     if (!wrap) return;
     const displayKeys = getSplitDisplayKeys();
     for (const displayKey of displayKeys) {
       const statKey = getSplitStatKey(displayKey);
-      const s = stats[statKey] || { count: 0, avg: "0:00" };
+      const s = (runs && state.structureView === "firstSecond" && (displayKey === "first_structure" || displayKey === "second_structure"))
+        ? getDisplaySplitStats(runs, displayKey)
+        : (stats[statKey] || { count: 0, avg: "0:00" });
       const cards = wrap.querySelectorAll(".split-card");
       for (const card of cards) {
         const nameEl = card.querySelector(".split-name");
@@ -1013,11 +1014,13 @@
       const displayKeys = getSplitDisplayKeys();
       for (const displayKey of displayKeys) {
         const statKey = getSplitStatKey(displayKey);
-        const s = localStats ? localStats[statKey] : (stats[statKey] || { count: 0, avg: "0:00" });
+        const s = localStats && state.structureView === "firstSecond" && (displayKey === "first_structure" || displayKey === "second_structure")
+          ? getDisplaySplitStats(runs, displayKey)
+          : (localStats ? localStats[statKey] : (stats[statKey] || { count: 0, avg: "0:00" }));
         const card = document.createElement("div");
         card.className = "split-card";
         card.innerHTML = `<div class="split-name">${getSplitDisplayName(displayKey)}</div><div class="split-value">${s.count}</div><div class="split-count">Avg ${s.avg}</div>`;
-        card.addEventListener("click", () => openSplitDetail(statKey));
+        card.addEventListener("click", () => openSplitDetail(displayKey));
         if (wrap) wrap.appendChild(card);
       }
       const fin = localStats ? localStats.finish : (stats.finish || { count: 0, avg: "0:00" });
@@ -1255,14 +1258,13 @@
     const runs = session.runs;
     const orderedKeys = getSplitDisplayKeys();
     for (const displayKey of orderedKeys) {
-      const statKey = getSplitStatKey(displayKey);
-      const stats = calcSplitStats(runs, statKey);
+      const stats = getDisplaySplitStats(runs, displayKey);
       const count = stats.count;
       const avg = stats.avg;
       const card = document.createElement("div");
       card.className = "split-card";
       card.innerHTML = `<div class="split-name">${getSplitDisplayName(displayKey)}</div><div class="split-value">${count}</div><div class="split-count">Avg ${avg}</div>`;
-      card.addEventListener("click", () => openSplitDetail(statKey));
+      card.addEventListener("click", () => openSplitDetail(displayKey));
       if (splitsWrap) splitsWrap.appendChild(card);
     }
     const finishes = runs.filter((r) => r.finish != null).map((r) => r.finish);
@@ -1303,6 +1305,53 @@
     const count = values.length;
     const avg = count > 0 ? fmt(Math.round(values.reduce((a, b) => a + b, 0) / count)) : "0:00";
     return { count, avg };
+  }
+
+  function getRunSplitValue(run, displayKey) {
+    if (displayKey === "first_structure") {
+      if (run.bastion != null) return run.bastion;
+      if (run.fortress != null) return run.fortress;
+      return null;
+    }
+    if (displayKey === "second_structure") {
+      if (run.bastion != null && run.fortress != null) return run.fortress;
+      return null;
+    }
+    return run[displayKey];
+  }
+
+  function getDisplaySplitStats(runs, displayKey) {
+    if (displayKey === "first_structure" || displayKey === "second_structure") {
+      if (state.structureView === "bastionFort") {
+        const statKey = getSplitStatKey(displayKey);
+        return calcSplitStats(runs, statKey);
+      }
+      const first = [];
+      const second = [];
+      for (const r of runs) {
+        const bastion = r.bastion;
+        const fortress = r.fortress;
+        if (bastion != null && fortress != null) {
+          first.push(bastion);
+          second.push(fortress);
+        } else if (bastion != null) {
+          first.push(bastion);
+        } else if (fortress != null) {
+          first.push(fortress);
+        }
+      }
+      if (displayKey === "first_structure") {
+        const count = first.length;
+        const avg = count > 0 ? fmt(Math.round(first.reduce((a, b) => a + b, 0) / count)) : "0:00";
+        return { count, avg };
+      }
+      if (displayKey === "second_structure") {
+        const count = second.length;
+        const avg = count > 0 ? fmt(Math.round(second.reduce((a, b) => a + b, 0) / count)) : "0:00";
+        return { count, avg };
+      }
+    }
+    return calcSplitStats(runs, displayKey);
   }
 
   function calcFirstSecondStructure(runs) {
@@ -1468,7 +1517,7 @@
       if (generation === profileRunsGeneration) {
         const runs = state.profile.timeframeRuns || [];
         if (runs.length > 0) {
-          updateProfileCards(calcStatsFromRuns(runs));
+          updateProfileCards(calcStatsFromRuns(runs), runs);
         }
       }
     }
@@ -1534,8 +1583,7 @@
         let cells = "";
         const displayKeys = getSplitDisplayKeys();
         for (const displayKey of displayKeys) {
-          const statKey = getSplitStatKey(displayKey);
-          const t = r[statKey];
+          const t = getRunSplitValue(r, displayKey);
           cells += `<div class="run-cell ${t == null ? "empty" : ""}">${t == null ? "—" : fmt(t)}</div>`;
         }
         const runId = r.id || r.worldId || r.runId || r._id || null;
@@ -1748,8 +1796,7 @@
       let html = "";
       const displayKeys = getSplitDisplayKeys();
       for (const displayKey of displayKeys) {
-        const statKey = getSplitStatKey(displayKey);
-        const igt = data[statKey];
+        const igt = getRunSplitValue(data, displayKey);
         html += `<div class="detail-split" data-igt="${igt != null ? igt : ''}">
           <div class="detail-split-name">${getSplitDisplayName(displayKey)}</div>
           <div class="detail-split-times">
@@ -1893,22 +1940,22 @@
     vodTrimState.selectionEnd = 0;
   }
 
-  function openSplitDetail(splitKey) {
+  function openSplitDetail(displayKey) {
     const panel = document.getElementById("splitDetailPanel");
     const titleEl = document.getElementById("splitDetailTitle");
     if (!panel || !titleEl) return;
 
-    const runs = (state.profile.timeframeRuns || []).filter((r) => r[splitKey] != null);
+    const runs = (state.profile.timeframeRuns || []).filter((r) => getRunSplitValue(r, displayKey) != null);
     if (runs.length === 0) {
-      titleEl.textContent = SPLITS[splitKey] || splitKey;
+      titleEl.textContent = getSplitDisplayName(displayKey);
       document.getElementById("splitDetailList").innerHTML = '<div class="loading">No runs with this split in the current timeframe.</div>';
       document.getElementById("splitDetailPagination").innerHTML = "";
       panel.classList.add("visible");
       return;
     }
 
-    splitDetailState = { split: splitKey, runs, page: 1, perPage: 10, sortAsc: true };
-    titleEl.textContent = SPLITS[splitKey] || splitKey;
+    splitDetailState = { split: displayKey, runs, page: 1, perPage: 10, sortAsc: true };
+    titleEl.textContent = getSplitDisplayName(displayKey);
     renderSplitDetail();
     panel.classList.add("visible");
     updateSessionStats();
@@ -1926,7 +1973,7 @@
     const sortBtn = document.getElementById("splitDetailSort");
     if (!listEl) return;
 
-    const sorted = [...runs].sort((a, b) => sortAsc ? a[split] - b[split] : b[split] - a[split]);
+    const sorted = [...runs].sort((a, b) => sortAsc ? getRunSplitValue(a, split) - getRunSplitValue(b, split) : getRunSplitValue(b, split) - getRunSplitValue(a, split));
     const totalPages = Math.max(1, Math.ceil(sorted.length / perPage));
     const safePage = Math.min(page, totalPages);
     const start = (safePage - 1) * perPage;
@@ -1937,7 +1984,7 @@
       const row = document.createElement("div");
       row.className = "split-detail-row";
       const runId = r.id || r.worldId || r.runId || r._id || null;
-      const timeStr = fmt(r[split]);
+      const timeStr = fmt(getRunSplitValue(r, split));
       const furthest = furthestIndex(r);
       const furthestText = furthest.key ? SPLITS[furthest.key] || furthest.key : "—";
       row.innerHTML = `<span class="split-detail-time">${timeStr}</span><span class="split-detail-furthest">Furthest: ${furthestText}</span><span class="split-detail-id">#${runId != null ? runId : "?"}</span>`;
@@ -3141,6 +3188,7 @@
       const processedRuns = Array.isArray(runs) ? runs.map((r) => ({ ...r, ...splitTimes(r) })) : [];
       const stats = processedRuns.length > 0 ? calcStatsFromRuns(processedRuns) : {};
       player.splits = stats;
+      player._runs = processedRuns;
       player.nph = nph;
       player.tf = tf;
 
@@ -3184,8 +3232,14 @@
       const displayKeys = getSplitDisplayKeys();
       for (const displayKey of displayKeys) {
         const statKey = getSplitStatKey(displayKey);
-        const s = player.splits[statKey] || { count: 0, avg: "0:00" };
-        const otherS = showArrows && other && other.splits ? (other.splits[statKey] || { count: 0, avg: "0:00" }) : null;
+        const baseS = player.splits[statKey] || { count: 0, avg: "0:00" };
+        const s = (state.structureView === "firstSecond" && (displayKey === "first_structure" || displayKey === "second_structure"))
+          ? getDisplaySplitStats(player._runs || [], displayKey)
+          : baseS;
+        const otherBaseS = showArrows && other && other.splits ? (other.splits[statKey] || { count: 0, avg: "0:00" }) : null;
+        const otherS = (state.structureView === "firstSecond" && (displayKey === "first_structure" || displayKey === "second_structure"))
+          ? getDisplaySplitStats(other && other._runs ? other._runs : [], displayKey)
+          : otherBaseS;
 
         const countArrow = showArrows ? getStatArrow("count", s.count, otherS ? otherS.count : null) : "";
         const avgArrow = showArrows ? getStatArrow("avg", parseAvg(s.avg), otherS ? parseAvg(otherS.avg) : null) : "";
