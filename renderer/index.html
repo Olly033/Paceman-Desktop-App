@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Paceman v2.1.3</title>
+  <title>Paceman v2.1.4</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -173,6 +173,11 @@
     </div>
     <div class="recent-sessions-section" id="recentSessionsSection">
       <h3 class="recent-sections-title">Recent Sessions</h3>
+      <div class="recent-sessions-controls">
+        <button class="structure-toggle" id="structureToggle" title="Toggle Bastion/Fortress vs 1st/2nd Structure">
+          <span class="structure-toggle-label">Bastion/Fort</span>
+        </button>
+      </div>
       <div class="recent-sessions" id="recentSessions"></div>
     </div>
   </div>
@@ -301,17 +306,18 @@
               <div class="pace-inputs" id="paceInputs"></div>
               <button class="theme-btn primary-btn" id="paceSaveBtn">Save Pace</button>
             </div>
-            <div class="glass-card browser-source-card">
-              <div class="card-header">
-                <h2>Browser Source</h2>
-                <span class="card-hint">For OBS / streaming</span>
+              <div class="glass-card browser-source-card">
+                <div class="card-header">
+                  <h2>Browser Source</h2>
+                  <span class="card-hint">For OBS / streaming</span>
+                </div>
+                <div class="browser-source-controls">
+                  <button class="theme-btn primary-btn" id="overlayStartServerBtn">Start Server</button>
+                  <button class="theme-btn" id="overlayCopyUrlBtn" title="Copy browser source URL">Copy URL</button>
+                </div>
+                <div class="path-display" id="overlayBrowserUrl" style="display:none"></div>
+                <div class="obs-tip">In Toolscreen browser source settings, check <strong>Transparent (slower)</strong> for best results.</div>
               </div>
-              <div class="browser-source-controls">
-                <button class="theme-btn primary-btn" id="overlayStartServerBtn">Start Server</button>
-                <button class="theme-btn" id="overlayCopyUrlBtn" title="Copy browser source URL">Copy URL</button>
-              </div>
-              <div class="path-display" id="overlayBrowserUrl" style="display:none"></div>
-            </div>
             <div class="glass-card settings-card">
               <div class="card-header">
                 <h2>Overlay Settings</h2>
@@ -329,6 +335,13 @@
                   <div class="setting-control color-control">
                     <input type="color" id="overlayBgColor" value="#000000">
                     <span class="setting-value" id="overlayBgColorValue">#000000</span>
+                  </div>
+                </label>
+                <label class="setting-row">
+                  <span>Overlay Width</span>
+                  <div class="setting-control">
+                    <input type="range" id="overlayWidth" value="600" min="400" max="1200" step="50">
+                    <span class="setting-value" id="overlayWidthValue">600px</span>
                   </div>
                 </label>
                 <label class="setting-row">

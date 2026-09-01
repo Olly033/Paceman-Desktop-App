@@ -221,10 +221,18 @@
     return `${MCHEADS}/skin/${id}`;
   }
 
-  async function getJSON(url) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    return res.json();
+  async function getJSON(url, timeout = 10000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return await res.json();
+    } catch (e) {
+      clearTimeout(timeoutId);
+      throw e;
+    }
   }
 
   async function resolveUUID(name) {
@@ -280,6 +288,13 @@
       const key = EVENT_TO_SPLIT[ev.eventId.replace("rsg.", "")];
       if (key) best = { key, igt: ev.igt, rta: ev.rta };
     }
+    if (!best) {
+      for (const k of SPLIT_ORDER) {
+        if (run[k] != null) {
+          best = { key: k, igt: run[k], rta: run[k] };
+        }
+      }
+    }
     return best;
   }
 
@@ -294,6 +309,19 @@
         key = k;
       }
     }
+    if (idx < 0) {
+      for (const ev of run.eventList || []) {
+        const mapped = EVENT_TO_SPLIT[ev.eventId.replace("rsg.", "")];
+        if (mapped) {
+          const i = SPLIT_ORDER.indexOf(mapped);
+          if (i > idx) {
+            idx = i;
+            time = ev.igt;
+            key = mapped;
+          }
+        }
+      }
+    }
     return { idx, time, key };
   }
 
@@ -302,6 +330,11 @@
     for (const ev of run.eventList || []) {
       const key = EVENT_TO_SPLIT[ev.eventId.replace("rsg.", "")];
       if (key) t[key] = ev.igt;
+    }
+    if (!Object.keys(t).length) {
+      for (const k of SPLIT_ORDER) {
+        if (run[k] != null) t[k] = run[k];
+      }
     }
     return t;
   }
@@ -439,11 +472,9 @@
     const noticeEl = document.getElementById("profileNameNotice");
     const noticeTextEl = document.getElementById("profileNameNoticeText");
     const noticeLinkEl = document.getElementById("profileNameNoticeLink");
-    console.log("Notice elements:", !!noticeEl, !!noticeTextEl, !!noticeLinkEl);
     if (noticeEl) noticeEl.style.display = "none";
     if (uuid) {
       const currentName = await getCurrentNameForUUID(uuid);
-      console.log("Name check:", name, "->", currentName, "changed?", currentName && currentName !== name);
       if (currentName && currentName !== name) {
         if (noticeTextEl) noticeTextEl.textContent = `${name} is now known as ${currentName}`;
         if (noticeLinkEl) {
@@ -906,7 +937,7 @@
         })();
       `);
     } catch (e) {
-      console.log("Speed control failed", e);
+      console.warn("Speed control failed", e);
     }
   }
 

@@ -531,7 +531,7 @@ body {
 }
 
 .main-content:has(#page-leaderboard.active) {
-  padding-top: 0;
+  padding-top: 16px;
 }
 
 .main-content:has(#page-overlay.active) {
@@ -874,6 +874,20 @@ body {
     display: flex;
     gap: 8px;
     margin-top: 8px;
+  }
+
+  .obs-tip {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .obs-tip strong {
+    color: #fff;
   }
 }
 
@@ -1666,6 +1680,35 @@ body {
 
 .recent-sessions-section {
   margin-top: 4px;
+}
+
+.recent-sessions-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.structure-toggle {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.structure-toggle:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.structure-toggle.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
 }
 
 .recent-sections-title {

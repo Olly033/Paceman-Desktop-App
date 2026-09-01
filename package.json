@@ -1,6 +1,6 @@
 {
   "name": "paceman-app",
-  "version": "2.1.3",
+  "version": "2.1.4",
   "description": "Paceman MCSR Desktop App",
   "main": "main.js",
   "scripts": {
@@ -11,10 +11,9 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^28.0.0",
+    "electron": "^28.3.3",
     "electron-builder": "^24.9.1"
   },
-  "dependencies": {},
   "lavamoat": {
     "allowScripts": {
       "electron": true,
@@ -28,18 +27,28 @@
     "protocols": [
       {
         "name": "paceman",
-        "schemes": ["paceman"]
+        "schemes": [
+          "paceman"
+        ]
       }
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64", "ia32", "arm64"]
+          "arch": [
+            "x64",
+            "ia32",
+            "arm64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64", "ia32", "arm64"]
+          "arch": [
+            "x64",
+            "ia32",
+            "arm64"
+          ]
         }
       ]
     },

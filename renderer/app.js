@@ -78,17 +78,42 @@
   }
 
   function getFirstStructure(bastion, fortress) {
-    if (bastion !== null && fortress == null) return bastion;
-    if (bastion == null && fortress !== null) return fortress;
-    if (bastion !== null && fortress !== null) {
-      return bastion < fortress ? bastion : fortress;
-    }
+    if (bastion !== null) return bastion;
+    if (fortress !== null) return fortress;
     return null;
   }
 
   function getSecondStructure(bastion, fortress) {
-    if (bastion == null || fortress == null) return null;
-    return bastion < fortress ? fortress : bastion;
+    if (bastion !== null && fortress !== null) return fortress;
+    return null;
+  }
+
+  function getStructureLabels() {
+    const mode = state.structureView || "firstSecond";
+    if (mode === "bastionFort") {
+      return { first: "Bastion", second: "Fortress", firstKey: "bastion", secondKey: "fortress" };
+    }
+    return { first: "1st Structure", second: "2nd Structure", firstKey: "bastion", secondKey: "fortress" };
+  }
+
+  function getSplitDisplayKeys() {
+    const mode = state.structureView || "firstSecond";
+    if (mode === "bastionFort") {
+      return SPLIT_ORDER;
+    }
+    return ["nether", "first_structure", "second_structure", "first_portal", "stronghold", "end", "finish"];
+  }
+
+  function getSplitStatKey(displayKey) {
+    if (displayKey === "first_structure") return "bastion";
+    if (displayKey === "second_structure") return "fortress";
+    return displayKey;
+  }
+
+  function getSplitDisplayName(displayKey) {
+    if (displayKey === "first_structure") return "1st Structure";
+    if (displayKey === "second_structure") return "2nd Structure";
+    return SPLITS[displayKey] || displayKey;
   }
 
   const TWITCH_ICON =
@@ -125,13 +150,15 @@
     autoOpenTwitch: JSON.parse(localStorage.getItem("paceman_autoOpenTwitch") || "false"),
     recents: JSON.parse(localStorage.getItem("paceman_recents") || "[]"),
     playerCache: {},
+    mojangNameCache: {},
     favorites: JSON.parse(localStorage.getItem("paceman_favorites") || "[]"),
     favoritePBs: JSON.parse(localStorage.getItem("paceman_favorite_pbs") || "{}"),
-    profile: { name: null, uuid: null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null, allRunsSort: "newest" },
+    profile: { name: null, uuid: null, tf: "daily", allRuns: [], timeframeRuns: [], pbRun: null, page: 1, socials: null, allRunsSort: "newest", structureView: "firstSecond" },
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
     dailyLeaderboardTop10: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
-    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, sessionRuns: [], sessionNph: null, intervalId: null, apiIntervalId: null, paceTargets: {}, settings: { bgOpacity: 60, bgColor: "#000000", sessionGapMinutes: 45, faceLeft: false }, _dirty: true },
+    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, sessionRuns: [], sessionNph: null, intervalId: null, apiIntervalId: null, paceTargets: {}, settings: { bgOpacity: 60, bgColor: "#000000", sessionGapMinutes: 45, faceLeft: false, width: 600 }, _dirty: true },
+    structureView: localStorage.getItem("paceman_structure_view") || "firstSecond",
   };
 
   const settings = {
@@ -145,14 +172,33 @@
 
   const autoOpenedStreams = new Set();
 
-  console.log('APP LOADED - looking for download button:', document.getElementById("downloadRunBtn"));
-  
   let currentVod = { id: null, offset: 0, currentTime: 0 };
   let currentRunId = null;
   let currentRunData = null;
   let currentDownloadId = null;
   let splitDetailState = { split: null, runs: [], page: 1, perPage: 10, sortAsc: true };
   let vodTrimState = { active: false, timelineStart: 0, timelineDuration: 0, selectionStart: 0, selectionEnd: 0 };
+  let playheadInterval = null;
+
+  function refreshCurrentRunDetail() {
+    if (!currentRunId) return;
+    const data = currentRunData || {};
+    const splitsEl = document.getElementById("runDetailSplits");
+    if (!splitsEl) return;
+    const displayKeys = getSplitDisplayKeys();
+    let html = "";
+    for (const displayKey of displayKeys) {
+      const statKey = getSplitStatKey(displayKey);
+      const igt = data[statKey];
+      html += `<div class="detail-split" data-igt="${igt != null ? igt : ''}">
+        <div class="detail-split-name">${getSplitDisplayName(displayKey)}</div>
+        <div class="detail-split-times">
+          <span class="detail-igt">${igt == null ? "—" : fmt(igt)} <small>IGT</small></span>
+        </div>
+      </div>`;
+    }
+    splitsEl.innerHTML = html;
+  }
 
   function playNotificationSound() {
     if (!settings.notificationSound) return;
@@ -299,7 +345,7 @@
     loadLiveRuns();
     liveRunsIntervalId = setInterval(() => {
       loadLiveRuns();
-    }, 5000);
+    }, 1000);
   }
 
   function stopLiveRunsPolling() {
@@ -505,13 +551,21 @@
     return `${MCHEADS}/skin/${id}`;
   }
 
-  async function getJSON(url) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("HTTP " + res.status);
+  async function getJSON(url, timeout = 10000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
     try {
-      return await res.json();
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      try {
+        return await res.json();
+      } catch (e) {
+        throw new Error("Invalid JSON response from " + url);
+      }
     } catch (e) {
-      throw new Error("Invalid JSON response from " + url);
+      clearTimeout(timeoutId);
+      throw e;
     }
   }
 
@@ -543,10 +597,13 @@
   }
 
   async function getCurrentNameForUUID(uuid) {
+    if (!uuid) return null;
+    if (state.mojangNameCache && state.mojangNameCache[uuid]) return state.mojangNameCache[uuid];
     try {
-      const history = await getJSON(`https://api.mojang.com/user/profiles/${uuid}/names`);
-      if (!Array.isArray(history) || history.length === 0) return null;
-      return history[history.length - 1].name || null;
+      const data = await getJSON(`https://api.mojang.com/user/profile/${uuid}`);
+      const name = data && data.name ? data.name : null;
+      if (name && state.mojangNameCache) state.mojangNameCache[uuid] = name;
+      return name;
     } catch (e) {
       return null;
     }
@@ -568,6 +625,13 @@
       const key = EVENT_TO_SPLIT[ev.eventId.replace("rsg.", "")];
       if (key) best = { key, igt: ev.igt, rta: ev.rta };
     }
+    if (!best) {
+      for (const k of SPLIT_ORDER) {
+        if (run[k] != null) {
+          best = { key: k, igt: run[k], rta: run[k] };
+        }
+      }
+    }
     return best;
   }
 
@@ -580,6 +644,19 @@
         idx = SPLIT_ORDER.indexOf(k);
         time = run[k];
         key = k;
+      }
+    }
+    if (idx < 0) {
+      for (const ev of run.eventList || []) {
+        const mapped = EVENT_TO_SPLIT[ev.eventId.replace("rsg.", "")];
+        if (mapped) {
+          const i = SPLIT_ORDER.indexOf(mapped);
+          if (i > idx) {
+            idx = i;
+            time = ev.igt;
+            key = mapped;
+          }
+        }
       }
     }
     return { idx, time, key };
@@ -611,9 +688,19 @@
 
   function splitTimes(run) {
     const t = {};
-    for (const ev of run.eventList || []) {
-      const key = EVENT_TO_SPLIT[ev.eventId.replace("rsg.", "")];
+    if (!run || typeof run !== "object") return t;
+    const events = Array.isArray(run.eventList) ? run.eventList : [];
+    for (const ev of events) {
+      if (!ev || typeof ev !== "object") continue;
+      const eventId = ev.eventId;
+      if (!eventId || typeof eventId !== "string") continue;
+      const key = EVENT_TO_SPLIT[eventId.replace("rsg.", "")];
       if (key) t[key] = ev.igt;
+    }
+    if (!Object.keys(t).length) {
+      for (const k of SPLIT_ORDER) {
+        if (run[k] != null) t[k] = run[k];
+      }
     }
     return t;
   }
@@ -625,14 +712,23 @@
     if (state.liveRuns.length === 0 && list) list.innerHTML = '<div class="loading">Loading live runs...</div>';
     try {
       const runs = await getJSON(LIVERUNS);
-      state.liveRuns = runs.filter(
+      const filtered = runs.filter(
         (r) => !r.isHidden && !r.isCheated && (r.gameVersion || "").startsWith("1.16") && !r.numLeaves
       );
+      const prevIds = state.liveRuns.map((r) => r.worldId || r.id).join(",");
+      const nextIds = filtered.map((r) => r.worldId || r.id).join(",");
+      const changed = prevIds !== nextIds || state.liveRuns.length !== filtered.length;
+      const wasEmpty = state.liveRuns.length === 0;
+      state.liveRuns = filtered;
       cachePlayersFromRuns(runs);
       cleanupAutoOpenedStreams(state.liveRuns);
       pruneRuns();
-      if (state.page === "home") {
-        renderLiveRuns();
+      if (state.page === "home" && (changed || wasEmpty)) {
+        try {
+          renderLiveRuns();
+        } catch (e) {
+          console.error("renderLiveRuns failed:", e);
+        }
       }
     } catch (e) {
       if (list) list.innerHTML = '<div class="loading">Failed to load live runs. Check your connection.</div>';
@@ -785,11 +881,9 @@
     const noticeEl = document.getElementById("profileNameNotice");
     const noticeTextEl = document.getElementById("profileNameNoticeText");
     const noticeLinkEl = document.getElementById("profileNameNoticeLink");
-    console.log("Notice elements:", !!noticeEl, !!noticeTextEl, !!noticeLinkEl);
     if (noticeEl) noticeEl.style.display = "none";
     if (uuid) {
       const currentName = await getCurrentNameForUUID(uuid);
-      console.log("Name check:", name, "->", currentName, "changed?", currentName && currentName !== name);
       if (currentName && currentName !== name) {
         if (noticeTextEl) noticeTextEl.textContent = `${name} is now known as ${currentName}`;
         if (noticeLinkEl) {
@@ -867,19 +961,9 @@
 
   function calcStatsFromRuns(runs) {
     const stats = {};
-    const structures = calcFirstSecondStructure(runs);
     for (const key of SPLIT_ORDER) {
-      if (key === "bastion") {
-        stats[key] = { count: structures.firstCount, avg: structures.firstAvg };
-      } else if (key === "fortress") {
-        stats[key] = { count: structures.secondCount, avg: structures.secondAvg };
-      } else {
-        const values = runs.filter((r) => r[key] != null).map((r) => r[key]);
-        stats[key] = {
-          count: values.length,
-          avg: values.length > 0 ? fmt(Math.round(values.reduce((a, b) => a + b, 0) / values.length)) : "0:00"
-        };
-      }
+      const splitStats = calcSplitStats(runs, key);
+      stats[key] = splitStats;
     }
     const finishes = runs.filter((r) => r.finish != null).map((r) => r.finish);
     stats.finish = {
@@ -892,12 +976,14 @@
   function updateProfileCards(stats) {
     const wrap = document.getElementById("profileSplits");
     if (!wrap) return;
-    for (const key of SPLIT_ORDER) {
-      const s = stats[key] || { count: 0, avg: "0:00" };
+    const displayKeys = getSplitDisplayKeys();
+    for (const displayKey of displayKeys) {
+      const statKey = getSplitStatKey(displayKey);
+      const s = stats[statKey] || { count: 0, avg: "0:00" };
       const cards = wrap.querySelectorAll(".split-card");
       for (const card of cards) {
         const nameEl = card.querySelector(".split-name");
-        if (nameEl && nameEl.textContent === SPLITS[key]) {
+        if (nameEl && nameEl.textContent === getSplitDisplayName(displayKey)) {
           const countEl = card.querySelector(".split-value");
           const avgEl = card.querySelector(".split-count");
           if (countEl) countEl.textContent = s.count;
@@ -924,12 +1010,14 @@
       if (wrap) wrap.innerHTML = "";
       const runs = state.profile.timeframeRuns || [];
       const localStats = runs.length > 0 ? calcStatsFromRuns(runs) : null;
-      for (const key of SPLIT_ORDER) {
-        const s = localStats ? localStats[key] : (stats[key] || { count: 0, avg: "0:00" });
+      const displayKeys = getSplitDisplayKeys();
+      for (const displayKey of displayKeys) {
+        const statKey = getSplitStatKey(displayKey);
+        const s = localStats ? localStats[statKey] : (stats[statKey] || { count: 0, avg: "0:00" });
         const card = document.createElement("div");
         card.className = "split-card";
-        card.innerHTML = `<div class="split-name">${SPLITS[key]}</div><div class="split-value">${s.count}</div><div class="split-count">Avg ${s.avg}</div>`;
-        card.addEventListener("click", () => openSplitDetail(key));
+        card.innerHTML = `<div class="split-name">${getSplitDisplayName(displayKey)}</div><div class="split-value">${s.count}</div><div class="split-count">Avg ${s.avg}</div>`;
+        card.addEventListener("click", () => openSplitDetail(statKey));
         if (wrap) wrap.appendChild(card);
       }
       const fin = localStats ? localStats.finish : (stats.finish || { count: 0, avg: "0:00" });
@@ -1116,6 +1204,7 @@
       return;
     }
     const recent = (sessions || []).slice(0, 12);
+    const labels = getStructureLabels();
     wrap.innerHTML = recent.map((s) => {
       const date = new Date(s.startTime * 1000);
       const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -1124,6 +1213,8 @@
       const firstStr = s.firstCount > 0 ? `${s.firstAvg}` : "—";
       const secondStr = s.secondCount > 0 ? `${s.secondAvg}` : "—";
       const isActive = activeSessionId === s.id;
+      const firstLabel = labels.first;
+      const secondLabel = labels.second;
       return `<div class="session-card${isActive ? " active" : ""}" data-session-id="${s.id}">
         <div class="session-card-header">
           <div class="session-card-date">${dateStr}</div>
@@ -1136,8 +1227,8 @@
         </div>
         <div class="session-card-footer">
           <div class="session-card-structure">
-            <span class="session-card-structure-first">1st: ${firstStr}</span>
-            <span class="session-card-structure-second">2nd: ${secondStr}</span>
+            <span class="session-card-structure-first">${firstLabel}: ${firstStr}</span>
+            <span class="session-card-structure-second">${secondLabel}: ${secondStr}</span>
           </div>
         </div>
       </div>`;
@@ -1162,25 +1253,16 @@
       return;
     }
     const runs = session.runs;
-    const orderedKeys = ["nether", "bastion", "fortress", "first_portal", "stronghold", "end"];
-    const structureStats = calcFirstSecondStructure(runs);
-    for (const key of orderedKeys) {
-      let count, avg;
-      if (key === "bastion") {
-        count = structureStats.firstCount;
-        avg = structureStats.firstAvg;
-      } else if (key === "fortress") {
-        count = structureStats.secondCount;
-        avg = structureStats.secondAvg;
-      } else {
-        const stats = calcSplitStats(runs, key);
-        count = stats.count;
-        avg = stats.avg;
-      }
+    const orderedKeys = getSplitDisplayKeys();
+    for (const displayKey of orderedKeys) {
+      const statKey = getSplitStatKey(displayKey);
+      const stats = calcSplitStats(runs, statKey);
+      const count = stats.count;
+      const avg = stats.avg;
       const card = document.createElement("div");
       card.className = "split-card";
-      card.innerHTML = `<div class="split-name">${SPLITS[key]}</div><div class="split-value">${count}</div><div class="split-count">Avg ${avg}</div>`;
-      card.addEventListener("click", () => openSplitDetail(key));
+      card.innerHTML = `<div class="split-name">${getSplitDisplayName(displayKey)}</div><div class="split-value">${count}</div><div class="split-count">Avg ${avg}</div>`;
+      card.addEventListener("click", () => openSplitDetail(statKey));
       if (splitsWrap) splitsWrap.appendChild(card);
     }
     const finishes = runs.filter((r) => r.finish != null).map((r) => r.finish);
@@ -1229,20 +1311,13 @@
     for (const r of runs) {
       const bastion = r.bastion;
       const fortress = r.fortress;
-      if (bastion != null || fortress != null) {
-        if (bastion != null && fortress != null) {
-          if (bastion <= fortress) {
-            first.push(bastion);
-            second.push(fortress);
-          } else {
-            first.push(fortress);
-            second.push(bastion);
-          }
-        } else if (bastion != null) {
-          first.push(bastion);
-        } else if (fortress != null) {
-          first.push(fortress);
-        }
+      if (bastion != null && fortress != null) {
+        first.push(bastion);
+        second.push(fortress);
+      } else if (bastion != null) {
+        first.push(bastion);
+      } else if (fortress != null) {
+        first.push(fortress);
       }
     }
     const firstCount = first.length;
@@ -1291,7 +1366,7 @@
       .sort((a, b) => {
         const aFinished = a.r.finish != null;
         const bFinished = b.r.finish != null;
-        if (aFinished && bFinished) return a.r.finish - b.r.finish;
+        if (aFinished && bFinished) return a.r.finish - b.finish;
         if (aFinished) return -1;
         if (bFinished) return 1;
         if (a.f.idx !== b.f.idx) return b.f.idx - a.f.idx;
@@ -1306,7 +1381,8 @@
         const div = document.createElement("div");
         div.className = "run-item";
         const runId = item.r.id || item.r.worldId || item.r.runId || item.r._id || null;
-        div.innerHTML = `<span class="run-split">${SPLITS[item.f.key] || "Run"}</span><span class="run-time">${fmt(item.f.time)}</span>`;
+        const splitLabel = getSplitDisplayName(item.f.key) || "Run";
+        div.innerHTML = `<span class="run-split">${splitLabel}</span><span class="run-time">${fmt(item.f.time)}</span>`;
         div.addEventListener("click", () => {
           if (runId) openRunDetail(runId, state.profile.name, item.r);
         });
@@ -1330,8 +1406,9 @@
         safeGetRecentRuns(name, 999999, 999999),
       ]);
       if (generation !== profileRunsGeneration) return;
-      state.profile.timeframeRuns = timeframe || [];
-      state.profile.allRuns = all || [];
+      const safeMap = (arr) => (Array.isArray(arr) ? arr : []).filter((r) => r && typeof r === "object").map((r) => ({ ...r, ...splitTimes(r) }));
+      state.profile.timeframeRuns = safeMap(timeframe);
+      state.profile.allRuns = safeMap(all);
       pruneRuns();
       let pb = null;
       let pbRun = null;
@@ -1455,13 +1532,10 @@
         const row = document.createElement("div");
         row.className = "run-row";
         let cells = "";
-        const bastion = r.bastion;
-        const fortress = r.fortress;
-        const swap = bastion != null && fortress != null && fortress < bastion;
-        for (const split of SPLIT_ORDER) {
-          let t = r[split];
-          if (split === "bastion" && swap) t = r.fortress;
-          if (split === "fortress" && swap) t = r.bastion;
+        const displayKeys = getSplitDisplayKeys();
+        for (const displayKey of displayKeys) {
+          const statKey = getSplitStatKey(displayKey);
+          const t = r[statKey];
           cells += `<div class="run-cell ${t == null ? "empty" : ""}">${t == null ? "—" : fmt(t)}</div>`;
         }
         const runId = r.id || r.worldId || r.runId || r._id || null;
@@ -1672,15 +1746,12 @@
 
     function renderSplits(data) {
       let html = "";
-      const bastion = data.bastion;
-      const fortress = data.fortress;
-      const swapStructures = bastion != null && fortress != null && fortress < bastion;
-      for (const split of SPLIT_ORDER) {
-        let igt = data[split];
-        if (split === "bastion" && swapStructures) igt = data.fortress;
-        if (split === "fortress" && swapStructures) igt = data.bastion;
+      const displayKeys = getSplitDisplayKeys();
+      for (const displayKey of displayKeys) {
+        const statKey = getSplitStatKey(displayKey);
+        const igt = data[statKey];
         html += `<div class="detail-split" data-igt="${igt != null ? igt : ''}">
-          <div class="detail-split-name">${SPLITS[split]}</div>
+          <div class="detail-split-name">${getSplitDisplayName(displayKey)}</div>
           <div class="detail-split-times">
             <span class="detail-igt">${igt == null ? "—" : fmt(igt)} <small>IGT</small></span>
           </div>
@@ -1791,6 +1862,10 @@
     currentRunData = null;
     currentDownloadId = null;
     currentVod = { id: null, offset: 0, currentTime: 0 };
+    if (playheadInterval) {
+      clearInterval(playheadInterval);
+      playheadInterval = null;
+    }
     const overlay = document.getElementById("runDetailOverlay");
     overlay.classList.remove("visible");
     const webview = document.getElementById("runVodWebview");
@@ -1940,6 +2015,22 @@
       });
     }
 
+    const widthEl = document.getElementById("overlayWidth");
+    const widthValueEl = document.getElementById("overlayWidthValue");
+    if (widthEl) {
+      widthEl.value = state.overlay.settings.width ?? 600;
+      if (widthValueEl) widthValueEl.textContent = (state.overlay.settings.width ?? 600) + "px";
+      widthEl.addEventListener("input", () => {
+        const val = parseInt(widthEl.value, 10);
+        state.overlay.settings.width = isNaN(val) ? 600 : Math.max(400, Math.min(1200, val));
+        if (widthValueEl) widthValueEl.textContent = state.overlay.settings.width + "px";
+        localStorage.setItem("paceman_overlay_settings", JSON.stringify(state.overlay.settings));
+        state.overlay._dirty = true;
+        drawOverlayCanvas();
+        resizeOverlayCanvas();
+      });
+    }
+
     if (faceLeftEl) {
       faceLeftEl.checked = !!state.overlay.settings.faceLeft;
       faceLeftEl.addEventListener("change", () => {
@@ -1969,16 +2060,21 @@
     const saved = JSON.parse(localStorage.getItem("paceman_pace_targets") || "{}");
     state.overlay.paceTargets = saved;
 
-    container.innerHTML = SPLIT_ORDER.map(split => `
+    const displayKeys = getSplitDisplayKeys();
+    container.innerHTML = displayKeys.map((displayKey) => {
+      const statKey = getSplitStatKey(displayKey);
+      const label = getSplitDisplayName(displayKey);
+      return `
       <label>
-        ${SPLITS[split]}
+        ${label}
         <div class="time-input">
-          <button class="time-arrow time-arrow-down" data-split="${split}" type="button">&#9660;</button>
-          <input type="text" data-split="${split}" placeholder="0:00" value="${saved[split] != null ? formatTime(saved[split]) : ''}">
-          <button class="time-arrow time-arrow-up" data-split="${split}" type="button">&#9650;</button>
+          <button class="time-arrow time-arrow-down" data-split="${statKey}" type="button">&#9660;</button>
+          <input type="text" data-split="${statKey}" placeholder="0:00" value="${saved[statKey] != null ? formatTime(saved[statKey]) : ''}">
+          <button class="time-arrow time-arrow-up" data-split="${statKey}" type="button">&#9650;</button>
         </div>
       </label>
-    `).join("");
+    `;
+    }).join("");
 
     const collect = () => {
       const targets = {};
@@ -2098,7 +2194,7 @@
         })();
       `);
     } catch (e) {
-      console.log("Speed control failed", e);
+      console.warn("Speed control failed", e);
     }
   }
 
@@ -2582,15 +2678,17 @@
   function buildSplitFilters() {
     const wrap = document.getElementById("filterSplits");
     wrap.innerHTML = "";
-    for (const split of SPLIT_ORDER) {
+    const displayKeys = getSplitDisplayKeys();
+    for (const displayKey of displayKeys) {
+      const statKey = getSplitStatKey(displayKey);
       const field = document.createElement("div");
       field.className = "filter-split";
       field.innerHTML = `
-        <label>${SPLITS[split]}</label>
+        <label>${getSplitDisplayName(displayKey)}</label>
         <div class="time-input">
-          <button class="time-arrow time-arrow-down" data-split="${split}" type="button">&#9660;</button>
-          <input type="text" id="filterSplit_${split}" placeholder="0:00" min="0">
-          <button class="time-arrow time-arrow-up" data-split="${split}" type="button">&#9650;</button>
+          <button class="time-arrow time-arrow-down" data-split="${statKey}" type="button">&#9660;</button>
+          <input type="text" id="filterSplit_${statKey}" placeholder="0:00" min="0">
+          <button class="time-arrow time-arrow-up" data-split="${statKey}" type="button">&#9650;</button>
           <span>m:s</span>
         </div>`;
       wrap.appendChild(field);
@@ -2781,7 +2879,6 @@
       document.getElementById("page-overlay").classList.add("active");
       document.querySelector('[data-page="overlay"]').classList.add("active");
       state.overlay._dirty = true;
-      startOverlayUpdates();
     }
     const footer = document.getElementById("appFooter");
     if (footer) footer.style.display = p === "home" || p === "favorites" ? "" : "none";
@@ -2874,6 +2971,34 @@
         loadLeaderboard(true);
       });
     });
+    const structureToggle = document.getElementById("structureToggle");
+    if (structureToggle) {
+      const savedView = localStorage.getItem("paceman_structure_view") || "firstSecond";
+      state.structureView = savedView;
+      structureToggle.classList.toggle("active", savedView === "bastionFort");
+      structureToggle.querySelector(".structure-toggle-label").textContent = savedView === "bastionFort" ? "Bastion/Fort" : "1st/2nd";
+      structureToggle.addEventListener("click", () => {
+        const current = state.structureView || "firstSecond";
+        const next = current === "firstSecond" ? "bastionFort" : "firstSecond";
+        state.structureView = next;
+        localStorage.setItem("paceman_structure_view", next);
+        structureToggle.classList.toggle("active", next === "bastionFort");
+        structureToggle.querySelector(".structure-toggle-label").textContent = next === "bastionFort" ? "Bastion/Fort" : "1st/2nd";
+        const activeSession = state.profile.selectedSessionData;
+        if (activeSession) {
+          showSessionInMain(activeSession);
+        } else {
+          renderRecentSessions(
+            groupRunsIntoSessions(state.profile.allRuns),
+            state.profile.selectedSession
+          );
+        }
+        loadProfileStats();
+        renderProfileBestRuns();
+        renderAllRunsPage();
+        refreshCurrentRunDetail();
+      });
+    }
     document.getElementById("viewAllRunsBtn").addEventListener("click", () => {
       const sortSelect = document.getElementById("allRunsSort");
       if (sortSelect) sortSelect.value = state.profile.allRunsSort || "newest";
@@ -3013,7 +3138,8 @@
         tf === "session" ? getJSON(`${API}/getNPH?name=${encodeURIComponent(player.name)}&hours=${hours}&hoursBetween=${between}`).catch(() => null) : Promise.resolve(null)
       ]);
 
-      const stats = Array.isArray(runs) && runs.length > 0 ? calcStatsFromRuns(runs) : {};
+      const processedRuns = Array.isArray(runs) ? runs.map((r) => ({ ...r, ...splitTimes(r) })) : [];
+      const stats = processedRuns.length > 0 ? calcStatsFromRuns(processedRuns) : {};
       player.splits = stats;
       player.nph = nph;
       player.tf = tf;
@@ -3055,16 +3181,18 @@
     const splitsContainer = document.getElementById(`compareSplits${side}`);
     if (splitsContainer) {
       splitsContainer.innerHTML = "";
-      for (const key of SPLIT_ORDER) {
-        const s = player.splits[key] || { count: 0, avg: "0:00" };
-        const otherS = showArrows && other && other.splits ? (other.splits[key] || { count: 0, avg: "0:00" }) : null;
+      const displayKeys = getSplitDisplayKeys();
+      for (const displayKey of displayKeys) {
+        const statKey = getSplitStatKey(displayKey);
+        const s = player.splits[statKey] || { count: 0, avg: "0:00" };
+        const otherS = showArrows && other && other.splits ? (other.splits[statKey] || { count: 0, avg: "0:00" }) : null;
 
         const countArrow = showArrows ? getStatArrow("count", s.count, otherS ? otherS.count : null) : "";
         const avgArrow = showArrows ? getStatArrow("avg", parseAvg(s.avg), otherS ? parseAvg(otherS.avg) : null) : "";
 
         const card = document.createElement("div");
         card.className = "split-card";
-        card.innerHTML = `<div class="split-name">${SPLITS[key]}</div><div class="split-value">${s.count}<span class="cmp-arrow-wrap">${countArrow}</span></div><div class="split-count">Avg ${s.avg}<span class="cmp-arrow-wrap">${avgArrow}</span></div>`;
+        card.innerHTML = `<div class="split-name">${getSplitDisplayName(displayKey)}</div><div class="split-value">${s.count}<span class="cmp-arrow-wrap">${countArrow}</span></div><div class="split-count">Avg ${s.avg}<span class="cmp-arrow-wrap">${avgArrow}</span></div>`;
         splitsContainer.appendChild(card);
       }
     }
@@ -3366,6 +3494,7 @@
     initThemes();
     seedSuggestions();
     startOverlayApiPolling();
+    startOverlayUpdates();
     (async () => {
       const protoArgs = await window.pacemanAPI.getProtocolArgs();
       if (!protoArgs || protoArgs.consumed === true) return;
@@ -3499,7 +3628,7 @@
           sessionShareBtn.classList.add("copied");
           setTimeout(() => sessionShareBtn.classList.remove("copied"), 1500);
         } catch (e) {
-          console.log("Share session stats failed", e);
+          console.warn("Share session stats failed", e);
         }
       });
     }
@@ -3526,7 +3655,7 @@
           overlayCopyPathBtn.classList.add("copied");
           setTimeout(() => overlayCopyPathBtn.classList.remove("copied"), 1500);
         } catch (e) {
-          console.log("Copy overlay path failed", e);
+          console.warn("Copy overlay path failed", e);
         }
       });
     }
@@ -3554,7 +3683,7 @@
           overlayCopyUrlBtn.classList.add("copied");
           setTimeout(() => overlayCopyUrlBtn.classList.remove("copied"), 1500);
         } catch (e) {
-          console.log("Copy browser URL failed", e);
+          console.warn("Copy browser URL failed", e);
         }
       });
     }
@@ -3609,13 +3738,10 @@
       });
     }
     const downloadRunBtn = document.getElementById("downloadRunBtn");
-    console.log('Download button element:', downloadRunBtn);
     if (downloadRunBtn) {
-      console.log('Attaching download button listener');
       const progressWrap = document.getElementById("downloadProgress");
       const progressFill = document.getElementById("downloadProgressFill");
       const progressText = document.getElementById("downloadProgressText");
-      console.log('Progress elements:', { progressWrap, progressFill, progressText });
       
       const updateProgress = (data) => {
         if (!progressWrap || !progressFill || !progressText) return;
@@ -3635,7 +3761,6 @@
       };
       
       const onProgress = (e) => {
-        console.log('Progress event received:', e.detail);
         if (e.detail && e.detail.downloadId === currentDownloadId) {
           updateProgress(e.detail);
         }
@@ -3726,12 +3851,12 @@
           if (progressText) progressText.textContent = result && result.error ? result.error : "Download failed.";
           setTimeout(() => finishProgress(), 3000);
           downloadRunBtn.classList.remove("downloading");
-        } catch (e) {
-          console.log("Download failed", e);
-          if (progressText) progressText.textContent = "Download failed.";
-          setTimeout(() => finishProgress(), 3000);
-          downloadRunBtn.classList.remove("downloading");
-        }
+         } catch (e) {
+           console.warn("Download failed", e);
+           if (progressText) progressText.textContent = "Download failed.";
+           setTimeout(() => finishProgress(), 3000);
+           downloadRunBtn.classList.remove("downloading");
+         }
       };
       
       downloadRunBtn.addEventListener("click", async (e) => {
@@ -3858,7 +3983,7 @@
       });
     }
 
-    const playheadInterval = setInterval(() => {
+    playheadInterval = setInterval(() => {
       if (!currentVod.id) return;
       const webview = document.getElementById("runVodWebview");
       if (!webview || webview.style.display === "none") return;
@@ -4278,7 +4403,6 @@
 
   function completeSetup() {
     try {
-      console.log("completeSetup called");
       collectSetupSettings();
       localStorage.setItem("paceman_setup_complete", "true");
       if (setupOverlay) setupOverlay.classList.remove("visible");
@@ -4294,7 +4418,6 @@
   // Fallback: force-show setup if it should be visible but isn't
   window.addEventListener("load", () => {
     if (!localStorage.getItem("paceman_setup_complete") && setupOverlay) {
-      console.log("Fallback: showing setup overlay on window load");
       setTimeout(() => setupOverlay.classList.add("visible"), 300);
     }
   });
@@ -4350,7 +4473,6 @@
 
   if (setupNextBtn) {
     setupNextBtn.addEventListener("click", () => {
-      console.log("Setup next clicked, step:", setupStep, "total:", totalSetupSteps);
       if (setupStep < totalSetupSteps) {
         setupStep++;
         showSetupStep(setupStep);
@@ -4511,7 +4633,13 @@
 
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && input.value.trim() !== "") {
-        selectOverlayPlayer(input.value.trim());
+        const query = input.value.trim().toLowerCase();
+        const match = Object.keys(state.playerCache).find((n) => n.toLowerCase() === query);
+        if (match) {
+          selectOverlayPlayer(match, state.playerCache[match]);
+        } else {
+          selectOverlayPlayer(input.value.trim(), null);
+        }
         input.value = "";
         dropdown.classList.remove("visible");
       }
@@ -4541,9 +4669,10 @@
     wrap.innerHTML = "";
     for (const name of matches) {
       const uuid = state.playerCache[name];
+      const canonicalName = (uuid && state.mojangNameCache && state.mojangNameCache[uuid]) || name;
       const item = document.createElement("div");
       item.className = "search-item";
-      item.innerHTML = `<img src="${avatarUrl(uuid || name, 32)}" onerror="this.style.visibility='hidden'"><span class="search-item-name">${escapeHtml(name)}</span>`;
+      item.innerHTML = `<img src="${avatarUrl(uuid || name, 32)}" onerror="this.style.visibility='hidden'"><span class="search-item-name">${escapeHtml(canonicalName)}</span>`;
       item.addEventListener("click", () => {
         selectOverlayPlayer(name, uuid);
         document.getElementById("overlaySearchDropdown").classList.remove("visible");
@@ -4557,9 +4686,10 @@
     return getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=999999&hoursBetween=24&limit=5000`)
       .then((data) => {
         if (!Array.isArray(data) || data.length === 0) return [];
-        const sessions = groupRunsIntoSessions(data);
+        const processed = data.map((r) => ({ ...r, ...splitTimes(r) }));
+        const sessions = groupRunsIntoSessions(processed);
         const latest = sessions[0];
-        return (latest && latest.runs ? latest.runs : []).map((r) => ({ ...r, ...splitTimes(r) }));
+        return latest && latest.runs ? latest.runs : [];
       })
       .catch(() => []);
   }
@@ -4571,33 +4701,40 @@
   }
 
   function selectOverlayPlayer(name, uuid) {
-    state.overlay.playerName = name;
+    const fallbackName = name || "";
     state.overlay.playerUuid = uuid || null;
-    try {
-      const current = JSON.parse(localStorage.getItem("paceman_overlay_settings") || "null") || {};
-      current.playerName = name;
-      current.playerUuid = uuid || null;
-      localStorage.setItem("paceman_overlay_settings", JSON.stringify(current));
-    } catch (e) {
-      // ignore storage errors
-    }
-    if (window.pacemanAPI && name) {
-      window.pacemanAPI.updateOverlayPlayer(name).catch(() => {});
-    }
-    state.overlay.run = getOverlayPlayerRun();
-    getOverlaySessionRuns(name, uuid).then((runs) => {
-      state.overlay.sessionRuns = runs.slice(-20);
+    state.overlay.playerName = fallbackName;
+    const canonicalPromise = uuid ? getCurrentNameForUUID(uuid) : Promise.resolve(fallbackName);
+    canonicalPromise.then((canonical) => {
+      const displayName = canonical || fallbackName;
+      state.overlay.playerName = displayName;
+      try {
+        const current = JSON.parse(localStorage.getItem("paceman_overlay_settings") || "null") || {};
+        current.playerName = displayName;
+        current.playerUuid = uuid || null;
+        localStorage.setItem("paceman_overlay_settings", JSON.stringify(current));
+        state.overlay.settings = { ...state.overlay.settings, ...current };
+      } catch (e) {
+        // ignore storage errors
+      }
+      if (window.pacemanAPI && displayName) {
+        window.pacemanAPI.updateOverlayPlayer(displayName).catch(() => {});
+      }
+      state.overlay.run = getOverlayPlayerRun();
+      getOverlaySessionRuns(displayName, uuid).then((runs) => {
+        state.overlay.sessionRuns = runs.slice(-20);
+        state.overlay._dirty = true;
+        drawOverlayCanvas();
+      });
+      getOverlayNph(displayName).then((nph) => {
+        state.overlay.sessionNph = nph;
+        state.overlay._dirty = true;
+        drawOverlayCanvas();
+      });
       state.overlay._dirty = true;
+      updateOverlayStatus();
       drawOverlayCanvas();
     });
-    getOverlayNph(name).then((nph) => {
-      state.overlay.sessionNph = nph;
-      state.overlay._dirty = true;
-      drawOverlayCanvas();
-    });
-    state.overlay._dirty = true;
-    updateOverlayStatus();
-    drawOverlayCanvas();
   }
 
   function getOverlayPlayerRun() {
@@ -4615,14 +4752,20 @@
         if (nameLower === rNick || nameLower === rUserNick) return true;
         return false;
       })
+      .filter((r) => {
+        const times = splitTimes(r);
+        if (times.finish != null) return false;
+        const runTs = (r.lastUpdated || getRunTimestamp(r) || 0);
+        if (runTs > 0 && now - runTs * 1000 > 5 * 60 * 1000) return false;
+        return true;
+      })
       .sort((a, b) => (getRunTimestamp(b) || 0) - (getRunTimestamp(a) || 0))[0] || null;
     if (!run) return null;
     const runTs = (run.lastUpdated || getRunTimestamp(run) || 0);
-    if (runTs > 0 && now - runTs * 1000 > 15 * 60 * 1000) return null;
+    if (runTs > 0 && now - runTs * 1000 > 5 * 60 * 1000) return null;
     const times = splitTimes(run);
-    const hasEvents = (run.eventList || []).length > 0;
     const hasSplits = SPLIT_ORDER.some((k) => times[k] != null);
-    if (!hasEvents && !hasSplits) return null;
+    if (!hasSplits) return null;
     return run;
   }
 
@@ -4632,31 +4775,35 @@
     const uuid = state.overlay.playerUuid;
     try {
       const data = await getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=1&limit=10`);
-      if (!Array.isArray(data) || data.length === 0) return;
+      if (!Array.isArray(data) || data.length === 0) {
+        state.overlay.run = null;
+        state.overlay._dirty = true;
+        return;
+      }
       const withTime = data.map((r) => ({ ...r, _ts: r.lastUpdated || getRunTimestamp(r) })).filter((r) => r._ts > 0);
-      if (withTime.length === 0) return;
+      if (withTime.length === 0) {
+        state.overlay.run = null;
+        state.overlay._dirty = true;
+        return;
+      }
       const sorted = withTime.sort((a, b) => b._ts - a._ts);
       const latest = sorted[0];
       const now = Date.now();
-      if (now - latest._ts * 1000 > 15 * 60 * 1000) return;
-      const times = splitTimes(latest);
-      const hasEvents = (latest.eventList || []).length > 0;
-      const hasSplits = SPLIT_ORDER.some((k) => times[k] != null);
-      if (!hasEvents && !hasSplits) return;
-      const prevId = state.overlay.run ? (state.overlay.run.id || state.overlay.run.worldId || state.overlay.run.runId || state.overlay.run._id || JSON.stringify(state.overlay.run)) : null;
-      const nextId = latest.id || latest.worldId || latest.runId || latest._id || JSON.stringify(latest);
-      if (prevId !== nextId) {
-        state.overlay.run = latest;
+      if (now - latest._ts * 1000 > 5 * 60 * 1000) {
+        state.overlay.run = null;
         state.overlay._dirty = true;
-      } else if (nextId) {
-        const prevTimes = splitTimes(state.overlay.run || {});
-        const nextTimes = splitTimes(latest);
-        const changed = SPLIT_ORDER.some((k) => nextTimes[k] !== prevTimes[k]);
-        if (changed) {
-          state.overlay.run = latest;
-          state.overlay._dirty = true;
-        }
+        return;
       }
+      const times = splitTimes(latest);
+      if (times.finish != null) {
+        state.overlay.run = null;
+        state.overlay._dirty = true;
+        return;
+      }
+      const hasSplits = SPLIT_ORDER.some((k) => times[k] != null);
+      if (!hasSplits) return;
+      state.overlay.run = latest;
+      state.overlay._dirty = true;
     } catch (e) {
       // ignore API errors
     }
@@ -4677,14 +4824,18 @@
   function startOverlayUpdates() {
     stopOverlayUpdates();
     state.overlay.intervalId = setInterval(() => {
-      if (state.page !== "overlay") {
-        stopOverlayUpdates();
-        return;
-      }
       if (state.overlay._dirty) {
         drawOverlayCanvas();
-        updateOverlayStatus();
+        if (state.page === "overlay") {
+          updateOverlayStatus();
+        }
         state.overlay._dirty = false;
+        const now = Date.now();
+        if (!state.overlay._lastPngExport || now - state.overlay._lastPngExport > 500) {
+          state.overlay._lastPngExport = now;
+          const canvas = document.getElementById("overlayCanvas");
+          if (canvas) exportOverlayPNG(canvas);
+        }
       }
     }, 250);
   }
@@ -4693,9 +4844,9 @@
     if (state.overlay.apiIntervalId) return;
     state.overlay.apiIntervalId = setInterval(() => {
       if (!state.overlay.playerName) return;
-      refreshOverlayRunFromAPI();
       const name = state.overlay.playerName;
       const uuid = state.overlay.playerUuid;
+      refreshOverlayRunFromAPI();
       getOverlaySessionRuns(name, uuid).then((runs) => {
         if (Array.isArray(runs) && runs.length > 0) {
           state.overlay.sessionRuns = runs.slice(-20);
@@ -4710,7 +4861,7 @@
           }
         }
       });
-    }, 250);
+    }, 1000);
   }
 
   function stopOverlayUpdates() {
@@ -4793,6 +4944,11 @@
   function drawOverlayCanvas() {
     const canvas = document.getElementById("overlayCanvas");
     if (!canvas) return;
+    const settings = state.overlay.settings || {};
+    const targetWidth = Math.max(400, Math.min(1200, settings.width ?? 600));
+    if (canvas.width !== targetWidth) {
+      canvas.width = targetWidth;
+    }
     const ctx = canvas.getContext("2d");
     const W = canvas.width;
     const H = canvas.height;
@@ -4800,7 +4956,6 @@
     const textPrimary = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
     const textSecondary = getComputedStyle(document.body).getPropertyValue("--text-secondary").trim() || "rgba(255,255,255,0.7)";
 
-    const settings = state.overlay.settings || {};
     const bgOpacity = Math.max(0, Math.min(100, settings.bgOpacity ?? 60)) / 100;
     const bgColor = settings.bgColor || "#000000";
     const faceLeft = !!settings.faceLeft;
@@ -4905,9 +5060,9 @@
     }
 
     const uuid = state.overlay.playerUuid || null;
-    const cacheKey = name;
+    const cacheKey = state.overlay.playerName || "Player";
     if (!overlayAvatarCache.has(cacheKey)) {
-      fetchOverlayAvatarDataUrl(name, uuid).then((dataUrl) => {
+      fetchOverlayAvatarDataUrl(cacheKey, uuid).then((dataUrl) => {
         if (dataUrl) {
           overlayAvatarCache.set(cacheKey, dataUrl);
         } else {
@@ -4948,7 +5103,7 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
   }
 
   function drawOverlayAvatarFallback(ctx, x, y, size, name) {
-    const initial = (name && name[0]) ? name[0].toUpperCase() : "?";
+    const initial = (name && name[0]) ? name[0] : "?";
     ctx.fillStyle = "rgba(255,255,255,0.15)";
     ctx.fillRect(x, y, size, size);
     ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-primary").trim() || "#fff";
@@ -4971,7 +5126,7 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     }
     window.pacemanAPI.getUserDataPath().then((result) => {
       if (!result || !result.success) {
-        console.log("getUserDataPath failed", result);
+        console.warn("getUserDataPath failed", result);
         return;
       }
       const filePath = result.path + "\\overlay.png";
@@ -4979,14 +5134,17 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
         if (writeResult && writeResult.success) {
           const pathEl = document.getElementById("overlayPath");
           if (pathEl) pathEl.textContent = filePath;
+          if (window.pacemanAPI) {
+            window.pacemanAPI.updateOverlayPngPath(filePath).catch(() => {});
+          }
         } else {
-          console.log("writeFile failed", writeResult);
+          console.warn("writeFile failed", writeResult);
         }
       }).catch((err) => {
-        console.log("writeFile threw", err);
+        console.warn("writeFile threw", err);
       });
     }).catch((err) => {
-      console.log("getUserDataPath threw", err);
+      console.warn("getUserDataPath threw", err);
     });
   }
 

@@ -7,11 +7,12 @@ const { promisify } = require('util');
 const execAsync = promisify(exec);
 const fs = require('fs');
 
-const APP_VERSION = app.getVersion ? app.getVersion() : '2.1.3';
+const APP_VERSION = app.getVersion ? app.getVersion() : '2.1.4';
 const REPO_OWNER = 'Olly033';
 const REPO_NAME = 'Paceman-Desktop-App';
 const YTDLP_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe';
 const FFMPEG_URL = 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip';
+const USER_AGENT = `Paceman-Desktop-App/${APP_VERSION}`;
 
 let activeDownloads = new Map();
 
@@ -19,6 +20,7 @@ let win;
 let pendingProtocolArgs = null;
 let overlayHttpServer = null;
 let overlayHttpPlayerName = '';
+let overlayPngPath = null;
 const OVERLAY_HTTP_PORT = 9876;
 
 ipcMain.handle('update-overlay-player', async (event, playerName) => {
@@ -29,172 +31,60 @@ ipcMain.handle('update-overlay-player', async (event, playerName) => {
   return { success: true };
 });
 
+ipcMain.handle('update-overlay-png-path', async (event, pngPath) => {
+  overlayPngPath = pngPath || null;
+  return { success: true };
+});
+
 function startOverlayHttpServer() {
   if (overlayHttpServer) return;
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, `http://localhost:${OVERLAY_HTTP_PORT}`);
-    if (url.pathname === '/player') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ player: overlayHttpPlayerName || '' }));
+    if (url.pathname === '/overlay.png') {
+      const pngPath = overlayPngPath;
+      if (!pngPath) {
+        res.writeHead(404, { 'Content-Type': 'image/png' });
+        res.end('');
+        return;
+      }
+      try {
+        const data = fs.readFileSync(pngPath);
+        res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'no-store' });
+        res.end(data);
+      } catch (e) {
+        res.writeHead(404, { 'Content-Type': 'image/png' });
+        res.end('');
+      }
       return;
     }
-    const requestedPlayer = url.searchParams.get('player') || overlayHttpPlayerName || '';
-    const escapedPlayer = requestedPlayer.replace(/'/g, "\\'");
+    if (url.pathname === '/' || url.pathname === '/index.html') {
+      const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <title>Paceman Overlay</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin: 0; padding: 0; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
-    canvas { display: block; width: 100%; height: 100%; }
+    img { width: 100%; height: 100%; object-fit: contain; display: block; }
   </style>
 </head>
 <body>
-  <canvas id="c" width="600" height="140"></canvas>
+  <img id="overlayImg" src="/overlay.png">
   <script>
-    const API = 'https://paceman.gg/stats/api';
-    const canvas = document.getElementById('c');
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width;
-    const H = canvas.height;
-    const player = decodeURIComponent('${playerName}');
-
-    function fmt(ms) {
-      const totalSec = Math.floor(ms / 1000);
-      const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
-      const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
-      const s = String(totalSec % 60).padStart(2, '0');
-      return h + ':' + m + ':' + s;
-    }
-
-    async function getJSON(url) {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      return res.json();
-    }
-
-    function draw(overlay) {
-      const bgOpacity = (overlay.settings && overlay.settings.bgOpacity != null ? overlay.settings.bgOpacity : 60) / 100;
-      const bgColor = (overlay.settings && overlay.settings.bgColor) || '#000000';
-      const faceLeft = !!(overlay.settings && overlay.settings.faceLeft);
-      const paddingLeft = 24;
-      const paddingRight = faceLeft ? 24 : 48;
-      const avatarSize = 64;
-      const frameHeight = 120;
-      const frameTop = (H - frameHeight) / 2;
-      const avatarX = faceLeft ? paddingLeft : W - avatarSize - paddingRight;
-      const avatarY = frameTop + (frameHeight - avatarSize) / 2;
-      const contentLeft = faceLeft ? paddingLeft + avatarSize + 12 : paddingLeft;
-      const contentRight = faceLeft ? W - paddingRight : avatarX - 16;
-
-      const run = overlay.run;
-      const name = overlay.playerName || player || 'Player';
-      const liveEvent = run ? run.furthestEvent : null;
-      const liveKey = liveEvent ? liveEvent.key : null;
-      const liveTime = liveEvent ? liveEvent.igt : null;
-      const splitTimesFromRun = run ? run.splitTimes : {};
-      const sessionEventKey = Object.keys(splitTimesFromRun).pop() || null;
-      const currentKey = liveKey || sessionEventKey;
-      const currentTime = liveTime != null ? liveTime : (sessionEventKey ? splitTimesFromRun[sessionEventKey] : null);
-
-      const lines = [];
-      lines.push({ text: name, font: 'bold 28px Inter, sans-serif', offset: 18 });
-      if (currentKey) {
-        lines.push({ text: currentKey, font: '22px Inter, sans-serif', offset: 14 });
-        lines.push({ text: currentTime != null ? fmt(currentTime) : 'XX:XX', font: 'bold 28px Inter, sans-serif', offset: 18 });
-      } else if (overlay.sessionRuns && overlay.sessionRuns.length > 0) {
-        const nethers = overlay.sessionRuns.filter(r => r.nether != null).length;
-        const avg = overlay.sessionRuns.filter(r => r.nether != null).reduce((a, b) => a + b, 0) / nethers;
-        const nph = overlay.sessionNph && overlay.sessionNph.rnph != null ? overlay.sessionNph.rnph.toFixed(2) : '0.00';
-        lines.push({ text: nethers + ' nethers · avg ' + fmt(Math.round(avg)) + ' · NPH ' + nph, font: '22px Inter, sans-serif', offset: 14 });
-      }
-
-      const lineHeight = 34;
-      const totalLines = lines.length;
-      const contentHeight = totalLines * lineHeight;
-      const blockTop = frameTop + (frameHeight - contentHeight) / 2;
-      let y = blockTop;
-
-      const r = parseInt(bgColor.slice(1, 3), 16);
-      const g = parseInt(bgColor.slice(3, 5), 16);
-      const b = parseInt(bgColor.slice(5, 7), 16);
-      ctx.clearRect(0, 0, W, H);
-      ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + bgOpacity + ')';
-      const bgX = Math.min(contentLeft - 12, avatarX - 12);
-      const bgY = frameTop;
-      const bgW = Math.max(contentRight + 12, avatarX + avatarSize + 8) - bgX;
-      ctx.beginPath();
-      ctx.moveTo(bgX + 16, bgY);
-      ctx.lineTo(bgX + bgW - 16, bgY);
-      ctx.quadraticCurveTo(bgX + bgW, bgY, bgX + bgW, bgY + 16);
-      ctx.lineTo(bgX + bgW, bgY + frameHeight - 16);
-      ctx.quadraticCurveTo(bgX + bgW, bgY + frameHeight, bgX + bgW - 16, bgY + frameHeight);
-      ctx.lineTo(bgX + 16, bgY + frameHeight);
-      ctx.quadraticCurveTo(bgX, bgY + frameHeight, bgX, bgY + frameHeight - 16);
-      ctx.lineTo(bgX, bgY + 16);
-      ctx.quadraticCurveTo(bgX, bgY, bgX + 16, bgY);
-      ctx.closePath();
-      ctx.fill();
-
-      lines.forEach((line) => {
-        ctx.textAlign = 'left';
-        ctx.fillStyle = '#fff';
-        ctx.font = line.font;
-        ctx.fillText(line.text, contentLeft, y + line.offset);
-        y += lineHeight;
-      });
-
-      if (player) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-        ctx.clip();
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = 'https://crafatar.com/avatars/' + encodeURIComponent(player) + '?size=128';
-        ctx.drawImage(img, avatarX, avatarY, avatarSize, avatarSize);
-        ctx.restore();
-      }
-    }
-
-    async function update() {
-      try {
-        const [runData, sessionData, nphData, playerData] = await Promise.all([
-          getJSON(API + '/getRecentRuns?name=' + encodeURIComponent(player) + '&hours=1&limit=10'),
-          getJSON(API + '/getRecentRuns?name=' + encodeURIComponent(player) + '&hours=999999&hoursBetween=24&limit=5000'),
-          getJSON(API + '/getNPH?name=' + encodeURIComponent(player) + '&hours=24&hoursBetween=1'),
-          getJSON('/player')
-        ]);
-        const latestPlayer = (playerData && playerData.player) || player;
-        if (latestPlayer && latestPlayer !== player) {
-          window.location.href = '/?player=' + encodeURIComponent(latestPlayer);
-          return;
-        }
-        const runs = Array.isArray(runData) ? runData : [];
-        const sessions = Array.isArray(sessionData) ? sessionData : [];
-        const latest = runs.sort((a, b) => (b.lastUpdated || 0) - (a.lastUpdated || 0))[0] || null;
-        const withTime = sessions.map(r => ({ ...r, _ts: r.lastUpdated || 0 })).filter(r => r._ts > 0).sort((a, b) => b._ts - a._ts);
-        const anchor = withTime[0];
-        const sessionRuns = anchor ? withTime.filter(r => anchor._ts - r._ts <= 2 * 60 * 60) : [];
-        draw({
-          playerName: player,
-          run: latest,
-          sessionRuns: sessionRuns,
-          sessionNph: nphData,
-          settings: { bgOpacity: 60, bgColor: '#000000', faceLeft: false }
-        });
-      } catch (e) {
-        console.error('Overlay update failed:', e);
-      }
-    }
-    setInterval(update, 1000);
-    update();
+    setInterval(() => {
+      const img = document.getElementById('overlayImg');
+      if (img) img.src = '/overlay.png?t=' + Date.now();
+    }, 1000);
   </script>
 </body>
 </html>`;
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(html);
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(html);
+      return;
+    }
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not found');
   });
   return new Promise((resolve) => {
     server.listen(OVERLAY_HTTP_PORT, '127.0.0.1', () => {
@@ -231,7 +121,6 @@ function ensureProtocolRegistered() {
     }).then(() => {
       return execAsync(`reg add "${shellOpenPath}" /ve /t REG_SZ /d "${command}" /f`);
     }).then(() => {
-      console.log('paceman:// protocol registered');
       return Promise.resolve();
     }).catch((e) => {
       console.error('Failed to register paceman:// protocol:', e);
@@ -266,12 +155,11 @@ function createWindow() {
   }
 
   win.loadFile('renderer/index.html');
+  win.webContents.setBackgroundThrottling(false);
 
-  win.on('minimize', (e) => {
-    if (!app.isQuitting) {
-      e.preventDefault();
-      win.hide();
-    }
+  win.webContents.on('did-fail-load', () => {
+    console.warn('Page load failed, retrying...');
+    setTimeout(safeReloadWindow, 1000);
   });
 
   win.on('close', (e) => {
@@ -322,11 +210,32 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  if (process.platform !== 'darwin' && app.isQuitting) app.quit();
 });
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
+
+function safeReloadWindow() {
+  if (!win || app.isQuitting) return;
+  try {
+    if (!win.isDestroyed()) {
+      win.webContents.reloadIgnoringCache();
+    }
+  } catch (e) {
+    createWindow();
+  }
+}
+
+app.on('renderer-process-crashed', () => {
+  console.warn('Renderer process crashed, reloading...');
+  safeReloadWindow();
+});
+
+app.on('gpu-process-crashed', () => {
+  console.warn('GPU process crashed, reloading...');
+  safeReloadWindow();
 });
 
 let tray = null;
@@ -339,6 +248,7 @@ function createTray() {
   ]);
   tray.setToolTip('Paceman');
   tray.setContextMenu(contextMenu);
+  tray.on('click', () => { if (win) { win.show(); win.focus(); } });
   tray.on('double-click', () => { if (win) { win.show(); win.focus(); } });
 }
 
@@ -357,7 +267,7 @@ app.on('window-all-closed', () => {
 
 function httpGetJson(url) {
   return new Promise((resolve, reject) => {
-      const req = https.get(url, { headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.3' } }, (res) => {
+      const req = https.get(url, { headers: { 'User-Agent': USER_AGENT } }, (res) => {
       const chunks = [];
       res.on('data', (c) => chunks.push(c));
       res.on('end', () => {
@@ -412,7 +322,7 @@ ipcMain.handle('check-for-updates', async () => {
 ipcMain.handle('fetch-json', async (event, url) => {
   try {
     const resp = await new Promise((resolve, reject) => {
-      const req = https.request(url, { method: 'GET', headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.3' } }, (res) => {
+      const req = https.request(url, { method: 'GET', headers: { 'User-Agent': USER_AGENT } }, (res) => {
         const chunks = [];
         res.on('data', (chunk) => chunks.push(chunk));
         res.on('end', () => resolve({ status: res.statusCode, data: Buffer.concat(chunks).toString() }));
@@ -441,7 +351,7 @@ ipcMain.handle('open-external', (event, url) => {
 function httpGetText(url, headers) {
   return new Promise((resolve, reject) => {
     const mod = url.startsWith('https') ? https : http;
-    const req = mod.get(url, { headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.3', 'Accept': '*/*', 'Accept-Encoding': 'identity', ...(headers || {}) } }, (res) => {
+    const req = mod.get(url, { headers: { 'User-Agent': USER_AGENT, 'Accept': '*/*', 'Accept-Encoding': 'identity', ...(headers || {}) } }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return resolve(httpGetText(res.headers.location, headers));
       }
@@ -462,7 +372,7 @@ function httpGetText(url, headers) {
 async function httpGetBuffer(url, headers) {
   return new Promise((resolve, reject) => {
     const mod = url.startsWith('https') ? https : http;
-    const req = mod.get(url, { headers: { 'User-Agent': 'Paceman-Desktop-App/2.1.3', 'Accept': '*/*', 'Accept-Encoding': 'identity', ...(headers || {}) } }, (res) => {
+    const req = mod.get(url, { headers: { 'User-Agent': USER_AGENT, 'Accept': '*/*', 'Accept-Encoding': 'identity', ...(headers || {}) } }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return resolve(httpGetBuffer(res.headers.location, headers));
       }
@@ -561,20 +471,13 @@ async function ensureFfmpeg() {
 }
 
 ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, endTime }) => {
-  console.log('download-vod called:', { downloadId, vodId, startTime, endTime });
-  console.log('Event sender:', event.sender);
-  console.log('Event sender id:', event.sender.id);
   const downloadsDir = app.getPath('downloads');
   const outputPath = path.join(downloadsDir, `run-vod-${vodId}-${Date.now()}.mp4`);
   const effectiveDownloadId = downloadId || `${vodId}-${Date.now()}`;
-  
+
   try {
-    console.log('Ensuring yt-dlp...');
     const ytDlpPath = await ensureYtDlp();
-    console.log('yt-dlp path:', ytDlpPath);
-    console.log('Ensuring ffmpeg...');
     const ffmpegPath = await ensureFfmpeg();
-    console.log('ffmpeg path:', ffmpegPath);
     const section = `${startTime.toFixed(2)}-${endTime.toFixed(2)}`;
     const args = [
       '--ffmpeg-location', path.dirname(ffmpegPath),
@@ -584,25 +487,21 @@ ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, end
       '-o', outputPath,
       `https://www.twitch.tv/videos/${vodId}`
     ];
-    console.log('Spawning yt-dlp with args:', args);
-    
+
     return new Promise((resolve, reject) => {
-      console.log('Spawning yt-dlp...');
       const child = spawn(ytDlpPath, args, { cwd: app.getPath('userData') });
-      console.log('yt-dlp spawned, pid:', child.pid);
       activeDownloads.set(downloadId, child);
-      
+
       let stderr = '';
       let finished = false;
-      
+
       child.on('error', (err) => {
-        console.log('yt-dlp error:', err);
         activeDownloads.delete(downloadId);
         if (finished) return;
         finished = true;
         resolve({ success: false, error: 'Failed to start yt-dlp: ' + err.message });
       });
-      
+
       const parseProgress = (text) => {
         const lines = text.split(/\r?\n/);
         for (const line of lines) {
@@ -614,7 +513,6 @@ ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, end
             const total = progressMatch[2] + (progressMatch[3] || '');
             const speed = progressMatch[4] + (progressMatch[5] || '');
             const eta = progressMatch[6];
-            console.log('Progress parsed:', percent, total, speed, eta);
             event.sender.send('download-vod-progress', {
               downloadId,
               percent: Math.min(100, Math.max(0, percent)),
@@ -622,31 +520,26 @@ ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, end
               speed,
               eta,
             });
-          } else if (trimmed.includes('[download]')) {
-            console.log('Download line (no match):', trimmed);
           }
         }
       };
-      
+
       child.stdout.on('data', (data) => {
         const text = data.toString();
-        console.log('yt-dlp stdout:', text.slice(0, 200));
         parseProgress(text);
       });
-      
+
       child.stderr.on('data', (data) => {
         const text = data.toString();
-        console.log('yt-dlp stderr:', text.slice(0, 200));
         stderr += text;
         parseProgress(text);
       });
-      
+
       child.on('close', async (code) => {
-        console.log('yt-dlp closed with code:', code);
         activeDownloads.delete(downloadId);
         if (finished) return;
         finished = true;
-        
+
         if (code === 0 && fs.existsSync(outputPath)) {
           resolve({ success: true, path: outputPath });
         } else {
@@ -654,12 +547,9 @@ ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, end
           resolve({ success: false, error: `Download failed with code ${code}: ${errorDetail || 'Unknown error'}` });
         }
       });
-      
-      console.log('Waiting for yt-dlp to finish...');
-      
+
       setTimeout(() => {
         if (!finished) {
-          console.log('Download timeout - killing yt-dlp');
           child.kill('SIGTERM');
           activeDownloads.delete(downloadId);
           finished = true;
