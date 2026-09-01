@@ -115,6 +115,7 @@
     openTwitch: new Set(),
     focusedChannel: null,
     dockLayout: "bottom",
+    twitchFullscreen: false,
     filters: { streamingOnly: false, maxTime: null },
     autoOpenTwitch: JSON.parse(localStorage.getItem("paceman_autoOpenTwitch") || "false"),
     recents: JSON.parse(localStorage.getItem("paceman_recents") || "[]"),
@@ -753,10 +754,12 @@
     const collapsed = dock.classList.contains("visible") && dock.classList.contains("collapsed");
     const focused = open && dock.classList.contains("focused");
     const side = open && state.dockLayout === "side";
-    app.classList.toggle("dock-open", open);
-    app.classList.toggle("dock-collapsed", collapsed);
-    app.classList.toggle("dock-focused", focused);
-    app.classList.toggle("dock-side", side);
+    const fullscreen = open && state.twitchFullscreen;
+    app.classList.toggle("dock-open", open && !fullscreen);
+    app.classList.toggle("dock-collapsed", collapsed && !fullscreen);
+    app.classList.toggle("dock-focused", focused && !fullscreen);
+    app.classList.toggle("dock-side", side && !fullscreen);
+    app.classList.toggle("dock-fullscreen", fullscreen);
   }
 
   function openRunDetail(id, name, fallbackRun) {
@@ -1493,6 +1496,15 @@
     if (twitchDockClose) {
       twitchDockClose.addEventListener("click", () => {
         document.getElementById("twitchDock").classList.remove("visible");
+        refreshDockLayout();
+      });
+    }
+    const twitchDockFullscreen = document.getElementById("twitchDockFullscreen");
+    if (twitchDockFullscreen) {
+      twitchDockFullscreen.addEventListener("click", () => {
+        state.twitchFullscreen = !state.twitchFullscreen;
+        const dock = document.getElementById("twitchDock");
+        dock.classList.toggle("fullscreen", state.twitchFullscreen);
         refreshDockLayout();
       });
     }

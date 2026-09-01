@@ -2908,17 +2908,19 @@ body {
 }
 
 .twitch-dock.focused.focus-side .twitch-dock-body {
-  flex-direction: row;
+  flex-direction: column;
 }
 
 .twitch-dock.focused.focus-side .twitch-dock-main {
   flex: 1;
+  min-height: 0;
 }
 
 .twitch-dock.focused.focus-side .twitch-dock-thumbs {
-  flex: 0 0 240px;
+  flex: 0 0 auto;
   flex-direction: column;
   overflow-y: auto;
+  max-height: 200px;
 }
 
 .twitch-dock.layout-side {
@@ -2926,7 +2928,7 @@ body {
   right: 0;
   top: 0;
   bottom: 0;
-  width: 320px;
+  width: 360px;
   flex-direction: column;
   border-top: none;
   border-left: 1px solid var(--border-glass);
@@ -2944,28 +2946,109 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
 }
 
 .twitch-dock.layout-side .twitch-tile {
   width: 100%;
   flex: 0 0 auto;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
 }
 
 .twitch-dock.layout-side .twitch-tile.featured {
   width: 100%;
   flex: 1 1 auto;
+  min-height: 0;
+}
+
+.twitch-dock.layout-side .twitch-tile.featured .twitch-tile-body {
+  height: 100%;
+  min-height: 200px;
 }
 
 .twitch-dock.layout-side .twitch-dock-thumbs {
-  display: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid var(--border-glass);
+  max-height: 200px;
+  overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .twitch-dock.layout-side .twitch-dock-thumbs.has-tiles {
   display: flex;
 }
 
+.twitch-dock.layout-side .twitch-tile:not(.featured) {
+  width: 100%;
+  flex: 0 0 auto;
+  border-radius: 6px;
+}
+
+.twitch-dock.layout-side .twitch-tile:not(.featured) .twitch-tile-body {
+  height: 72px;
+}
+
+.twitch-dock.layout-side .twitch-dock-thumbs:empty {
+  display: none;
+}
+
+.twitch-dock.layout-side .twitch-tile-bar {
+  padding: 5px 8px;
+}
+
+.twitch-dock.layout-side .twitch-tile-name {
+  font-size: 11px;
+}
+
 .twitch-dock.collapsed .twitch-dock-body {
   display: none;
+}
+
+.twitch-dock.fullscreen {
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3000;
+  border: none;
+  box-shadow: none;
+}
+
+.twitch-dock.fullscreen .twitch-dock-bar {
+  background: rgba(0, 0, 0, 0.9);
+  padding: 10px 16px;
+}
+
+.twitch-dock.fullscreen .twitch-dock-main {
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+}
+
+.twitch-dock.fullscreen .twitch-tile.featured {
+  border-radius: 0;
+  border: none;
+}
+
+.twitch-dock.fullscreen .twitch-tile.featured .twitch-tile-body {
+  height: 100%;
+  min-height: 0;
+}
+
+.twitch-dock.fullscreen .twitch-tile:not(.featured) {
+  display: none;
+}
+
+.twitch-dock.fullscreen .twitch-dock-thumbs {
+  display: none !important;
 }
 
 .twitch-tile {
@@ -3003,6 +3086,20 @@ body {
 
 .twitch-dock.focused.focus-side .twitch-tile:not(.featured) .twitch-tile-body {
   height: 135px;
+}
+
+.twitch-dock.layout-side.focused .twitch-tile:not(.featured) {
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.twitch-dock.layout-side.focused.focus-side .twitch-tile.featured .twitch-tile-body {
+  height: 100%;
+  min-height: 200px;
+}
+
+.twitch-dock.layout-side.focused.focus-side .twitch-tile:not(.featured) .twitch-tile-body {
+  height: 72px;
 }
 
 .twitch-tile-bar {
@@ -3065,7 +3162,11 @@ body {
 }
 
 .app.dock-side .main-content {
-  padding-right: 320px;
+  padding-right: 360px;
+}
+
+.app.dock-fullscreen .main-content {
+  display: none;
 }
 
 .app.dock-collapsed .main-content {
