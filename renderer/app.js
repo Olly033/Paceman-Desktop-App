@@ -4777,19 +4777,35 @@
       }
     });
     if (state.overlay.settings.autoStartOverlay && state.overlay.playerName && window.pacemanAPI) {
+      const overlayBrowserUrlEl = document.getElementById("overlayBrowserUrl");
+      const overlayStartServerBtn = document.getElementById("overlayStartServerBtn");
+      if (overlayStartServerBtn) {
+        overlayStartServerBtn.textContent = 'Starting...';
+        overlayStartServerBtn.disabled = true;
+      }
       (async () => {
-        const result = await window.pacemanAPI.startOverlayServer();
-        if (result && result.success) {
-          const url = result.url + '?player=' + encodeURIComponent(state.overlay.playerName || '');
-          const overlayBrowserUrlEl = document.getElementById("overlayBrowserUrl");
-          const overlayStartServerBtn = document.getElementById("overlayStartServerBtn");
-          if (overlayBrowserUrlEl) {
-            overlayBrowserUrlEl.textContent = url;
-            overlayBrowserUrlEl.style.display = "";
+        try {
+          const result = await window.pacemanAPI.startOverlayServer();
+          if (result && result.success) {
+            const url = result.url + '?player=' + encodeURIComponent(state.overlay.playerName || '');
+            if (overlayBrowserUrlEl) {
+              overlayBrowserUrlEl.textContent = url;
+              overlayBrowserUrlEl.style.display = "";
+            }
+            if (overlayStartServerBtn) {
+              overlayStartServerBtn.textContent = 'Server Running';
+              overlayStartServerBtn.disabled = true;
+            }
+          } else {
+            if (overlayStartServerBtn) {
+              overlayStartServerBtn.textContent = 'Start Server';
+              overlayStartServerBtn.disabled = false;
+            }
           }
+        } catch (e) {
           if (overlayStartServerBtn) {
-            overlayStartServerBtn.textContent = 'Server Running';
-            overlayStartServerBtn.disabled = true;
+            overlayStartServerBtn.textContent = 'Start Server';
+            overlayStartServerBtn.disabled = false;
           }
         }
       })();
