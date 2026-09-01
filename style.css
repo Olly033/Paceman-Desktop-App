@@ -229,7 +229,7 @@ body {
 
 .nav {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .nav-btn {
@@ -284,7 +284,7 @@ body {
   right: 0;
   margin-top: 8px;
   display: none;
-  gap: 8px;
+  gap: 6px;
   padding: 10px;
   background: var(--bg-secondary);
   backdrop-filter: blur(20px);
@@ -445,14 +445,14 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
 }
 .page-header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .page-header h1 {
@@ -467,51 +467,51 @@ body {
 .overlay-controls {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .overlay-preview {
   background: var(--bg-glass);
   border: 1px solid var(--border-glass);
   border-radius: 16px;
-  padding: 12px;
+  padding: 8px;
   backdrop-filter: blur(10px);
 }
 
 #overlayCanvas {
   width: 100%;
   height: auto;
-  border-radius: 12px;
+  border-radius: 8px;
   display: block;
 }
 
 .overlay-info {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .overlay-status {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-secondary);
-  padding: 10px 14px;
+  padding: 8px 12px;
   background: var(--bg-glass);
   border: 1px solid var(--border-glass);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .overlay-path {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
   word-break: break-all;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
+  border-radius: 6px;
   font-family: monospace;
 }
 
 .overlay-path-label {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
   opacity: 0.8;
   text-transform: uppercase;
@@ -615,7 +615,7 @@ body {
 .run-card {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
   padding: 16px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid var(--border-glass);
@@ -649,7 +649,7 @@ body {
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .run-card .twitch-icon {
@@ -785,7 +785,7 @@ body {
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .filter-group label {
@@ -794,7 +794,7 @@ body {
   color: var(--text-secondary);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   cursor: pointer;
 }
 
@@ -847,7 +847,7 @@ body {
 }
 
 .filter-split .time-input {
-  gap: 8px;
+  gap: 6px;
 }
 
 .time-arrow {
@@ -1013,7 +1013,7 @@ body {
 
 .timeframe-tabs {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
@@ -1122,7 +1122,7 @@ body {
 .runs-list-small {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 0;
 }
 
@@ -1229,7 +1229,7 @@ body {
 .pagination {
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   margin-top: 16px;
 }
 
@@ -1264,7 +1264,7 @@ body {
 .lb-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  gap: 10px;
 }
 
 .lb-card {
@@ -1352,7 +1352,7 @@ body {
 .lb-card-player {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
   min-width: 0;
 }
@@ -1376,7 +1376,7 @@ body {
 
 .lb-card-stats {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -1405,7 +1405,7 @@ body {
 .streams-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 8px 14px;
   border: 1px solid var(--border-glass);
   border-radius: 10px;
@@ -1645,7 +1645,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   padding: 32px 24px;
   text-align: center;
   color: var(--text-muted);
@@ -2252,7 +2252,7 @@ body {
 
 .detail-split-times {
   display: flex;
-  gap: 16px;
+  gap: 10px;
 }
 
 .detail-igt {
@@ -2512,7 +2512,7 @@ body {
 .page-header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 }
 

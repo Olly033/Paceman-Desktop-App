@@ -568,8 +568,8 @@ body {
 
 .overlay-layout {
   display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 20px;
+  grid-template-columns: 1fr 300px;
+  gap: 12px;
   align-items: start;
 }
 
@@ -580,14 +580,14 @@ body {
 .overlay-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .glass-card {
   background: linear-gradient(135deg, var(--bg-glass) 0%, var(--bg-glass-hover) 100%);
   border: 1px solid var(--border-glass);
-  border-radius: 16px;
-  padding: 18px;
+  border-radius: 14px;
+  padding: 14px;
   backdrop-filter: blur(12px);
   transition: all 0.25s ease;
 }
@@ -596,11 +596,11 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .card-header h2 {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -608,17 +608,17 @@ body {
 }
 
 .card-badge {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--text-muted);
   background: rgba(255, 255, 255, 0.06);
-  padding: 3px 8px;
-  border-radius: 6px;
+  padding: 2px 7px;
+  border-radius: 5px;
   font-family: monospace;
 }
 
 .card-hint {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
   font-weight: 400;
   text-transform: none;
@@ -626,12 +626,12 @@ body {
 }
 
 .preview-card {
-  padding: 12px;
+  padding: 10px;
 }
 
 .canvas-wrapper {
   position: relative;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid var(--border-glass);
@@ -641,7 +641,7 @@ body {
   width: 100%;
   height: auto;
   display: block;
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 .status-card .status-text {
@@ -679,22 +679,22 @@ body {
 .pace-card .pace-inputs {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 5px;
+  margin-bottom: 8px;
 }
 
 .pace-card .pace-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 
 .pace-card .pace-label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
   font-weight: 500;
-  min-width: 90px;
+  min-width: 75px;
 }
 
 .pace-card .time-input {
@@ -706,13 +706,13 @@ body {
 }
 
 .pace-card .time-input input {
-  width: 64px;
-  padding: 5px 6px;
+  width: 52px;
+  padding: 3px 5px;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid var(--border-glass);
-  border-radius: 6px;
+  border-radius: 5px;
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 11px;
   font-family: monospace;
   text-align: center;
   transition: all 0.2s ease;
@@ -725,12 +725,12 @@ body {
 }
 
 .time-arrow {
-  padding: 3px 6px;
+  padding: 2px 5px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border-glass);
-  border-radius: 5px;
+  border-radius: 4px;
   color: var(--text-secondary);
-  font-size: 10px;
+  font-size: 9px;
   cursor: pointer;
   line-height: 1;
   transition: all 0.2s ease;
@@ -743,16 +743,16 @@ body {
 
 .primary-btn {
   width: 100%;
-  padding: 10px 16px;
+  padding: 7px 10px;
   background: var(--gradient-1);
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   color: white;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s ease;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .primary-btn:hover {
@@ -761,7 +761,7 @@ body {
 }
 
 .header-subtitle {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-muted);
   margin-top: 2px;
   font-weight: 400;
@@ -770,26 +770,26 @@ body {
 .settings-card .settings-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
 }
 
 .settings-card .setting-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
+  gap: 4px;
+  font-size: 11px;
   color: var(--text-secondary);
 }
 
 .settings-card .setting-control {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .settings-card .setting-control input[type="range"] {
   flex: 1;
-  height: 6px;
+  height: 5px;
   border-radius: 3px;
   background: rgba(255, 255, 255, 0.1);
   outline: none;
@@ -800,8 +800,8 @@ body {
 .settings-card .setting-control input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--accent);
   cursor: pointer;
@@ -809,8 +809,8 @@ body {
 }
 
 .settings-card .setting-control input[type="range"]::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--accent);
   cursor: pointer;
@@ -818,18 +818,18 @@ body {
 }
 
 .settings-card .setting-value {
-  min-width: 40px;
+  min-width: 32px;
   text-align: right;
   font-family: monospace;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-primary);
 }
 
 .settings-card .color-control input[type="color"] {
-  width: 40px;
-  height: 28px;
+  width: 32px;
+  height: 22px;
   border: 1px solid var(--border-glass);
-  border-radius: 6px;
+  border-radius: 5px;
   background: transparent;
   cursor: pointer;
   padding: 2px;

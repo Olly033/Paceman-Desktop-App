@@ -4796,27 +4796,6 @@
         }
       }
     });
-    if (state.overlay.settings.autoStartOverlay && state.overlay.playerName && window.pacemanAPI) {
-      const overlayBrowserUrlEl = document.getElementById("overlayBrowserUrl");
-      updateOverlayServerButton(false);
-      (async () => {
-        try {
-          const result = await window.pacemanAPI.startOverlayServer();
-          if (result && result.success) {
-            const url = result.url + '?player=' + encodeURIComponent(state.overlay.playerName || '');
-            if (overlayBrowserUrlEl) {
-              overlayBrowserUrlEl.textContent = url;
-              overlayBrowserUrlEl.style.display = "";
-            }
-            updateOverlayServerButton(true);
-          } else {
-            updateOverlayServerButton(false);
-          }
-        } catch (e) {
-          updateOverlayServerButton(false);
-        }
-      })();
-    }
   }
 
   function initOverlaySearch() {
@@ -4938,6 +4917,31 @@
       state.overlay._dirty = true;
       updateOverlayStatus();
       drawOverlayCanvas();
+      if (state.overlay.settings.autoStartOverlay && displayName && window.pacemanAPI && !state.overlay.serverRunning) {
+        (async () => {
+          try {
+            const result = await window.pacemanAPI.startOverlayServer();
+            if (result && result.success) {
+              const url = result.url + '?player=' + encodeURIComponent(displayName || '');
+              const overlayBrowserUrlEl = document.getElementById("overlayBrowserUrl");
+              const overlayStartServerBtn = document.getElementById("overlayStartServerBtn");
+              if (overlayBrowserUrlEl) {
+                overlayBrowserUrlEl.textContent = url;
+                overlayBrowserUrlEl.style.display = "";
+              }
+              const updateOverlayServerButton = (running) => {
+                state.overlay.serverRunning = running;
+                if (overlayStartServerBtn) overlayStartServerBtn.style.display = running ? "none" : "";
+                const overlayStopServerBtn = document.getElementById("overlayStopServerBtn");
+                if (overlayStopServerBtn) overlayStopServerBtn.style.display = running ? "" : "none";
+              };
+              updateOverlayServerButton(true);
+            }
+          } catch (e) {
+            // ignore auto-start failures
+          }
+        })();
+      }
     });
   }
 
