@@ -158,7 +158,7 @@
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
     dailyLeaderboardTop10: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
-    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, sessionRuns: [], sessionNph: null, intervalId: null, apiIntervalId: null, paceTargets: {}, settings: { bgOpacity: 60, bgColor: "#000000", sessionGapMinutes: 45, faceLeft: false, width: 600 }, _dirty: true },
+    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, sessionRuns: [], sessionNph: null, intervalId: null, apiIntervalId: null, paceTargets: {}, settings: { bgOpacity: 60, bgColor: "#000000", sessionGapMinutes: 45, faceLeft: false, width: 600, autoStartOverlay: false }, _dirty: true },
     structureView: localStorage.getItem("paceman_structure_view") || "firstSecond",
   };
 
@@ -2104,6 +2104,15 @@
         localStorage.setItem("paceman_overlay_settings", JSON.stringify(state.overlay.settings));
         state.overlay._dirty = true;
         drawOverlayCanvas();
+      });
+    }
+
+    const autoStartEl = document.getElementById("overlayAutoStart");
+    if (autoStartEl) {
+      autoStartEl.checked = !!state.overlay.settings.autoStartOverlay;
+      autoStartEl.addEventListener("change", () => {
+        state.overlay.settings.autoStartOverlay = autoStartEl.checked;
+        localStorage.setItem("paceman_overlay_settings", JSON.stringify(state.overlay.settings));
       });
     }
 
@@ -4732,6 +4741,24 @@
         }
       }
     });
+    if (state.overlay.settings.autoStartOverlay && state.overlay.playerName && window.pacemanAPI) {
+      (async () => {
+        const result = await window.pacemanAPI.startOverlayServer();
+        if (result && result.success) {
+          const url = result.url + '?player=' + encodeURIComponent(state.overlay.playerName || '');
+          const overlayBrowserUrlEl = document.getElementById("overlayBrowserUrl");
+          const overlayStartServerBtn = document.getElementById("overlayStartServerBtn");
+          if (overlayBrowserUrlEl) {
+            overlayBrowserUrlEl.textContent = url;
+            overlayBrowserUrlEl.style.display = "";
+          }
+          if (overlayStartServerBtn) {
+            overlayStartServerBtn.textContent = 'Server Running';
+            overlayStartServerBtn.disabled = true;
+          }
+        }
+      })();
+    }
   }
 
   function initOverlaySearch() {
