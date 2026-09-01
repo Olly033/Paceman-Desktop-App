@@ -147,6 +147,7 @@
     focusedChannel: null,
     dockLayout: "bottom",
     twitchFullscreen: false,
+    twitchFullscreenLayout: "focus",
     filters: { streamingOnly: false, maxTime: null, favoritesOnly: false },
     autoOpenTwitch: JSON.parse(localStorage.getItem("paceman_autoOpenTwitch") || "false"),
     recents: JSON.parse(localStorage.getItem("paceman_recents") || "[]"),
@@ -1755,6 +1756,16 @@
     app.classList.toggle("dock-focused", focused && !fullscreen);
     app.classList.toggle("dock-side", side && !fullscreen);
     app.classList.toggle("dock-fullscreen", fullscreen);
+    if (fullscreen) {
+      dock.classList.add("layout-focus");
+      dock.classList.remove("layout-grid");
+      if (state.twitchFullscreenLayout === "grid") {
+        dock.classList.add("layout-grid");
+        dock.classList.remove("layout-focus");
+      }
+    } else {
+      dock.classList.remove("layout-focus", "layout-grid");
+    }
   }
 
   function openRunDetail(id, name, fallbackRun) {
@@ -4108,8 +4119,26 @@
     if (twitchDockFullscreen) {
       twitchDockFullscreen.addEventListener("click", () => {
         state.twitchFullscreen = !state.twitchFullscreen;
+        if (state.twitchFullscreen && state.openTwitch.size > 0 && !state.focusedChannel) {
+          state.focusedChannel = Array.from(state.openTwitch)[0];
+          renderDockLayout();
+        }
         const dock = document.getElementById("twitchDock");
+        if (state.twitchFullscreen && state.openTwitch.size > 0) {
+          dock.classList.add("visible");
+        }
         dock.classList.toggle("fullscreen", state.twitchFullscreen);
+        refreshDockLayout();
+      });
+    }
+    const twitchDockFullscreenLayout = document.getElementById("twitchDockFullscreenLayout");
+    if (twitchDockFullscreenLayout) {
+      twitchDockFullscreenLayout.addEventListener("click", () => {
+        if (!state.twitchFullscreen) return;
+        state.twitchFullscreenLayout = state.twitchFullscreenLayout === "focus" ? "grid" : "focus";
+        const dock = document.getElementById("twitchDock");
+        dock.classList.toggle("layout-focus", state.twitchFullscreenLayout === "focus");
+        dock.classList.toggle("layout-grid", state.twitchFullscreenLayout === "grid");
         refreshDockLayout();
       });
     }

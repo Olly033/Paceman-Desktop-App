@@ -3081,6 +3081,56 @@ body {
   color: #fff;
 }
 
+.twitch-dock.fullscreen {
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3000;
+  border: none;
+  box-shadow: none;
+  background: #000;
+  transition: all 0.2s ease;
+}
+
+.twitch-dock.fullscreen .twitch-dock-bar {
+  background: rgba(0, 0, 0, 0.9);
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.twitch-dock.fullscreen .twitch-dock-bar-left {
+  gap: 12px;
+}
+
+.twitch-dock.fullscreen .twitch-dock-icon {
+  color: var(--text-primary);
+}
+
+.twitch-dock.fullscreen .twitch-dock-title {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.twitch-dock.fullscreen .twitch-dock-count {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+}
+
+.twitch-dock.fullscreen .twitch-dock-auto-open {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+}
+
+.twitch-dock.fullscreen .twitch-dock-auto-open:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
 .twitch-dock.fullscreen .twitch-dock-auto-open.active {
   background: var(--accent);
   border-color: var(--accent);
@@ -3097,6 +3147,30 @@ body {
   background: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 255, 255, 0.25);
   color: #fff;
+}
+
+.twitch-dock-fullscreen-layout {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 7px;
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.twitch-dock-fullscreen-layout:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.twitch-dock.fullscreen .twitch-dock-fullscreen-layout {
+  display: inline-flex;
 }
 
 .twitch-dock.fullscreen .twitch-dock-close {
@@ -3121,7 +3195,7 @@ body {
 }
 
 .twitch-dock.fullscreen .twitch-dock-empty {
-  display: none !important;
+  display: flex !important;
 }
 
 .twitch-dock.fullscreen .twitch-dock-main {
@@ -3131,28 +3205,72 @@ body {
   background: #000;
 }
 
-.twitch-dock.fullscreen .twitch-tile {
+.twitch-dock.fullscreen.layout-focus .twitch-tile {
   background: #000;
   border: none;
   border-radius: 0;
 }
 
-.twitch-dock.fullscreen .twitch-tile.featured {
+.twitch-dock.fullscreen.layout-focus .twitch-tile.featured {
   width: 100%;
   flex: 1 1 auto;
   border-radius: 0;
 }
 
-.twitch-dock.fullscreen .twitch-tile.featured .twitch-tile-body {
+.twitch-dock.fullscreen.layout-focus .twitch-tile.featured .twitch-tile-body {
   height: 100%;
   min-height: 0;
 }
 
-.twitch-dock.fullscreen .twitch-tile:not(.featured) {
+.twitch-dock.fullscreen.layout-focus .twitch-tile:not(.featured) {
   display: none !important;
 }
 
-.twitch-dock.fullscreen .twitch-dock-thumbs {
+.twitch-dock.fullscreen.layout-focus .twitch-dock-thumbs {
+  display: flex !important;
+  flex-direction: row;
+  overflow-x: auto;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.9);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+  max-height: 120px;
+}
+
+.twitch-dock.fullscreen.layout-focus .twitch-dock-thumbs .twitch-tile {
+  width: 180px;
+  flex: 0 0 180px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.twitch-dock.fullscreen.layout-focus .twitch-dock-thumbs .twitch-tile .twitch-tile-body {
+  height: 80px;
+}
+
+.twitch-dock.fullscreen.layout-grid .twitch-dock-main {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.twitch-dock.fullscreen.layout-grid .twitch-tile {
+  width: 100%;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.twitch-dock.fullscreen.layout-grid .twitch-tile.featured {
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.twitch-dock.fullscreen.layout-grid .twitch-dock-thumbs {
   display: none !important;
 }
 
