@@ -159,7 +159,7 @@
     leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc", pages: {} },
     dailyLeaderboardTop10: {},
     comparison: { active: false, tf: "session", player1: null, player2: null, bothLoaded: false },
-    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, sessionRuns: [], sessionNph: null, intervalId: null, apiIntervalId: null, paceTargets: {}, settings: { bgOpacity: 60, bgColor: "#000000", sessionGapMinutes: 45, faceLeft: false, width: 600, autoStartOverlay: false }, _dirty: true },
+    overlay: { playerName: null, playerUuid: null, run: null, sessionBests: {}, sessionRuns: [], sessionNph: null, intervalId: null, apiIntervalId: null, paceTargets: {}, settings: { bgOpacity: 60, bgColor: "#000000", sessionGapMinutes: 45, faceLeft: false, width: 600, autoStartOverlay: false }, _dirty: true, serverRunning: false },
     structureView: localStorage.getItem("paceman_structure_view") || "firstSecond",
   };
 
@@ -3753,17 +3753,37 @@
       });
     }
     const overlayStartServerBtn = document.getElementById("overlayStartServerBtn");
+    const overlayStopServerBtn = document.getElementById("overlayStopServerBtn");
     const overlayCopyUrlBtn = document.getElementById("overlayCopyUrlBtn");
     const overlayBrowserUrlEl = document.getElementById("overlayBrowserUrl");
+    const updateOverlayServerButton = (running) => {
+      state.overlay.serverRunning = running;
+      if (overlayStartServerBtn) overlayStartServerBtn.style.display = running ? "none" : "";
+      if (overlayStopServerBtn) overlayStopServerBtn.style.display = running ? "" : "none";
+    };
     if (overlayStartServerBtn && window.pacemanAPI) {
       overlayStartServerBtn.addEventListener("click", async () => {
+        updateOverlayServerButton(false);
         const result = await window.pacemanAPI.startOverlayServer();
         if (result && result.success) {
           const url = result.url + '?player=' + encodeURIComponent(state.overlay.playerName || '');
-          overlayBrowserUrlEl.textContent = url;
-          overlayBrowserUrlEl.style.display = "";
-          overlayStartServerBtn.textContent = 'Server Running';
-          overlayStartServerBtn.disabled = true;
+          if (overlayBrowserUrlEl) {
+            overlayBrowserUrlEl.textContent = url;
+            overlayBrowserUrlEl.style.display = "";
+          }
+          updateOverlayServerButton(true);
+        } else {
+          updateOverlayServerButton(false);
+        }
+      });
+    }
+    if (overlayStopServerBtn && window.pacemanAPI) {
+      overlayStopServerBtn.addEventListener("click", async () => {
+        await window.pacemanAPI.stopOverlayServer();
+        updateOverlayServerButton(false);
+        if (overlayBrowserUrlEl) {
+          overlayBrowserUrlEl.textContent = "";
+          overlayBrowserUrlEl.style.display = "none";
         }
       });
     }
@@ -4778,11 +4798,7 @@
     });
     if (state.overlay.settings.autoStartOverlay && state.overlay.playerName && window.pacemanAPI) {
       const overlayBrowserUrlEl = document.getElementById("overlayBrowserUrl");
-      const overlayStartServerBtn = document.getElementById("overlayStartServerBtn");
-      if (overlayStartServerBtn) {
-        overlayStartServerBtn.textContent = 'Starting...';
-        overlayStartServerBtn.disabled = true;
-      }
+      updateOverlayServerButton(false);
       (async () => {
         try {
           const result = await window.pacemanAPI.startOverlayServer();
@@ -4792,21 +4808,12 @@
               overlayBrowserUrlEl.textContent = url;
               overlayBrowserUrlEl.style.display = "";
             }
-            if (overlayStartServerBtn) {
-              overlayStartServerBtn.textContent = 'Server Running';
-              overlayStartServerBtn.disabled = true;
-            }
+            updateOverlayServerButton(true);
           } else {
-            if (overlayStartServerBtn) {
-              overlayStartServerBtn.textContent = 'Start Server';
-              overlayStartServerBtn.disabled = false;
-            }
+            updateOverlayServerButton(false);
           }
         } catch (e) {
-          if (overlayStartServerBtn) {
-            overlayStartServerBtn.textContent = 'Start Server';
-            overlayStartServerBtn.disabled = false;
-          }
+          updateOverlayServerButton(false);
         }
       })();
     }
