@@ -4494,6 +4494,12 @@
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "d") {
         toggleDevMode();
       }
+      if (e.key === "Escape" && state.twitchFullscreen) {
+        state.twitchFullscreen = false;
+        const dock = document.getElementById("twitchDock");
+        if (dock) dock.classList.remove("fullscreen");
+        refreshDockLayout();
+      }
     });
     applyAnimationsSetting();
   }

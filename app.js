@@ -1542,6 +1542,14 @@
         }
       });
     }
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && state.twitchFullscreen) {
+        state.twitchFullscreen = false;
+        const dock = document.getElementById("twitchDock");
+        if (dock) dock.classList.remove("fullscreen");
+        refreshDockLayout();
+      }
+    });
     document.getElementById("twitchDockLayout").addEventListener("click", () => {
       state.dockLayout = state.dockLayout === "bottom" ? "side" : "bottom";
       renderDockLayout();
