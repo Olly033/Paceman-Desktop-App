@@ -2718,36 +2718,73 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
+  padding: 10px 16px;
+  gap: 12px;
+}
+
+.twitch-dock-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.twitch-dock-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--text-secondary);
 }
 
 .twitch-dock-title {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: var(--text-muted);
-}
-
-.twitch-dock-collapse {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 7px;
-  background: var(--bg-glass);
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.twitch-dock-collapse:hover {
-  background: var(--bg-glass-hover);
   color: var(--text-primary);
+}
+
+.twitch-dock-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .twitch-dock-bar-actions {
   display: flex;
   gap: 6px;
+}
+
+.twitch-dock-auto-open {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border-glass);
+  border-radius: 7px;
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s;
+}
+
+.twitch-dock-auto-open:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.twitch-dock-auto-open.active {
+  background: var(--gradient-1);
+  color: #fff;
+  border-color: transparent;
 }
 
 .twitch-dock-layout {
@@ -2766,10 +2803,75 @@ body {
   color: var(--text-primary);
 }
 
+.twitch-dock-close {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 7px;
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.twitch-dock-close:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
 .twitch-dock-body {
   display: flex;
   flex-direction: column;
   min-height: 0;
+}
+
+.twitch-dock-empty {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.twitch-dock-empty svg {
+  width: 32px;
+  height: 32px;
+  opacity: 0.5;
+}
+
+.twitch-dock-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.twitch-dock-empty-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.twitch-dock-auto-open-cta {
+  margin-top: 8px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--bg-glass);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.twitch-dock-auto-open-cta:hover {
+  background: var(--accent);
+  color: #fff;
 }
 
 .twitch-dock-main {
@@ -2786,6 +2888,10 @@ body {
   gap: 12px;
   padding: 0 16px 16px;
   min-height: 0;
+}
+
+.twitch-dock-thumbs.has-tiles {
+  display: flex;
 }
 
 .twitch-dock.focused .twitch-dock-thumbs {
@@ -2854,6 +2960,10 @@ body {
   display: none;
 }
 
+.twitch-dock.layout-side .twitch-dock-thumbs.has-tiles {
+  display: flex;
+}
+
 .twitch-dock.collapsed .twitch-dock-body {
   display: none;
 }
@@ -2899,14 +3009,16 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 8px 6px 12px;
-  background: rgba(0, 0, 0, 0.7);
+  padding: 8px 10px 8px 14px;
+  background: rgba(0, 0, 0, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .twitch-tile-name {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: #fff;
+  letter-spacing: 0.2px;
 }
 
 .twitch-tile-actions {
@@ -2919,7 +3031,7 @@ body {
   height: 26px;
   border: none;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
   cursor: pointer;
   font-size: 14px;
@@ -2930,7 +3042,7 @@ body {
 }
 
 .twitch-tile-actions button:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .twitch-tile-body {

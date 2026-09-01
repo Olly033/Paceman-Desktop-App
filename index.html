@@ -47,13 +47,13 @@
           <div class="theme-options" id="themeOptions"></div>
         </div>
       </div>
-      <button class="streams-btn" id="streamsToggle" title="Show/hide stream dock">
+      <button class="streams-btn" id="streamsToggle" title="Toggle Twitch streams dock">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M4 2L3 6v13h4v3h3l3-3h4l5-5V2H4zm16 9l-3 3h-5l-3 3v-3H6V4h14v7z"></path>
           <path d="M15 7h2v4h-2zM10 7h2v4h-2z"></svg>
         <span id="streamsCount">0</span>
       </button>
-      <button class="auto-open-btn" id="autoOpenTwitchBtn" title="Auto-open Twitch streams">
+      <button class="auto-open-btn" id="autoOpenTwitchBtn" title="Auto-open Twitch streams when live">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
           <polyline points="15 3 21 3 21 9"></polyline>
@@ -180,13 +180,28 @@
 
     <div class="twitch-dock" id="twitchDock">
       <div class="twitch-dock-bar">
-        <span class="twitch-dock-title">Live Streams</span>
+        <div class="twitch-dock-bar-left">
+          <svg class="twitch-dock-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 2L3 6v13h4v3h3l3-3h4l5-5V2H4zm16 9l-3 3h-5l-3 3v-3H6V4h14v7z"></path>
+            <path d="M15 7h2v4h-2zM10 7h2v4h-2z"></svg>
+          <span class="twitch-dock-title">Live Streams</span>
+          <span class="twitch-dock-count" id="streamsCount">0</span>
+        </div>
         <div class="twitch-dock-bar-actions">
+          <button class="twitch-dock-auto-open" id="twitchDockAutoOpen" title="Auto-open streams when live">Auto</button>
           <button class="twitch-dock-layout" id="twitchDockLayout" title="Toggle side / bottom layout">&#9634;</button>
-          <button class="twitch-dock-collapse" id="twitchDockCollapse" title="Hide dock">&#9662;</button>
+          <button class="twitch-dock-close" id="twitchDockClose" title="Close dock">&times;</button>
         </div>
       </div>
       <div class="twitch-dock-body">
+        <div class="twitch-dock-empty" id="twitchDockEmpty">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5">
+            <path d="M4 2L3 6v13h4v3h3l3-3h4l5-5V2H4zm16 9l-3 3h-5l-3 3v-3H6V4h14v7z"></path>
+            <path d="M15 7h2v4h-2zM10 7h2v4h-2z"></svg>
+          <div class="twitch-dock-empty-title">No streams open</div>
+          <div class="twitch-dock-empty-hint">Click a Twitch icon on a live run to open a stream, or enable Auto-open below.</div>
+          <button class="twitch-dock-auto-open-cta" id="twitchDockAutoOpenCta">Enable Auto-open</button>
+        </div>
         <div class="twitch-dock-main" id="twitchDockMain"></div>
         <div class="twitch-dock-thumbs" id="twitchDockThumbs"></div>
       </div>

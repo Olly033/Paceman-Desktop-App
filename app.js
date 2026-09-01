@@ -693,7 +693,9 @@
     }
     updateStreamsUI();
     renderDockLayout();
-    if (state.openTwitch.size === 0) document.getElementById("twitchDock").classList.remove("visible");
+    if (state.openTwitch.size === 0) {
+      document.getElementById("twitchDock").classList.remove("visible");
+    }
   }
 
   function renderDockLayout() {
@@ -706,6 +708,7 @@
     dock.classList.toggle("focus-bottom", !!focused && state.dockLayout === "bottom");
     dock.classList.toggle("focus-side", !!focused && state.dockLayout === "side");
     dock.classList.toggle("layout-side", state.dockLayout === "side");
+    let thumbCount = 0;
     for (const tile of tiles) {
       const ch = tile.dataset.channel;
       if (focused && ch === focused) {
@@ -714,11 +717,13 @@
       } else if (focused) {
         if (tile.parentElement !== thumbs) thumbs.appendChild(tile);
         tile.classList.remove("featured");
+        thumbCount++;
       } else {
         if (tile.parentElement !== main) main.appendChild(tile);
         tile.classList.remove("featured");
       }
     }
+    if (thumbs) thumbs.classList.toggle("has-tiles", thumbCount > 0);
     refreshDockLayout();
   }
 
@@ -727,7 +732,18 @@
     const countEl = document.getElementById("streamsCount");
     if (countEl) countEl.textContent = n;
     const toggle = document.getElementById("streamsToggle");
-    if (toggle) toggle.style.display = n > 0 ? "flex" : "none";
+    if (toggle) {
+      toggle.style.display = "flex";
+      toggle.classList.toggle("empty", n === 0);
+    }
+    const emptyEl = document.getElementById("twitchDockEmpty");
+    const mainEl = document.getElementById("twitchDockMain");
+    const thumbsEl = document.getElementById("twitchDockThumbs");
+    if (emptyEl) emptyEl.style.display = n === 0 ? "flex" : "none";
+    if (mainEl) mainEl.style.display = n === 0 ? "none" : "flex";
+    if (thumbsEl) thumbsEl.style.display = n === 0 ? "none" : (thumbsEl.classList.contains("has-tiles") ? "flex" : "none");
+    const autoOpenBtn = document.getElementById("twitchDockAutoOpen");
+    if (autoOpenBtn) autoOpenBtn.classList.toggle("active", state.autoOpenTwitch);
   }
 
   function refreshDockLayout() {
@@ -1473,10 +1489,47 @@
       }
       refreshDockLayout();
     });
-    document.getElementById("twitchDockCollapse").addEventListener("click", () => {
-      document.getElementById("twitchDock").classList.toggle("collapsed");
-      refreshDockLayout();
-    });
+    const twitchDockClose = document.getElementById("twitchDockClose");
+    if (twitchDockClose) {
+      twitchDockClose.addEventListener("click", () => {
+        document.getElementById("twitchDock").classList.remove("visible");
+        refreshDockLayout();
+      });
+    }
+    const twitchDockAutoOpen = document.getElementById("twitchDockAutoOpen");
+    if (twitchDockAutoOpen) {
+      twitchDockAutoOpen.addEventListener("click", () => {
+        state.autoOpenTwitch = !state.autoOpenTwitch;
+        localStorage.setItem("paceman_autoOpenTwitch", state.autoOpenTwitch);
+        updateStreamsUI();
+        if (state.autoOpenTwitch) {
+          autoOpenedStreams.clear();
+          for (const r of state.liveRuns) {
+            const twitch = r.user && r.user.liveAccount ? r.user.liveAccount : null;
+            if (twitch) {
+              autoOpenedStreams.add(twitch);
+              openTwitch(twitch);
+            }
+          }
+        }
+      });
+    }
+    const twitchDockAutoOpenCta = document.getElementById("twitchDockAutoOpenCta");
+    if (twitchDockAutoOpenCta) {
+      twitchDockAutoOpenCta.addEventListener("click", () => {
+        state.autoOpenTwitch = true;
+        localStorage.setItem("paceman_autoOpenTwitch", state.autoOpenTwitch);
+        updateStreamsUI();
+        autoOpenedStreams.clear();
+        for (const r of state.liveRuns) {
+          const twitch = r.user && r.user.liveAccount ? r.user.liveAccount : null;
+          if (twitch) {
+            autoOpenedStreams.add(twitch);
+            openTwitch(twitch);
+          }
+        }
+      });
+    }
     document.getElementById("twitchDockLayout").addEventListener("click", () => {
       state.dockLayout = state.dockLayout === "bottom" ? "side" : "bottom";
       renderDockLayout();
