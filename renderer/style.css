@@ -1761,6 +1761,12 @@ body {
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.04);
   transition: box-shadow 0.3s ease;
+  animation: profileHeaderIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes profileHeaderIn {
+  from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .profile-header:hover {
@@ -2161,14 +2167,17 @@ body {
   transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   position: relative;
   overflow: hidden;
+}
+
+.recent-sessions.animate-cards .session-card {
   animation: sessionCardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.session-card:nth-child(1) { animation-delay: 0.02s; }
-.session-card:nth-child(2) { animation-delay: 0.06s; }
-.session-card:nth-child(3) { animation-delay: 0.10s; }
-.session-card:nth-child(4) { animation-delay: 0.14s; }
-.session-card:nth-child(5) { animation-delay: 0.18s; }
+.recent-sessions.animate-cards .session-card:nth-child(1) { animation-delay: 0.02s; }
+.recent-sessions.animate-cards .session-card:nth-child(2) { animation-delay: 0.06s; }
+.recent-sessions.animate-cards .session-card:nth-child(3) { animation-delay: 0.10s; }
+.recent-sessions.animate-cards .session-card:nth-child(4) { animation-delay: 0.14s; }
+.recent-sessions.animate-cards .session-card:nth-child(5) { animation-delay: 0.18s; }
 
 @keyframes sessionCardIn {
   from { opacity: 0; transform: translateX(-12px) scale(0.97); }
@@ -2386,6 +2395,23 @@ body {
   gap: 12px;
 }
 
+.profile-splits.animate-cards .split-card {
+  animation: splitCardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.profile-splits.animate-cards .split-card:nth-child(1) { animation-delay: 0.03s; }
+.profile-splits.animate-cards .split-card:nth-child(2) { animation-delay: 0.07s; }
+.profile-splits.animate-cards .split-card:nth-child(3) { animation-delay: 0.11s; }
+.profile-splits.animate-cards .split-card:nth-child(4) { animation-delay: 0.15s; }
+.profile-splits.animate-cards .split-card:nth-child(5) { animation-delay: 0.19s; }
+.profile-splits.animate-cards .split-card:nth-child(6) { animation-delay: 0.23s; }
+.profile-splits.animate-cards .split-card:nth-child(7) { animation-delay: 0.27s; }
+
+@keyframes splitCardIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .split-card {
   padding: 14px;
   background: var(--bg-glass);
@@ -2396,7 +2422,7 @@ body {
   position: relative;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .split-card::before {
@@ -4181,6 +4207,21 @@ input[type="range"]::-moz-range-thumb {
   overflow: hidden;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.runs-list-small.animate-cards .run-row {
+  animation: runRowIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.runs-list-small.animate-cards .run-row:nth-child(1) { animation-delay: 0.02s; }
+.runs-list-small.animate-cards .run-row:nth-child(2) { animation-delay: 0.06s; }
+.runs-list-small.animate-cards .run-row:nth-child(3) { animation-delay: 0.10s; }
+.runs-list-small.animate-cards .run-row:nth-child(4) { animation-delay: 0.14s; }
+.runs-list-small.animate-cards .run-row:nth-child(5) { animation-delay: 0.18s; }
+
+@keyframes runRowIn {
+  from { opacity: 0; transform: translateX(-10px) scale(0.97); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
 }
 
 .run-row:hover {

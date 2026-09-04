@@ -932,6 +932,12 @@
         profileStatsRow.insertBefore(badge, profileStatsRow.firstChild);
       }
     }
+    const profileSplits = document.getElementById("profileSplits");
+    const profileBestRuns = document.getElementById("profileBestRuns");
+    const recentSessions = document.getElementById("recentSessions");
+    if (profileSplits) profileSplits.classList.remove("animate-cards");
+    if (profileBestRuns) profileBestRuns.classList.remove("animate-cards");
+    if (recentSessions) recentSessions.classList.remove("animate-cards");
   }
 
   async function updateSessionStats() {
@@ -3002,6 +3008,12 @@
       if (!suppressNavPush) pushNav({ page: "leaderboard" });
     } else if (p === "profile") {
       document.getElementById("page-profile").classList.add("active");
+      const profileSplits = document.getElementById("profileSplits");
+      const profileBestRuns = document.getElementById("profileBestRuns");
+      const recentSessions = document.getElementById("recentSessions");
+      if (profileSplits) profileSplits.classList.add("animate-cards");
+      if (profileBestRuns) profileBestRuns.classList.add("animate-cards");
+      if (recentSessions) recentSessions.classList.add("animate-cards");
     } else if (p === "overlay") {
       document.getElementById("page-overlay").classList.add("active");
       document.querySelector('[data-page="overlay"]').classList.add("active");
