@@ -717,8 +717,6 @@
       if (status) status.textContent = "UI error: runsList missing";
       return;
     }
-    if (status) status.textContent = "Loading...";
-    if (state.liveRuns.length === 0) list.innerHTML = '<div class="loading">Loading live runs...</div>';
     try {
       const runs = await getJSON(LIVERUNS);
       const data = Array.isArray(runs) ? runs : (runs && runs.value ? runs.value : []);
