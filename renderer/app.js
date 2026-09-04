@@ -552,25 +552,32 @@
     return `${MCHEADS}/skin/${id}`;
   }
 
-  async function getJSON(url) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("HTTP " + res.status);
+  async function getJSON(url, timeout = 15000) {
+    const fetchPromise = (async () => {
       try {
-        return await res.json();
-      } catch (e) {
-        throw new Error("Invalid JSON response from " + url);
-      }
-    } catch (e) {
-      if (window.pacemanAPI && typeof window.pacemanAPI.fetchJSON === "function") {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("HTTP " + res.status);
         try {
-          return await window.pacemanAPI.fetchJSON(url);
-        } catch (e2) {
-          throw e;
+          return await res.json();
+        } catch (e) {
+          throw new Error("Invalid JSON response from " + url);
         }
+      } catch (e) {
+        if (window.pacemanAPI && typeof window.pacemanAPI.fetchJSON === "function") {
+          try {
+            return await window.pacemanAPI.fetchJSON(url);
+          } catch (e2) {
+            throw e;
+          }
+        }
+        throw e;
       }
-      throw e;
+    })();
+    if (timeout > 0) {
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timeout: " + url)), timeout));
+      return Promise.race([fetchPromise, timeoutPromise]);
     }
+    return fetchPromise;
   }
 
   async function resolveUUID(name) {
@@ -717,6 +724,7 @@
       if (status) status.textContent = "UI error: runsList missing";
       return;
     }
+    list.innerHTML = '<div class="loading">Loading...</div>';
     try {
       const runs = await getJSON(LIVERUNS);
       const data = Array.isArray(runs) ? runs : (runs && runs.value ? runs.value : []);
