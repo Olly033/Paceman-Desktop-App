@@ -339,6 +339,7 @@
   let navIndex = -1;
   let suppressNavPush = false;
   let liveRunsIntervalId = null;
+  let liveRunsLoading = false;
   const MAX_LIVE_RUNS = 200;
 
   function startLiveRunsPolling() {
@@ -354,6 +355,7 @@
       clearInterval(liveRunsIntervalId);
       liveRunsIntervalId = null;
     }
+    liveRunsLoading = false;
   }
 
   function pruneRuns() {
@@ -717,14 +719,17 @@
   /* ---------------- Live Runs ---------------- */
 
   async function loadLiveRuns() {
+    if (liveRunsLoading) return;
+    liveRunsLoading = true;
     const list = document.getElementById("runsList");
     const status = document.getElementById("liveStatus");
     if (!list) {
       console.error("runsList element not found");
       if (status) status.textContent = "UI error: runsList missing";
+      liveRunsLoading = false;
       return;
     }
-    list.innerHTML = '<div class="loading">Loading...</div>';
+    if (state.liveRuns.length === 0) list.innerHTML = '<div class="loading">Loading...</div>';
     try {
       const runs = await getJSON(LIVERUNS);
       const data = Array.isArray(runs) ? runs : (runs && runs.value ? runs.value : []);
@@ -749,7 +754,9 @@
     } catch (e) {
       console.error("Failed to load live runs:", e);
       if (status) status.textContent = "Failed to load live runs";
-      if (list) list.innerHTML = '<div class="loading">Failed to load live runs. Check your connection.</div>';
+      if (list && state.liveRuns.length === 0) list.innerHTML = '<div class="loading">Failed to load live runs. Check your connection.</div>';
+    } finally {
+      liveRunsLoading = false;
     }
   }
 
