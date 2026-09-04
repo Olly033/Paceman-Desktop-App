@@ -122,7 +122,7 @@
     recents: JSON.parse(localStorage.getItem("paceman_recents") || "[]"),
     playerCache: {},
     profile: { name: null, uuid: null, tf: "daily", allRuns: [], dailyRuns: [], page: 1 },
-    leaderboard: { tf: "weekly", rows: null, sortBy: "enters", sortDir: "desc" },
+    leaderboard: { tf: "weekly", rows: null, pages: {}, sortBy: "enters", sortDir: "desc", lbStructureView: localStorage.getItem("paceman_lb_structure_view") || "firstSecond" },
   };
 
   const autoOpenedStreams = new Set();
@@ -132,6 +132,9 @@
   const navHistory = [];
   let navIndex = -1;
   let suppressNavPush = false;
+  let liveRunsIntervalId = null;
+  let profileIntervalId = null;
+  const MAX_LIVE_RUNS = 200;
 
   function pushNav(entry) {
     if (suppressNavPush) return;
@@ -343,21 +346,91 @@
 
   /* ---------------- Live Runs ---------------- */
 
-  async function loadLiveRuns() {
-    const list = document.getElementById("runsList");
-    if (state.liveRuns.length === 0) list.innerHTML = '<div class="loading">Loading live runs...</div>';
-    try {
-      const runs = await getJSON(LIVERUNS);
-      state.liveRuns = runs.filter(
-        (r) => !r.isHidden && !r.isCheated && (r.gameVersion || "").startsWith("1.16") && !r.numLeaves
-      );
-      cachePlayersFromRuns(runs);
-      cleanupAutoOpenedStreams(state.liveRuns);
-      renderLiveRuns();
-    } catch (e) {
-      list.innerHTML = '<div class="loading">Failed to load live runs. Check your connection.</div>';
+  function startLiveRunsPolling() {
+    if (liveRunsIntervalId) return;
+    loadLiveRuns();
+    liveRunsIntervalId = setInterval(() => {
+      loadLiveRuns();
+    }, 1000);
+  }
+
+  function stopLiveRunsPolling() {
+    if (liveRunsIntervalId) {
+      clearInterval(liveRunsIntervalId);
+      liveRunsIntervalId = null;
     }
   }
+
+  function startProfilePolling() {
+    if (profileIntervalId) return;
+    profileIntervalId = setInterval(() => {
+      if (state.page === "profile" && state.profile.name) {
+        Promise.all([loadProfileStats(), loadProfileRuns()]).catch(() => {});
+      }
+    }, 2000);
+  }
+
+  function stopProfilePolling() {
+    if (profileIntervalId) {
+      clearInterval(profileIntervalId);
+      profileIntervalId = null;
+    }
+  }
+
+  function pruneRuns() {
+    if (state.liveRuns.length > MAX_LIVE_RUNS) {
+      state.liveRuns = state.liveRuns.slice(0, MAX_LIVE_RUNS);
+    }
+  }
+
+  async function loadLiveRuns() {
+    const list = document.getElementById("runsList");
+    const status = document.getElementById("liveStatus");
+    if (!list) {
+      console.error("runsList element not found");
+      if (status) status.textContent = "UI error: runsList missing";
+      return;
+    }
+    if (state.liveRuns.length === 0) list.innerHTML = '<div class="loading">Loading live runs...</div>';
+    if (status) status.textContent = "Loading...";
+    try {
+      const res = await fetch(LIVERUNS, { signal: AbortSignal.timeout(15000) });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      const runs = Array.isArray(data) ? data : (data && data.value ? data.value : []);
+      const filtered = runs.filter(
+        (r) => !r.isHidden && !r.isCheated && (r.gameVersion || "").startsWith("1.16") && !r.numLeaves
+      );
+      const prevIds = state.liveRuns.map((r) => r.worldId || r.id).join(",");
+      const nextIds = filtered.map((r) => r.worldId || r.id).join(",");
+      const changed = prevIds !== nextIds || state.liveRuns.length !== filtered.length;
+      const wasEmpty = state.liveRuns.length === 0;
+      state.liveRuns = filtered;
+      if (status) status.textContent = `Loaded ${state.liveRuns.length} runs`;
+      cachePlayersFromRuns(runs);
+      cleanupAutoOpenedStreams(state.liveRuns);
+      pruneRuns();
+      if (changed || wasEmpty) {
+        renderLiveRuns();
+      }
+    } catch (e) {
+      console.error("Failed to load live runs:", e);
+      const name = e && e.name ? e.name : "Error";
+      const msg = e && e.message ? e.message : String(e);
+      let friendly = "Failed to load live runs. Check your connection.";
+      if (name === "TimeoutError" || msg.includes("timeout") || msg.includes("aborted")) {
+        friendly = "Timed out loading live runs.";
+      } else if (msg.includes("HTTP 404")) {
+        friendly = "Live runs endpoint returned 404.";
+      } else if (msg.includes("HTTP 5")) {
+        friendly = "Server error loading live runs.";
+      } else if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("Network request failed")) {
+        friendly = "Network error loading live runs.";
+      }
+      if (status) status.textContent = friendly;
+      list.innerHTML = `<div class="loading">${friendly}</div>`;
+    }
+   }
 
   function passesFilters(run) {
     if (state.filters.streamingOnly && !(run.user && run.user.liveAccount)) return false;
@@ -733,11 +806,6 @@
     const n = state.openTwitch.size;
     const countEl = document.getElementById("streamsCount");
     if (countEl) countEl.textContent = n;
-    const toggle = document.getElementById("streamsToggle");
-    if (toggle) {
-      toggle.style.display = "flex";
-      toggle.classList.toggle("empty", n === 0);
-    }
     const emptyEl = document.getElementById("twitchDockEmpty");
     const mainEl = document.getElementById("twitchDockMain");
     const thumbsEl = document.getElementById("twitchDockThumbs");
@@ -1045,60 +1113,111 @@
     grid.innerHTML = '<div class="loading">Loading leaderboard...</div>';
     try {
       const days = LB_DAYS[tf] || 30;
-      const lbType = sortBy === "avg" ? "average" : "count";
-      const fetched = await Promise.all(
-        LB_CATEGORIES.map((c) =>
-          getJSON(`${API}/getLeaderboard?category=${c}&type=${lbType}&days=${days}&limit=50`).catch(() => [])
-        )
-      );
       const byCat = {};
-      LB_CATEGORIES.forEach((cat, i) => {
-        const threshold = getLeaderboardThreshold(cat, days);
-        const raw = (fetched[i] || [])
-          .map((p) => {
-            const count = p.qty || p.value || 0;
-            const avg = p.avg || 0;
+      if (sortBy === "avg+enters") {
+        const [countFetched, avgFetched] = await Promise.all([
+          Promise.all(LB_CATEGORIES.map((c) => getJSON(`${API}/getLeaderboard?category=${c}&type=count&days=${days}&limit=50`).catch(() => []))),
+          Promise.all(LB_CATEGORIES.map((c) => getJSON(`${API}/getLeaderboard?category=${c}&type=average&days=${days}&limit=50`).catch(() => [])))
+        ]);
+        LB_CATEGORIES.forEach((cat, i) => {
+          const threshold = getLeaderboardThreshold(cat, days);
+          const countMap = new Map();
+          (countFetched[i] || []).forEach((p) => {
+            const key = p.uuid || p.name;
+            countMap.set(key, { uuid: p.uuid, name: p.name, count: p.qty || p.value || 0, avg: 0 });
+          });
+          (avgFetched[i] || []).forEach((p) => {
+            const key = p.uuid || p.name;
+            const existing = countMap.get(key) || { uuid: p.uuid, name: p.name, count: 0 };
+            existing.avg = p.avg || 0;
+            countMap.set(key, existing);
+          });
+          const raw = Array.from(countMap.values()).map((p) => {
             let quality = "ok";
             if (threshold) {
-              if (count < threshold.min) {
+              if ((p.count || 0) < threshold.min) {
                 quality = "below";
-              } else if (count >= threshold.good) {
+              } else if (p.count >= threshold.good) {
                 quality = "good";
               } else {
                 quality = "min";
               }
             }
-            return {
-              uuid: p.uuid,
-              name: p.name,
-              count,
-              avg,
-              quality,
-            };
-          })
-          .filter((p) => p.quality !== "below");
-        const qualityRank = { good: 0, min: 1, below: 2 };
-        raw.sort((a, b) => {
-          if (sortBy === "avg") {
+            return { ...p, quality };
+          }).filter((p) => p.quality !== "below");
+          const countRanked = [...raw].sort((a, b) => (b.count || 0) - (a.count || 0));
+          const avgRanked = [...raw].sort((a, b) => (a.avg || Infinity) - (b.avg || Infinity));
+          const countRank = new Map();
+          const avgRank = new Map();
+          countRanked.forEach((p, i) => countRank.set(p.uuid || p.name, i + 1));
+          avgRanked.forEach((p, i) => avgRank.set(p.uuid || p.name, i + 1));
+          const combined = raw.map((p) => ({
+            ...p,
+            combinedRank: (countRank.get(p.uuid || p.name) || raw.length + 1) + (avgRank.get(p.uuid || p.name) || raw.length + 1)
+          }));
+          combined.sort((a, b) => {
+            if (a.combinedRank !== b.combinedRank) return a.combinedRank - b.combinedRank;
+            if (b.count !== a.count) return b.count - a.count;
+            if (a.avg !== b.avg) return a.avg - b.avg;
+            return 0;
+          });
+          byCat[cat] = combined.slice(0, 3);
+        });
+      } else {
+        const lbType = sortBy === "avg" ? "average" : "count";
+        const fetched = await Promise.all(
+          LB_CATEGORIES.map((c) =>
+            getJSON(`${API}/getLeaderboard?category=${c}&type=${lbType}&days=${days}&limit=50`).catch(() => [])
+          )
+        );
+        LB_CATEGORIES.forEach((cat, i) => {
+          const threshold = getLeaderboardThreshold(cat, days);
+          const raw = (fetched[i] || [])
+            .map((p) => {
+              const count = p.qty || p.value || 0;
+              const avg = p.avg || 0;
+              let quality = "ok";
+              if (threshold) {
+                if (count < threshold.min) {
+                  quality = "below";
+                } else if (count >= threshold.good) {
+                  quality = "good";
+                } else {
+                  quality = "min";
+                }
+              }
+              return {
+                uuid: p.uuid,
+                name: p.name,
+                count,
+                avg,
+                quality,
+              };
+            })
+            .filter((p) => p.quality !== "below");
+          const qualityRank = { good: 0, min: 1, below: 2 };
+          raw.sort((a, b) => {
+            if (sortBy === "avg") {
+              const aAvg = a.avg || Infinity;
+              const bAvg = b.avg || Infinity;
+              if (aAvg !== bAvg) return aAvg - bAvg;
+              const aQ = qualityRank[a.quality] ?? 2;
+              const bQ = qualityRank[b.quality] ?? 2;
+              if (aQ !== bQ) return aQ - bQ;
+              return b.count - a.count;
+            }
+            if (sortDir === "asc") return a.count - b.count;
+            if (b.count !== a.count) return b.count - a.count;
             const aAvg = a.avg || Infinity;
             const bAvg = b.avg || Infinity;
             if (aAvg !== bAvg) return aAvg - bAvg;
             const aQ = qualityRank[a.quality] ?? 2;
             const bQ = qualityRank[b.quality] ?? 2;
-            if (aQ !== bQ) return aQ - bQ;
-            return b.count - a.count;
-          }
-          if (sortDir === "asc") return a.count - b.count;
-          if (b.count !== a.count) return b.count - a.count;
-          const aAvg = a.avg || Infinity;
-          const bAvg = b.avg || Infinity;
-          if (aAvg !== bAvg) return aAvg - bAvg;
-          const aQ = qualityRank[a.quality] ?? 2;
-          const bQ = qualityRank[b.quality] ?? 2;
-          return aQ - bQ;
+            return aQ - bQ;
+          });
+          byCat[cat] = raw.slice(0, 3);
         });
-        byCat[cat] = raw.slice(0, 3);
-      });
+      }
       state.leaderboard.rows = byCat;
       renderLeaderboard(byCat);
     } catch (e) {
@@ -1111,42 +1230,117 @@
     grid.innerHTML = "";
     if (!byCat) return;
     const sortBy = state.leaderboard.sortBy;
-    const rankLabel = sortBy === "avg" ? "Best Avg" : "Most Enters";
-    for (const cat of LB_CATEGORIES) {
-      const players = byCat[cat] || [];
-      const card = document.createElement("div");
-      card.className = "lb-card";
-      let rowsHtml = "";
-      for (let i = 0; i < players.length; i++) {
-        const p = players[i];
-        const avatar = avatarUrl(p.uuid || p.name, 32);
-        const mainVal = sortBy === "avg" ? fmt(p.avg) : p.count;
-        const mainLabel = sortBy === "avg" ? "Avg" : "Enters";
-        const otherVal = sortBy === "avg" ? p.count : fmt(p.avg);
-        const otherLabel = sortBy === "avg" ? "Enters" : "Avg";
-        rowsHtml += `<div class="lb-card-row" data-name="${escapeHtml(p.name)}" data-uuid="${escapeHtml(p.uuid || "")}">
-          <div class="lb-card-rank">${i + 1}</div>
-          <div class="lb-card-player">
-            <img src="${avatar}" onerror="this.style.visibility='hidden'">
-            <span class="lb-card-name">${escapeHtml(p.name)}</span>
-          </div>
-          <div class="lb-card-stats">
-            <div class="lb-card-stat lb-card-stat-primary">
-              <div class="lb-card-stat-val">${mainVal}</div>
-              <div class="lb-card-stat-label">${mainLabel}</div>
-            </div>
-            <div class="lb-card-stat">
-              <div class="lb-card-stat-val">${otherVal}</div>
-              <div class="lb-card-stat-label">${otherLabel}</div>
-            </div>
-          </div>
-        </div>`;
+    const lbStructureView = state.leaderboard.lbStructureView || "firstSecond";
+    const perPage = 10;
+    const cats = lbStructureView === "bastionFort"
+      ? LB_CATEGORIES.filter((c) => c !== "bastion" && c !== "fortress")
+      : LB_CATEGORIES;
+    const sectionKeys = lbStructureView === "bastionFort"
+      ? [...cats, "bf"]
+      : cats;
+    for (const cat of sectionKeys) {
+      let players = byCat[cat] || [];
+      let sectionCat = cat;
+      let totalPlayers = players.length;
+      if (lbStructureView === "bastionFort" && cat === "bf") {
+        const bastion = byCat["bastion"] || [];
+        const fortress = byCat["fortress"] || [];
+        const merged = new Map();
+        [...bastion, ...fortress].forEach((p) => {
+          const key = p.uuid || p.name;
+          if (!merged.has(key)) merged.set(key, { ...p });
+        });
+        players = Array.from(merged.values());
+        totalPlayers = players.length;
+        sectionCat = "bf";
       }
-      card.innerHTML = `<div class="lb-card-head">${SPLITS[cat]} <span class="lb-card-rank-label">${rankLabel}</span></div><div class="lb-card-list">${rowsHtml || '<div class="loading">No data.</div>'}</div>`;
-      grid.appendChild(card);
+      if (!players.length) continue;
+      const totalPages = Math.max(1, Math.ceil(totalPlayers / perPage));
+      const catPage = Math.min(state.leaderboard.pages[sectionCat] || 1, totalPages);
+      const start = (catPage - 1) * perPage;
+      const pagePlayers = players.slice(start, start + perPage);
+      const section = document.createElement("div");
+      section.className = "lb-table-section";
+      const head = document.createElement("div");
+      head.className = "lb-table-section-head";
+      head.textContent = sectionCat === "bf" ? "Bastion/Fortress" : SPLITS[sectionCat];
+      section.appendChild(head);
+      const list = document.createElement("div");
+      list.className = "lb-table-list";
+      for (let i = 0; i < pagePlayers.length; i++) {
+        const p = pagePlayers[i];
+        const globalIdx = start + i + 1;
+        const rankClass = globalIdx === 1 ? "lb-rank-1" : globalIdx === 2 ? "lb-rank-2" : globalIdx === 3 ? "lb-rank-3" : "";
+        const avatar = avatarUrl(p.uuid || p.name, 24);
+        const mainVal = sortBy === "avg" || sortBy === "avg+enters" ? fmt(p.avg) : p.count;
+        const mainLabel = sortBy === "avg" || sortBy === "avg+enters" ? "Avg" : "Enters";
+        const otherVal = sortBy === "avg" ? p.count : p.count;
+        const otherLabel = sortBy === "avg" ? "Enters" : "Avg";
+        const showOther = sortBy === "avg+enters";
+        const qualityClass = p.quality === "good" ? "lb-quality-good" : p.quality === "min" ? "lb-quality-min" : "";
+        const row = document.createElement("div");
+        row.className = `lb-table-row ${rankClass} ${qualityClass}`;
+        row.dataset.name = p.name;
+        row.dataset.uuid = p.uuid || "";
+        row.innerHTML = `
+          <div class="lb-table-rank">${globalIdx}</div>
+          <div class="lb-table-player">
+            <img src="${avatar}" onerror="this.style.visibility='hidden'">
+            <span class="lb-table-name">${escapeHtml(p.name)}</span>
+          </div>
+          <div class="lb-table-stats">
+            <div class="lb-table-stat lb-table-stat-primary">
+              <div class="lb-table-stat-val">${mainVal}</div>
+              <div class="lb-table-stat-label">${mainLabel}</div>
+            </div>
+            ${showOther ? `<div class="lb-table-stat">
+              <div class="lb-table-stat-val">${otherVal}</div>
+              <div class="lb-table-stat-label">${otherLabel}</div>
+            </div>` : ""}
+          </div>
+        `;
+        row.addEventListener("click", () => openProfile(row.dataset.name, row.dataset.uuid));
+        list.appendChild(row);
+      }
+      section.appendChild(list);
+      if (totalPlayers > perPage) {
+        const pagination = document.createElement("div");
+        pagination.className = "lb-pagination";
+        const prevBtn = document.createElement("button");
+        prevBtn.className = "lb-page-btn";
+        prevBtn.dataset.cat = sectionCat;
+        prevBtn.dataset.dir = "prev";
+        prevBtn.innerHTML = "&lt;";
+        prevBtn.disabled = catPage <= 1;
+        const pageInfo = document.createElement("span");
+        pageInfo.className = "lb-page-info";
+        pageInfo.textContent = `${catPage} / ${totalPages}`;
+        const nextBtn = document.createElement("button");
+        nextBtn.className = "lb-page-btn";
+        nextBtn.dataset.cat = sectionCat;
+        nextBtn.dataset.dir = "next";
+        nextBtn.innerHTML = "&gt;";
+        nextBtn.disabled = catPage >= totalPages;
+        pagination.appendChild(prevBtn);
+        pagination.appendChild(pageInfo);
+        pagination.appendChild(nextBtn);
+        section.appendChild(pagination);
+      }
+      grid.appendChild(section);
     }
-    grid.querySelectorAll(".lb-card-row").forEach((row) => {
-      row.addEventListener("click", () => openProfile(row.dataset.name, row.dataset.uuid));
+    grid.querySelectorAll(".lb-page-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const cat = btn.dataset.cat;
+        const dir = btn.dataset.dir;
+        const currentPage = state.leaderboard.pages[cat] || 1;
+        if (dir === "prev" && currentPage > 1) {
+          state.leaderboard.pages[cat] = currentPage - 1;
+          renderLeaderboard(state.leaderboard.rows);
+        } else if (dir === "next") {
+          state.leaderboard.pages[cat] = currentPage + 1;
+          renderLeaderboard(state.leaderboard.rows);
+        }
+      });
     });
   }
 
@@ -1371,12 +1565,15 @@
 
   function showPage(p) {
     if (state.page === p) return;
+    if (state.page === "home") stopLiveRunsPolling();
+    if (state.page === "profile") stopProfilePolling();
     state.page = p;
     document.querySelectorAll(".page").forEach((el) => el.classList.remove("active"));
     document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
     if (p === "home") {
       document.getElementById("page-home").classList.add("active");
       document.querySelector('[data-page="home"]').classList.add("active");
+      startLiveRunsPolling();
       loadLiveRuns();
       if (!suppressNavPush) pushNav({ page: "home" });
     } else if (p === "leaderboard") {
@@ -1388,6 +1585,10 @@
       if (!suppressNavPush) pushNav({ page: "leaderboard" });
     } else if (p === "profile") {
       document.getElementById("page-profile").classList.add("active");
+      startProfilePolling();
+      if (state.profile.name) {
+        Promise.all([loadProfileStats(), loadProfileRuns()]).catch(() => {});
+      }
     }
     const appEl = document.querySelector(".app");
     const mainContent = document.querySelector(".main-content");
@@ -1446,6 +1647,23 @@
         loadLeaderboard(true);
       });
     });
+    const lbStructureToggle = document.getElementById("lbStructureToggle");
+    if (lbStructureToggle) {
+      const savedView = localStorage.getItem("paceman_lb_structure_view") || "firstSecond";
+      state.leaderboard.lbStructureView = savedView;
+      lbStructureToggle.classList.toggle("active", savedView === "bastionFort");
+      lbStructureToggle.querySelector(".structure-toggle-label").textContent = savedView === "bastionFort" ? "Bastion/Fort" : "1st/2nd";
+      lbStructureToggle.addEventListener("click", () => {
+        const current = state.leaderboard.lbStructureView || "firstSecond";
+        const next = current === "firstSecond" ? "bastionFort" : "firstSecond";
+        state.leaderboard.lbStructureView = next;
+        localStorage.setItem("paceman_lb_structure_view", next);
+        lbStructureToggle.classList.toggle("active", next === "bastionFort");
+        lbStructureToggle.querySelector(".structure-toggle-label").textContent = next === "bastionFort" ? "Bastion/Fort" : "1st/2nd";
+        state.leaderboard.rows = null;
+        loadLeaderboard(true);
+      });
+    }
     document.getElementById("viewAllRunsBtn").addEventListener("click", () => {
       document.getElementById("allRunsModal").classList.add("visible");
     });
@@ -1493,16 +1711,19 @@
       if (document.getElementById("runDetailVod").style.display !== "none") seekVod(5);
     });
     document.getElementById("vodSpeed").addEventListener("click", toggleVodSpeed);
-    document.getElementById("streamsToggle").addEventListener("click", () => {
-      const dock = document.getElementById("twitchDock");
-      if (!dock.classList.contains("visible")) {
-        dock.classList.add("visible");
-        dock.classList.remove("collapsed");
-      } else {
-        dock.classList.toggle("collapsed");
-      }
-      refreshDockLayout();
-    });
+    const twitchDockCollapse = document.getElementById("twitchDockCollapse");
+    if (twitchDockCollapse) {
+      twitchDockCollapse.addEventListener("click", () => {
+        const dock = document.getElementById("twitchDock");
+        if (!dock.classList.contains("visible")) {
+          dock.classList.add("visible");
+          dock.classList.remove("collapsed");
+        } else {
+          dock.classList.toggle("collapsed");
+        }
+        refreshDockLayout();
+      });
+    }
     const twitchDockClose = document.getElementById("twitchDockClose");
     if (twitchDockClose) {
       twitchDockClose.addEventListener("click", () => {
@@ -1585,7 +1806,7 @@
     });
     updateStreamsUI();
     showPage("home");
-    loadLiveRuns();
+    startLiveRunsPolling();
     navHistory.length = 0;
     navHistory.push({ page: "home" });
     navIndex = 0;
@@ -1593,9 +1814,6 @@
       if (e.button === 3) { e.preventDefault(); goBack(); }
       if (e.button === 4) { e.preventDefault(); goForward(); }
     });
-    setInterval(() => {
-      if (state.page === "home") loadLiveRuns();
-    }, 3000);
     window.addEventListener("resize", () => {
       if (state.profile.uuid && document.getElementById("page-profile").classList.contains("active")) {
         renderHead3D(document.getElementById("head3dContainer"), state.profile.uuid);

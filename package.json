@@ -1,6 +1,6 @@
 {
   "name": "paceman-app",
-  "version": "2.1.4",
+  "version": "3.0.0",
   "description": "Paceman MCSR Desktop App",
   "main": "main.js",
   "scripts": {
@@ -22,7 +22,7 @@
   },
   "build": {
     "appId": "com.paceman.app",
-    "productName": "Paceman",
+    "productName": "Paceman v3",
     "icon": "icon.ico",
     "protocols": [
       {

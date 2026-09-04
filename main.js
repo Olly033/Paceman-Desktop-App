@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, Menu, session, dialog, Tray } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Menu, session, dialog, Tray, webRequest } = require('electron');
 const path = require('path');
 const https = require('https');
 const http = require('http');
@@ -7,7 +7,7 @@ const { promisify } = require('util');
 const execAsync = promisify(exec);
 const fs = require('fs');
 
-const APP_VERSION = app.getVersion ? app.getVersion() : '2.1.4';
+const APP_VERSION = app.getVersion ? app.getVersion() : '3.0.0';
 const REPO_OWNER = 'Olly033';
 const REPO_NAME = 'Paceman-Desktop-App';
 const YTDLP_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe';
@@ -138,12 +138,12 @@ function createWindow() {
     frame: true,
     backgroundColor: '#0f0f23',
     title: 'Paceman v' + APP_VERSION,
-    webSecurity: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      webviewTag: true
+      webviewTag: true,
+      webSecurity: true
     }
   });
 
@@ -178,11 +178,54 @@ if (!gotSingleInstanceLock) {
   shouldWarnAlreadyRunning = true;
 } else {
   app.on('second-instance', (event, commandLine, workingDirectory) => {
+    const protocolArg = commandLine.find((arg) => typeof arg === 'string' && arg.startsWith('paceman://'));
+    if (protocolArg) {
+      try {
+        const parsed = new URL(protocolArg);
+        pendingProtocolArgs = {
+          protocol: parsed.protocol,
+          host: parsed.hostname,
+          path: parsed.pathname,
+          query: Object.fromEntries(parsed.searchParams.entries()),
+        };
+      } catch (e) {
+        console.error('Failed to parse paceman:// protocol arg:', e);
+      }
+    }
     if (win) {
       if (win.isMinimized()) win.restore();
       win.focus();
+      if (pendingProtocolArgs) {
+        win.webContents.send('protocol-args', pendingProtocolArgs);
+        pendingProtocolArgs = null;
+      }
     }
   });
+
+  if (process.platform === 'darwin') {
+    app.on('open-url', (event, url) => {
+      event.preventDefault();
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol === 'paceman:') {
+          pendingProtocolArgs = {
+            protocol: parsed.protocol,
+            host: parsed.hostname,
+            path: parsed.pathname,
+            query: Object.fromEntries(parsed.searchParams.entries()),
+          };
+          if (win) {
+            if (win.isMinimized()) win.restore();
+            win.focus();
+            win.webContents.send('protocol-args', pendingProtocolArgs);
+            pendingProtocolArgs = null;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse paceman:// URL:', e);
+      }
+    });
+  }
 }
 
 app.whenReady().then(async () => {
@@ -202,15 +245,22 @@ app.whenReady().then(async () => {
   } catch (e) {
     console.warn('Cache clear failed:', e);
   }
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Access-Control-Allow-Origin': ['*'],
+        'Access-Control-Allow-Headers': ['*'],
+        'Access-Control-Allow-Methods': ['*'],
+        'Access-Control-Allow-Credentials': ['true'],
+      },
+    });
+  });
   Menu.setApplicationMenu(null);
   createWindow();
   ensureProtocolRegistered();
   ensureYtDlp().catch((e) => console.warn('yt-dlp pre-download failed:', e.message));
   ensureFfmpeg().catch((e) => console.warn('ffmpeg pre-download failed:', e.message));
-});
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin' && app.isQuitting) app.quit();
 });
 
 app.on('activate', () => {
@@ -265,26 +315,6 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin' && app.isQuitting) app.quit();
 });
 
-function httpGetJson(url) {
-  return new Promise((resolve, reject) => {
-      const req = https.get(url, { headers: { 'User-Agent': USER_AGENT } }, (res) => {
-      const chunks = [];
-      res.on('data', (c) => chunks.push(c));
-      res.on('end', () => {
-        if (res.statusCode < 200 || res.statusCode >= 300) {
-          return reject(new Error('GitHub API returned HTTP ' + res.statusCode));
-        }
-        try {
-          const data = JSON.parse(Buffer.concat(chunks).toString());
-          resolve(data);
-        } catch (e) {
-          reject(new Error('Invalid JSON from GitHub releases'));
-        }
-      });
-    }).on('error', reject);
-  });
-}
-
 async function checkGithubLatest() {
   const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest`;
   const data = await httpGetJson(url);
@@ -319,19 +349,38 @@ ipcMain.handle('check-for-updates', async () => {
   }
 });
 
+async function httpGetJson(url) {
+  const mod = url.startsWith('https') ? https : http;
+  const resp = await new Promise((resolve, reject) => {
+    const req = mod.request(url, { method: 'GET', headers: { 'User-Agent': USER_AGENT } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        const chunks = [];
+        res.on('data', () => {});
+        res.on('end', () => resolve({ redirect: res.headers.location, baseUrl: url }));
+        return;
+      }
+      const chunks = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => resolve({ status: res.statusCode, data: Buffer.concat(chunks).toString() }));
+    });
+    req.on('error', reject);
+    req.end();
+  });
+  if (resp.redirect) {
+    const loc = resp.redirect;
+    const next = loc.startsWith('http') ? loc : new URL(loc, resp.baseUrl).toString();
+    return httpGetJson(next);
+  }
+  if (resp.status < 200 || resp.status >= 300) {
+    throw new Error('GitHub API returned HTTP ' + resp.status);
+  }
+  return JSON.parse(resp.data);
+}
+
 ipcMain.handle('fetch-json', async (event, url) => {
   try {
-    const resp = await new Promise((resolve, reject) => {
-      const req = https.request(url, { method: 'GET', headers: { 'User-Agent': USER_AGENT } }, (res) => {
-        const chunks = [];
-        res.on('data', (chunk) => chunks.push(chunk));
-        res.on('end', () => resolve({ status: res.statusCode, data: Buffer.concat(chunks).toString() }));
-      });
-      req.on('error', reject);
-      req.end();
-    });
-    if (resp.status < 200 || resp.status >= 300) throw new Error('HTTP ' + resp.status);
-    return JSON.parse(resp.data);
+    const data = await httpGetJson(url);
+    return data;
   } catch (e) {
     throw new Error('Failed to fetch ' + url + ': ' + e.message);
   }
@@ -490,13 +539,13 @@ ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, end
 
     return new Promise((resolve, reject) => {
       const child = spawn(ytDlpPath, args, { cwd: app.getPath('userData') });
-      activeDownloads.set(downloadId, child);
+      activeDownloads.set(effectiveDownloadId, child);
 
       let stderr = '';
       let finished = false;
 
       child.on('error', (err) => {
-        activeDownloads.delete(downloadId);
+        activeDownloads.delete(effectiveDownloadId);
         if (finished) return;
         finished = true;
         resolve({ success: false, error: 'Failed to start yt-dlp: ' + err.message });
@@ -514,7 +563,7 @@ ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, end
             const speed = progressMatch[4] + (progressMatch[5] || '');
             const eta = progressMatch[6];
             event.sender.send('download-vod-progress', {
-              downloadId,
+              downloadId: effectiveDownloadId,
               percent: Math.min(100, Math.max(0, percent)),
               total,
               speed,
@@ -536,29 +585,29 @@ ipcMain.handle('download-vod', async (event, { downloadId, vodId, startTime, end
       });
 
       child.on('close', async (code) => {
-        activeDownloads.delete(downloadId);
+        activeDownloads.delete(effectiveDownloadId);
         if (finished) return;
         finished = true;
 
         if (code === 0 && fs.existsSync(outputPath)) {
-          resolve({ success: true, path: outputPath });
+          resolve({ success: true, path: outputPath, downloadId: effectiveDownloadId });
         } else {
           const errorDetail = stderr.slice(-2000);
-          resolve({ success: false, error: `Download failed with code ${code}: ${errorDetail || 'Unknown error'}` });
+          resolve({ success: false, error: `Download failed with code ${code}: ${errorDetail || 'Unknown error'}`, downloadId: effectiveDownloadId });
         }
       });
 
       setTimeout(() => {
         if (!finished) {
           child.kill('SIGTERM');
-          activeDownloads.delete(downloadId);
+          activeDownloads.delete(effectiveDownloadId);
           finished = true;
-          resolve({ success: false, error: 'Download timed out after 5 minutes' });
+          resolve({ success: false, error: 'Download timed out after 5 minutes', downloadId: effectiveDownloadId });
         }
       }, 300000);
     });
   } catch (e) {
-    return { success: false, error: 'Download failed: ' + (e.message || 'Unknown error') };
+    return { success: false, error: 'Download failed: ' + (e.message || 'Unknown error'), downloadId: effectiveDownloadId };
   }
 });
 

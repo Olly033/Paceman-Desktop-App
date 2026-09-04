@@ -552,12 +552,9 @@
     return `${MCHEADS}/skin/${id}`;
   }
 
-  async function getJSON(url, timeout = 10000) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
+  async function getJSON(url) {
     try {
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
+      const res = await fetch(url);
       if (!res.ok) throw new Error("HTTP " + res.status);
       try {
         return await res.json();
@@ -565,7 +562,13 @@
         throw new Error("Invalid JSON response from " + url);
       }
     } catch (e) {
-      clearTimeout(timeoutId);
+      if (window.pacemanAPI && typeof window.pacemanAPI.fetchJSON === "function") {
+        try {
+          return await window.pacemanAPI.fetchJSON(url);
+        } catch (e2) {
+          throw e;
+        }
+      }
       throw e;
     }
   }
@@ -698,10 +701,8 @@
       const key = EVENT_TO_SPLIT[eventId.replace("rsg.", "")];
       if (key) t[key] = ev.igt;
     }
-    if (!Object.keys(t).length) {
-      for (const k of SPLIT_ORDER) {
-        if (run[k] != null) t[k] = run[k];
-      }
+    for (const k of SPLIT_ORDER) {
+      if (run[k] != null) t[k] = run[k];
     }
     return t;
   }
@@ -710,18 +711,27 @@
 
   async function loadLiveRuns() {
     const list = document.getElementById("runsList");
-    if (state.liveRuns.length === 0 && list) list.innerHTML = '<div class="loading">Loading live runs...</div>';
+    const status = document.getElementById("liveStatus");
+    if (!list) {
+      console.error("runsList element not found");
+      if (status) status.textContent = "UI error: runsList missing";
+      return;
+    }
+    if (status) status.textContent = "Loading...";
+    if (state.liveRuns.length === 0) list.innerHTML = '<div class="loading">Loading live runs...</div>';
     try {
       const runs = await getJSON(LIVERUNS);
-      const filtered = runs.filter(
+      const data = Array.isArray(runs) ? runs : (runs && runs.value ? runs.value : []);
+      const filtered = data.filter(
         (r) => !r.isHidden && !r.isCheated && (r.gameVersion || "").startsWith("1.16") && !r.numLeaves
       );
+      cachePlayersFromRuns(data);
       const prevIds = state.liveRuns.map((r) => r.worldId || r.id).join(",");
       const nextIds = filtered.map((r) => r.worldId || r.id).join(",");
       const changed = prevIds !== nextIds || state.liveRuns.length !== filtered.length;
       const wasEmpty = state.liveRuns.length === 0;
       state.liveRuns = filtered;
-      cachePlayersFromRuns(runs);
+      if (status) status.textContent = `Loaded ${state.liveRuns.length} runs`;
       cleanupAutoOpenedStreams(state.liveRuns);
       pruneRuns();
       if (state.page === "home" && (changed || wasEmpty)) {
@@ -732,6 +742,8 @@
         }
       }
     } catch (e) {
+      console.error("Failed to load live runs:", e);
+      if (status) status.textContent = "Failed to load live runs";
       if (list) list.innerHTML = '<div class="loading">Failed to load live runs. Check your connection.</div>';
     }
   }
@@ -4086,6 +4098,8 @@
       });
     }
 
+    const vodTrim = document.getElementById("vodTrim");
+    const vodTrimEnabled = document.getElementById("vodTrimEnabled");
     if (vodTrimEnabled) {
       vodTrimEnabled.addEventListener("change", () => {
         vodTrimState.active = vodTrimEnabled.checked;
@@ -4118,16 +4132,19 @@
       headTargetRy = 0;
       headTargetRx = 0;
     });
-    document.getElementById("streamsToggle").addEventListener("click", () => {
-      const dock = document.getElementById("twitchDock");
-      if (!dock.classList.contains("visible")) {
-        dock.classList.add("visible");
-        dock.classList.remove("collapsed");
-      } else {
-        dock.classList.toggle("collapsed");
-      }
-      refreshDockLayout();
-    });
+    const streamsToggleEl = document.getElementById("streamsToggle");
+    if (streamsToggleEl) {
+      streamsToggleEl.addEventListener("click", () => {
+        const dock = document.getElementById("twitchDock");
+        if (!dock.classList.contains("visible")) {
+          dock.classList.add("visible");
+          dock.classList.remove("collapsed");
+        } else {
+          dock.classList.toggle("collapsed");
+        }
+        refreshDockLayout();
+      });
+    }
     const twitchDockClose = document.getElementById("twitchDockClose");
     if (twitchDockClose) {
       twitchDockClose.addEventListener("click", () => {
@@ -4950,7 +4967,6 @@
     const name = state.overlay.playerName;
     const uuid = state.overlay.playerUuid;
     const nameLower = name.toLowerCase();
-    const now = Date.now();
     const run = state.liveRuns
       .filter((r) => {
         const rNick = (r.nickname || "").toLowerCase();
@@ -4963,14 +4979,10 @@
       .filter((r) => {
         const times = splitTimes(r);
         if (times.finish != null) return false;
-        const runTs = (r.lastUpdated || getRunTimestamp(r) || 0);
-        if (runTs > 0 && now - runTs * 1000 > 5 * 60 * 1000) return false;
         return true;
       })
       .sort((a, b) => (getRunTimestamp(b) || 0) - (getRunTimestamp(a) || 0))[0] || null;
     if (!run) return null;
-    const runTs = (run.lastUpdated || getRunTimestamp(run) || 0);
-    if (runTs > 0 && now - runTs * 1000 > 5 * 60 * 1000) return null;
     const times = splitTimes(run);
     const hasSplits = SPLIT_ORDER.some((k) => times[k] != null);
     if (!hasSplits) return null;
@@ -4979,42 +4991,27 @@
 
   async function refreshOverlayRunFromAPI() {
     if (!state.overlay.playerName) return;
-    const name = state.overlay.playerName;
-    const uuid = state.overlay.playerUuid;
-    try {
-      const data = await getJSON(`${API}/getRecentRuns?name=${encodeURIComponent(name)}&hours=1&limit=10`);
-      if (!Array.isArray(data) || data.length === 0) {
-        state.overlay.run = null;
-        state.overlay._dirty = true;
-        return;
-      }
-      const withTime = data.map((r) => ({ ...r, _ts: r.lastUpdated || getRunTimestamp(r) })).filter((r) => r._ts > 0);
-      if (withTime.length === 0) {
-        state.overlay.run = null;
-        state.overlay._dirty = true;
-        return;
-      }
-      const sorted = withTime.sort((a, b) => b._ts - a._ts);
-      const latest = sorted[0];
-      const now = Date.now();
-      if (now - latest._ts * 1000 > 5 * 60 * 1000) {
-        state.overlay.run = null;
-        state.overlay._dirty = true;
-        return;
-      }
-      const times = splitTimes(latest);
-      if (times.finish != null) {
-        state.overlay.run = null;
-        state.overlay._dirty = true;
-        return;
-      }
-      const hasSplits = SPLIT_ORDER.some((k) => times[k] != null);
-      if (!hasSplits) return;
-      state.overlay.run = latest;
+    const run = getOverlayPlayerRun();
+    if (!run || !run.worldId) {
+      state.overlay.run = run;
       state.overlay._dirty = true;
-    } catch (e) {
-      // ignore API errors
+      return;
     }
+    try {
+      const res = await getJSON(`${API}/getWorld?worldId=${encodeURIComponent(run.worldId)}`);
+      const data = res && res.data ? res.data : res;
+      if (data && typeof data === "object") {
+        for (const k of SPLIT_ORDER) {
+          if (data[k] != null) run[k] = data[k];
+          const rtaKey = k + "Rta";
+          if (data[rtaKey] != null) run[rtaKey] = data[rtaKey];
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    state.overlay.run = run;
+    state.overlay._dirty = true;
   }
 
   function computeSessionBests(runs) {

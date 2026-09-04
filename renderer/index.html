@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Paceman v2.1.4</title>
+  <title>Paceman v3</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -46,12 +46,6 @@
           </svg>
         </button>
       </div>
-      <button class="streams-btn" id="streamsToggle" title="Toggle Twitch streams dock">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M4 2L3 6v13h4v3h3l3-3h4l5-5V2H4zm16 9l-3 3h-5l-3 3v-3H6V4h14v7z"></path>
-          <path d="M15 7h2v4h-2zM10 7h2v4h-2z"></svg>
-        <span id="streamsCount">0</span>
-      </button>
       <button class="refresh-btn" id="refreshBtn" title="Refresh">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M23 4v6h-6"></path>
@@ -75,6 +69,7 @@
       <div class="page active" id="page-home">
         <div class="page-header">
           <h1>Live Runs</h1>
+          <div class="live-status" id="liveStatus"></div>
           <div class="page-header-actions">
             <button class="filter-btn" id="filterBtn" title="Filters">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -227,26 +222,32 @@
         </div>
       </div>
       <div class="page" id="page-leaderboard">
-        <div class="page-header">
+        <div class="lb-header">
           <h1>Leaderboard</h1>
+          <p class="lb-subheader">Top players across all categories</p>
+        </div>
+        <div class="lb-controls">
           <div class="timeframe-tabs" id="leaderboardTimeframes">
-            <button class="timeframe-btn" data-tf="daily">Daily</button>
-            <button class="timeframe-btn active" data-tf="weekly">Weekly</button>
-            <button class="timeframe-btn" data-tf="monthly">Monthly</button>
+            <button class="timeframe-btn" data-tf="daily">24h</button>
+            <button class="timeframe-btn active" data-tf="weekly">7d</button>
+            <button class="timeframe-btn" data-tf="monthly">30d</button>
             <button class="timeframe-btn" data-tf="lifetime">Lifetime</button>
           </div>
           <div class="lb-sort-toggle" id="lbSortToggle">
             <button class="lb-sort-btn active" data-sort="enters">Enters</button>
             <button class="lb-sort-btn" data-sort="avg">Avg Time</button>
+            <button class="lb-sort-btn" data-sort="avg+enters">Avg + Enters</button>
           </div>
+          <button class="structure-toggle" id="lbStructureToggle" title="Toggle Bastion/Fortress vs 1st/2nd Structure">
+            <span class="structure-toggle-label">1st/2nd</span>
+          </button>
         </div>
-        <div class="lb-grid" id="leaderboardGrid"></div>
+        <div class="lb-table" id="leaderboardGrid"></div>
       </div>
       <div class="page" id="page-overlay">
         <div class="page-header">
           <div class="header-content">
             <h1>Live Overlay</h1>
-            <p class="header-subtitle">Generate and export your live overlay PNG</p>
           </div>
           <div class="page-header-actions">
             <div class="search-container">
@@ -274,18 +275,16 @@
           </div>
         </div>
         <div class="overlay-layout">
-          <div class="overlay-main">
-            <div class="glass-card preview-card">
-              <div class="card-header">
-                <h2>Preview</h2>
-                <span class="card-badge">600 × 140</span>
-              </div>
-              <div class="canvas-wrapper">
-                <canvas id="overlayCanvas" width="600" height="140"></canvas>
-              </div>
+          <div class="glass-card preview-card">
+            <div class="card-header">
+              <h2>Preview</h2>
+              <span class="card-badge">600 × 140</span>
+            </div>
+            <div class="canvas-wrapper">
+              <canvas id="overlayCanvas" width="600" height="140"></canvas>
             </div>
           </div>
-          <div class="overlay-sidebar">
+          <div class="overlay-grid">
             <div class="glass-card path-card">
               <div class="card-header">
                 <h2>Export Path</h2>
@@ -298,27 +297,25 @@
               </div>
               <div class="path-display" id="overlayPath" title="Local file path - use copy button to copy" style="display:none"></div>
             </div>
+            <div class="glass-card browser-source-card">
+              <div class="card-header">
+                <h2>Browser Source</h2>
+              </div>
+              <div class="browser-source-controls">
+                <button class="theme-btn primary-btn" id="overlayStartServerBtn">Start Server</button>
+                <button class="theme-btn" id="overlayStopServerBtn" title="Stop server" style="display:none">Stop Server</button>
+                <button class="theme-btn" id="overlayCopyUrlBtn" title="Copy browser source URL">Copy URL</button>
+              </div>
+              <div class="path-display" id="overlayBrowserUrl" style="display:none"></div>
+              <div class="obs-tip">In Toolscreen browser source settings, check <strong>Transparent (slower)</strong> for best results.</div>
+            </div>
             <div class="glass-card pace-card">
               <div class="card-header">
                 <h2>Pace Targets</h2>
-                <span class="card-hint">Per-split target times</span>
               </div>
               <div class="pace-inputs" id="paceInputs"></div>
               <button class="theme-btn primary-btn" id="paceSaveBtn">Save Pace</button>
             </div>
-              <div class="glass-card browser-source-card">
-                <div class="card-header">
-                  <h2>Browser Source</h2>
-                  <span class="card-hint">For OBS / streaming</span>
-                </div>
-                <div class="browser-source-controls">
-                  <button class="theme-btn primary-btn" id="overlayStartServerBtn">Start Server</button>
-                  <button class="theme-btn" id="overlayStopServerBtn" title="Stop server" style="display:none">Stop Server</button>
-                  <button class="theme-btn" id="overlayCopyUrlBtn" title="Copy browser source URL">Copy URL</button>
-                </div>
-                <div class="path-display" id="overlayBrowserUrl" style="display:none"></div>
-                <div class="obs-tip">In Toolscreen browser source settings, check <strong>Transparent (slower)</strong> for best results.</div>
-              </div>
             <div class="glass-card settings-card">
               <div class="card-header">
                 <h2>Overlay Settings</h2>
@@ -417,7 +414,8 @@
           <button class="twitch-dock-layout" id="twitchDockLayout" title="Toggle side / bottom layout">&#9634;</button>
           <button class="twitch-dock-fullscreen" id="twitchDockFullscreen" title="Fullscreen">&#x26F6;</button>
           <button class="twitch-dock-fullscreen-layout" id="twitchDockFullscreenLayout" title="Toggle fullscreen layout" style="display:none">&#9638;</button>
-        <button class="twitch-dock-close" id="twitchDockClose" title="Close dock">&times;</button>
+          <button class="twitch-dock-collapse" id="twitchDockCollapse" title="Collapse dock">&#x2193;</button>
+          <button class="twitch-dock-close" id="twitchDockClose" title="Close dock">&times;</button>
         </div>
       </div>
       <div class="twitch-dock-body">
