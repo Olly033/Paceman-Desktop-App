@@ -731,7 +731,6 @@
       const changed = prevIds !== nextIds || state.liveRuns.length !== filtered.length;
       const wasEmpty = state.liveRuns.length === 0;
       state.liveRuns = filtered;
-      if (status) status.textContent = `Loaded ${state.liveRuns.length} runs`;
       cleanupAutoOpenedStreams(state.liveRuns);
       pruneRuns();
       if (state.page === "home" && (changed || wasEmpty)) {
@@ -2572,6 +2571,32 @@
         });
         byCat[cat] = raw.slice(0, 100);
       });
+      if ((state.structureView || "firstSecond") === "firstSecond") {
+        const bastion = byCat.bastion || [];
+        const fortress = byCat.fortress || [];
+        const keyOf = (p) => p.uuid || p.name;
+        const bastionMap = new Map(bastion.map((p) => [keyOf(p), p]));
+        const fortressMap = new Map(fortress.map((p) => [keyOf(p), p]));
+        const allKeys = new Set([...bastionMap.keys(), ...fortressMap.keys()]);
+        const firstArr = [];
+        const secondArr = [];
+        for (const k of allKeys) {
+          const b = bastionMap.get(k);
+          const f = fortressMap.get(k);
+          const name = (b && b.name) || (f && f.name) || k;
+          const uuid = (b && b.uuid) || (f && f.uuid) || "";
+          if (b && f) {
+            firstArr.push({ uuid, name, count: b.count, avg: b.avg, quality: b.quality });
+            secondArr.push({ uuid, name, count: f.count, avg: f.avg, quality: f.quality });
+          } else if (b) {
+            firstArr.push({ uuid, name, count: b.count, avg: b.avg, quality: b.quality });
+          } else if (f) {
+            firstArr.push({ uuid, name, count: f.count, avg: f.avg, quality: f.quality });
+          }
+        }
+        byCat.bastion = firstArr.slice(0, 100);
+        byCat.fortress = secondArr.slice(0, 100);
+      }
       state.leaderboard.rows = byCat;
       if (tf === "daily") {
         state.dailyLeaderboardTop10 = {};
@@ -2642,7 +2667,15 @@
           <button class="lb-page-btn" data-cat="${cat}" data-dir="next" ${catPage >= totalPages ? "disabled" : ""}>&gt;</button>
         </div>
       ` : "";
-      card.innerHTML = `<div class="lb-card-head">${SPLITS[cat]} <span class="lb-card-rank-label">${rankLabel}</span></div><div class="lb-card-list">${rowsHtml || '<div class="loading">No data.</div>'}</div>${paginationHtml}`;
+      let cardLabel = SPLITS[cat];
+      if ((state.structureView || "firstSecond") === "bastionFort") {
+        if (cat === "bastion") cardLabel = "Bastion";
+        else if (cat === "fortress") cardLabel = "Fortress";
+      } else {
+        if (cat === "bastion") cardLabel = "First Structure";
+        else if (cat === "fortress") cardLabel = "Second Structure";
+      }
+      card.innerHTML = `<div class="lb-card-head">${cardLabel} <span class="lb-card-rank-label">${rankLabel}</span></div><div class="lb-card-list">${rowsHtml || '<div class="loading">No data.</div>'}</div>${paginationHtml}`;
       grid.appendChild(card);
     }
     grid.querySelectorAll(".lb-card-row").forEach((row) => {
@@ -3069,6 +3102,33 @@
         loadLeaderboard(true);
       });
     });
+    const lbStructureToggle = document.getElementById("lbStructureToggle");
+    if (lbStructureToggle) {
+      lbStructureToggle.classList.toggle("active", state.structureView === "bastionFort");
+      const label = lbStructureToggle.querySelector(".structure-toggle-label");
+      if (label) label.textContent = state.structureView === "bastionFort" ? "Bastion/Fort" : "1st/2nd";
+      lbStructureToggle.addEventListener("click", () => {
+        const current = state.structureView || "firstSecond";
+        const next = current === "firstSecond" ? "bastionFort" : "firstSecond";
+        state.structureView = next;
+        localStorage.setItem("paceman_structure_view", next);
+        lbStructureToggle.classList.toggle("active", next === "bastionFort");
+        if (label) label.textContent = next === "bastionFort" ? "Bastion/Fort" : "1st/2nd";
+        const structureToggle = document.getElementById("structureToggle");
+        if (structureToggle) {
+          structureToggle.classList.toggle("active", next === "bastionFort");
+          const sl = structureToggle.querySelector(".structure-toggle-label");
+          if (sl) sl.textContent = next === "bastionFort" ? "Bastion/Fort" : "1st/2nd";
+        }
+        if (state.page === "leaderboard") {
+          state.leaderboard.rows = null;
+          state.leaderboard.pages = {};
+          loadLeaderboard(true);
+        } else if (state.leaderboard.rows) {
+          renderLeaderboard(state.leaderboard.rows);
+        }
+      });
+    }
     const structureToggle = document.getElementById("structureToggle");
     if (structureToggle) {
       const savedView = localStorage.getItem("paceman_structure_view") || "firstSecond";
@@ -3082,6 +3142,17 @@
         localStorage.setItem("paceman_structure_view", next);
         structureToggle.classList.toggle("active", next === "bastionFort");
         structureToggle.querySelector(".structure-toggle-label").textContent = next === "bastionFort" ? "Bastion/Fort" : "1st/2nd";
+        const lbStructureToggle = document.getElementById("lbStructureToggle");
+        if (lbStructureToggle) {
+          lbStructureToggle.classList.toggle("active", next === "bastionFort");
+          const ll = lbStructureToggle.querySelector(".structure-toggle-label");
+          if (ll) ll.textContent = next === "bastionFort" ? "Bastion/Fort" : "1st/2nd";
+          if (state.page === "leaderboard") {
+            state.leaderboard.rows = null;
+            state.leaderboard.pages = {};
+            loadLeaderboard(true);
+          }
+        }
         const activeSession = state.profile.selectedSessionData;
         if (activeSession) {
           showSessionInMain(activeSession);
