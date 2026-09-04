@@ -896,15 +896,10 @@
     if (uuid) {
       const currentName = await getCurrentNameForUUID(uuid);
       if (currentName && currentName !== name) {
-        if (noticeTextEl) noticeTextEl.textContent = `${name} is now known as ${currentName}`;
-        if (noticeLinkEl) {
-          noticeLinkEl.href = `#/player/${encodeURIComponent(currentName)}`;
-          noticeLinkEl.onclick = (e) => {
-            e.preventDefault();
-            openProfile(currentName, uuid);
-          };
-        }
-        if (noticeEl) noticeEl.style.display = "flex";
+        name = currentName;
+        state.profile.name = name;
+        if (profileName) profileName.textContent = name;
+        if (navIndex >= 0 && navHistory[navIndex]) navHistory[navIndex].name = name;
       }
     }
 
