@@ -340,6 +340,7 @@
   let suppressNavPush = false;
   let liveRunsIntervalId = null;
   let liveRunsLoading = false;
+  let hasLoadedLiveRuns = false;
   const MAX_LIVE_RUNS = 200;
 
   function startLiveRunsPolling() {
@@ -729,7 +730,7 @@
       liveRunsLoading = false;
       return;
     }
-    if (state.liveRuns.length === 0) list.innerHTML = '<div class="loading">Loading...</div>';
+    if (!hasLoadedLiveRuns && state.liveRuns.length === 0) list.innerHTML = '<div class="loading">Loading...</div>';
     try {
       const runs = await getJSON(LIVERUNS);
       const data = Array.isArray(runs) ? runs : (runs && runs.value ? runs.value : []);
@@ -742,6 +743,7 @@
       const changed = prevIds !== nextIds || state.liveRuns.length !== filtered.length;
       const wasEmpty = state.liveRuns.length === 0;
       state.liveRuns = filtered;
+      if (filtered.length > 0) hasLoadedLiveRuns = true;
       cleanupAutoOpenedStreams(state.liveRuns);
       pruneRuns();
       if (state.page === "home" && (changed || wasEmpty)) {
