@@ -740,8 +740,6 @@
       }
     } catch (e) {
       console.error("Failed to load live runs:", e);
-      if (status) status.textContent = "Failed to load live runs";
-      if (list) list.innerHTML = '<div class="loading">Failed to load live runs. Check your connection.</div>';
     }
   }
 
