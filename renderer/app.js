@@ -942,11 +942,9 @@
         profileStatsRow.insertBefore(badge, profileStatsRow.firstChild);
       }
     }
-    const profileSplits = document.getElementById("profileSplits");
-    const profileBestRuns = document.getElementById("profileBestRuns");
+    profileSplits.classList.remove("animate-cards");
+    profileBestRuns.classList.remove("animate-cards");
     const recentSessions = document.getElementById("recentSessions");
-    if (profileSplits) profileSplits.classList.remove("animate-cards");
-    if (profileBestRuns) profileBestRuns.classList.remove("animate-cards");
     if (recentSessions) recentSessions.classList.remove("animate-cards");
   }
 
