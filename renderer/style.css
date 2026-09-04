@@ -1662,7 +1662,7 @@ body {
   border: 1px solid var(--border-glass);
   border-radius: 8px;
   padding: 4px;
-  z-index: 500;
+  z-index: 9999;
   opacity: 0;
   pointer-events: none;
   transform: translateY(-6px) scale(0.96);
