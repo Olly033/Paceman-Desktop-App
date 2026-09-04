@@ -5434,9 +5434,22 @@ function drawOverlayAvatarFromDataUrl(ctx, dataUrl, x, y, size) {
     });
   }
 
+  function showInitError(e) {
+    console.error("init() failed:", e);
+    const body = document.body;
+    if (body) {
+      body.innerHTML = `<div style="padding:40px;color:#f87171;font-family:monospace;font-size:14px;background:#1a0000;position:fixed;inset:0;z-index:99999;overflow:auto;">
+        <h2 style="margin-top:0;">Init Error</h2>
+        <pre>${escapeHtml((e && e.message ? e.message : String(e)) + "\n" + (e && e.stack ? e.stack : ""))}</pre>
+      </div>`;
+    }
+  }
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", () => {
+      try { init(); } catch (e) { showInitError(e); }
+    });
   } else {
-    init();
+    try { init(); } catch (e) { showInitError(e); }
   }
 })();
