@@ -137,6 +137,10 @@
     { name: "sunset", label: "Sunset" },
     { name: "blackout", label: "Blackout" },
     { name: "light", label: "Light" },
+    { name: "neon", label: "Neon" },
+    { name: "rose", label: "Rose" },
+    { name: "frost", label: "Frost" },
+    { name: "cyber", label: "Cyber" },
   ];
 
   const state = {
