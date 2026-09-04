@@ -1208,19 +1208,22 @@ body {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   cursor: pointer;
+}
+
+.runs-list.animate-cards .run-card {
   animation: cardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.run-card:nth-child(1) { animation-delay: 0.02s; }
-.run-card:nth-child(2) { animation-delay: 0.06s; }
-.run-card:nth-child(3) { animation-delay: 0.10s; }
-.run-card:nth-child(4) { animation-delay: 0.14s; }
-.run-card:nth-child(5) { animation-delay: 0.18s; }
-.run-card:nth-child(6) { animation-delay: 0.22s; }
-.run-card:nth-child(7) { animation-delay: 0.26s; }
-.run-card:nth-child(8) { animation-delay: 0.30s; }
-.run-card:nth-child(9) { animation-delay: 0.34s; }
-.run-card:nth-child(10) { animation-delay: 0.38s; }
+.runs-list.animate-cards .run-card:nth-child(1) { animation-delay: 0.02s; }
+.runs-list.animate-cards .run-card:nth-child(2) { animation-delay: 0.06s; }
+.runs-list.animate-cards .run-card:nth-child(3) { animation-delay: 0.10s; }
+.runs-list.animate-cards .run-card:nth-child(4) { animation-delay: 0.14s; }
+.runs-list.animate-cards .run-card:nth-child(5) { animation-delay: 0.18s; }
+.runs-list.animate-cards .run-card:nth-child(6) { animation-delay: 0.22s; }
+.runs-list.animate-cards .run-card:nth-child(7) { animation-delay: 0.26s; }
+.runs-list.animate-cards .run-card:nth-child(8) { animation-delay: 0.30s; }
+.runs-list.animate-cards .run-card:nth-child(9) { animation-delay: 0.34s; }
+.runs-list.animate-cards .run-card:nth-child(10) { animation-delay: 0.38s; }
 
 @keyframes cardIn {
   from { opacity: 0; transform: translateY(16px) scale(0.96); }

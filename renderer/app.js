@@ -850,6 +850,9 @@
         }
       }
     }
+    if (list.classList.contains("animate-cards")) {
+      list.classList.remove("animate-cards");
+    }
   }
 
   /* ---------------- Profile ---------------- */
@@ -2985,7 +2988,9 @@
     if (p === "home") {
       document.getElementById("page-home").classList.add("active");
       document.querySelector('[data-page="home"]').classList.add("active");
-      document.getElementById("runsList").style.display = "";
+      const runsList = document.getElementById("runsList");
+      if (runsList) runsList.classList.add("animate-cards");
+      runsList.style.display = "";
       startLiveRunsPolling();
       if (!suppressNavPush) pushNav({ page: "home" });
     } else if (p === "favorites") {
